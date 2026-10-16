@@ -1,0 +1,46 @@
+# RESQNET AI — NLP Configuration
+
+dataset:
+  raw_dir: "data/nlp/datasets/raw/humaid"
+  fallback_dir: "data/humaid"
+  processed_dir: "data/nlp/datasets/processed"
+  splits_dir: "data/nlp/datasets/splits"
+  train_file: "train.jsonl"
+  val_file: "dev.jsonl"
+  test_file: "test.jsonl"
+  text_column: "tweet_text"
+  label_column: "class_label"
+
+model:
+  pretrained_model_name: "distilbert/distilbert-base-uncased"
+  max_seq_length: 128
+  model_save_dir: "data/nlp/models/resqnet_distilbert"
+  label_mapping_file: "data/nlp/models/resqnet_distilbert/label_mapping.json"
+
+training:
+  seed: 42
+  learning_rate: 2.0e-5
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 32
+  num_train_epochs: 3
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "macro_f1"
+  greater_is_better: true
+  logging_steps: 100
+  fp16: false
+  output_dir: "data/nlp/models/checkpoints"
+  resume_from_checkpoint: null
+
+evaluation:
+  metrics_dir: "data/nlp/outputs/metrics"
+  plots_dir: "data/nlp/outputs/plots"
+  predictions_dir: "data/nlp/outputs/predictions"
+
+inference:
+  device: "auto"
+  batch_size: 32
+  threshold: 0.0

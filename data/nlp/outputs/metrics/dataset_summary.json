@@ -1,0 +1,74 @@
+{
+  "dataset_name": "HumAID",
+  "dataset_directory": "D:\\user\\Documents\\nex_3\\data\\nlp\\datasets\\raw\\humaid",
+  "total_records_all_splits": 76484,
+  "splits": {
+    "train": {
+      "record_count": 53531,
+      "missing_text_count": 0,
+      "missing_label_count": 0,
+      "malformed_lines": 0
+    },
+    "dev": {
+      "record_count": 7793,
+      "missing_text_count": 0,
+      "missing_label_count": 0,
+      "malformed_lines": 0
+    },
+    "test": {
+      "record_count": 15160,
+      "missing_text_count": 0,
+      "missing_label_count": 0,
+      "malformed_lines": 0
+    }
+  },
+  "num_classes": 10,
+  "classes": [
+    "caution_and_advice",
+    "displaced_people_and_evacuations",
+    "infrastructure_and_utility_damage",
+    "injured_or_dead_people",
+    "missing_or_found_people",
+    "not_humanitarian",
+    "other_relevant_information",
+    "requests_or_urgent_needs",
+    "rescue_volunteering_or_donation_effort",
+    "sympathy_and_support"
+  ],
+  "label_inconsistencies": {},
+  "text_statistics": {
+    "train": {
+      "word_count_min": 3,
+      "word_count_max": 96,
+      "word_count_mean": 22.11,
+      "word_count_median": 19.0,
+      "char_count_mean": 141.62
+    },
+    "dev": {
+      "word_count_min": 3,
+      "word_count_max": 64,
+      "word_count_mean": 22.01,
+      "word_count_median": 19.0,
+      "char_count_mean": 141.08
+    },
+    "test": {
+      "word_count_min": 3,
+      "word_count_max": 99,
+      "word_count_mean": 22.12,
+      "word_count_median": 19.0,
+      "char_count_mean": 141.81
+    }
+  },
+  "data_leakage_and_duplicates": {
+    "train_dev_overlap_unique_texts": 4,
+    "train_test_overlap_unique_texts": 0,
+    "dev_test_overlap_unique_texts": 0,
+    "internal_duplicates": {
+      "train": 0,
+      "dev": 1,
+      "test": 1
+    },
+    "leakage_note": "Overlapping tweets between splits typically arise from viral retweets in disaster events. Official HumAID event-based or time-based splits are preserved, but leakage should be noted in evaluation."
+  },
+  "verification_status": "PASSED - Dataset valid and ready for training"
+}

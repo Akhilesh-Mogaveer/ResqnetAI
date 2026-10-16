@@ -1,0 +1,82 @@
+{
+  "caution_and_advice": {
+    "train_count": 3774,
+    "train_pct": 7.05,
+    "dev_count": 550,
+    "dev_pct": 7.06,
+    "test_count": 1070,
+    "test_pct": 7.06
+  },
+  "displaced_people_and_evacuations": {
+    "train_count": 2800,
+    "train_pct": 5.23,
+    "dev_count": 409,
+    "dev_pct": 5.25,
+    "test_count": 790,
+    "test_pct": 5.21
+  },
+  "infrastructure_and_utility_damage": {
+    "train_count": 5715,
+    "train_pct": 10.68,
+    "dev_count": 831,
+    "dev_pct": 10.66,
+    "test_count": 1617,
+    "test_pct": 10.67
+  },
+  "injured_or_dead_people": {
+    "train_count": 5110,
+    "train_pct": 9.55,
+    "dev_count": 746,
+    "dev_pct": 9.57,
+    "test_count": 1447,
+    "test_pct": 9.54
+  },
+  "missing_or_found_people": {
+    "train_count": 250,
+    "train_pct": 0.47,
+    "dev_count": 36,
+    "dev_pct": 0.46,
+    "test_count": 72,
+    "test_pct": 0.47
+  },
+  "not_humanitarian": {
+    "train_count": 4407,
+    "train_pct": 8.23,
+    "dev_count": 644,
+    "dev_pct": 8.26,
+    "test_count": 1245,
+    "test_pct": 8.21
+  },
+  "other_relevant_information": {
+    "train_count": 8501,
+    "train_pct": 15.88,
+    "dev_count": 1236,
+    "dev_pct": 15.86,
+    "test_count": 2407,
+    "test_pct": 15.88
+  },
+  "requests_or_urgent_needs": {
+    "train_count": 1833,
+    "train_pct": 3.42,
+    "dev_count": 264,
+    "dev_pct": 3.39,
+    "test_count": 521,
+    "test_pct": 3.44
+  },
+  "rescue_volunteering_or_donation_effort": {
+    "train_count": 14891,
+    "train_pct": 27.82,
+    "dev_count": 2168,
+    "dev_pct": 27.82,
+    "test_count": 4219,
+    "test_pct": 27.83
+  },
+  "sympathy_and_support": {
+    "train_count": 6250,
+    "train_pct": 11.68,
+    "dev_count": 909,
+    "dev_pct": 11.66,
+    "test_count": 1772,
+    "test_pct": 11.69
+  }
+}
