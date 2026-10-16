@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DuplicateSuggestionsCard from './DuplicateSuggestionsCard';
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -16,7 +17,8 @@ import {
   Crosshair,
   UserCheck,
   TrendingUp,
-  RotateCcw
+  RotateCcw,
+  GitMerge
 } from 'lucide-react';
 
 export default function IncidentDetailPanel({ 
@@ -26,6 +28,8 @@ export default function IncidentDetailPanel({
   onAssignTeam,
   onOpenOverrideModal,
   onAddNote,
+  onDuplicateMerged,
+  onShowToast,
   responseTeams
 }) {
   const [copiedId, setCopiedId] = useState(false);
@@ -181,6 +185,50 @@ export default function IncidentDetailPanel({
             </div>
           </div>
         </div>
+
+        {/* HumAID NLP Categorization & Original Report Text */}
+        {(incident.humaid_category || incident.report_text) && (
+          <div className="bg-[#080d1a] border border-cyan-800/40 rounded-lg p-3">
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1.5">
+              <span className="flex items-center space-x-1.5 text-cyan-400">
+                <FileText className="w-3.5 h-3.5" />
+                <span>HumAID NLP Categorization</span>
+              </span>
+              {incident.humaid_confidence !== undefined && incident.humaid_confidence !== null && (
+                <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 font-semibold text-[10px]">
+                  {(incident.humaid_confidence * 100).toFixed(1)}% Confidence
+                </span>
+              )}
+            </div>
+
+            {incident.humaid_category && (
+              <div className="mb-2">
+                <span className="text-[10px] text-slate-400 font-mono block mb-0.5">Suggested Humanitarian Category:</span>
+                <span className="inline-block px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800 text-cyan-200 font-mono text-xs font-semibold uppercase tracking-wide">
+                  {incident.humaid_category.replace(/_/g, ' ')}
+                </span>
+              </div>
+            )}
+
+            {incident.report_text && (
+              <div className="text-[11px] text-slate-300 bg-[#0c1424] p-2 rounded border border-[#18233c] font-mono leading-relaxed">
+                <span className="text-[9px] text-slate-400 uppercase block mb-1">Preserved Original Report Text:</span>
+                "{incident.report_text}"
+              </div>
+            )}
+
+            <div className="mt-1.5 text-[9px] font-mono text-slate-400 italic">
+              * Triage suggestion only. Verification status and dispatch priority remain independent coordinator decisions.
+            </div>
+          </div>
+        )}
+
+        {/* Explainable Duplicate Suggestions & Corroboration */}
+        <DuplicateSuggestionsCard
+          incident={incident}
+          onDuplicateMerged={onDuplicateMerged}
+          onShowToast={onShowToast}
+        />
 
         {/* Signal Synthesis Box */}
         <div className="bg-[#080d1a] border border-cyan-900/40 rounded-lg p-3 relative overflow-hidden">

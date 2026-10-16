@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 import SummaryCards from './components/SummaryCards';
@@ -10,11 +10,14 @@ import CoordinatorOverrideModal from './components/CoordinatorOverrideModal';
 import AuditLogView from './components/AuditLogView';
 import ExportBriefModal from './components/ExportBriefModal';
 import BroadcastModal from './components/BroadcastModal';
+import NewIncidentModal from './components/NewIncidentModal';
+
+import api from './services/api';
 
 import { 
   INITIAL_INCIDENTS, 
   ATTENTION_NEEDED_ZONES, 
-  INITIAL_AUDIT_LOG,
+  INITIAL_AUDIT_LOG, 
   RESPONSE_TEAMS 
 } from './data/mockData';
 
@@ -26,7 +29,9 @@ import {
   Bell, 
   ShieldCheck,
   Zap,
-  ListOrdered
+  ListOrdered,
+  RefreshCw,
+  Server
 } from 'lucide-react';
 
 export default function App() {
@@ -37,18 +42,67 @@ export default function App() {
   const [auditLog, setAuditLog] = useState(INITIAL_AUDIT_LOG);
   const [responseTeams, setResponseTeams] = useState(RESPONSE_TEAMS);
 
+  // Backend Integration State
+  const [backendConnected, setBackendConnected] = useState(null); // null = checking, true = live, false = fallback
+  const [backendError, setBackendError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Modals
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const [isExportBriefOpen, setIsExportBriefOpen] = useState(false);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [isNewIncidentModalOpen, setIsNewIncidentModalOpen] = useState(false);
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg, type = 'info') => {
     setToastMessage({ msg, type });
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(null), 4500);
   };
+
+  // Load Initial Data from Backend (with graceful mock fallback)
+  const loadDashboardData = useCallback(async (isRetry = false) => {
+    setIsLoading(true);
+    try {
+      await api.getHealth();
+      const [apiIncidents, apiZones, apiAuditLogs] = await Promise.all([
+        api.getIncidents(),
+        api.getAttentionZones(),
+        api.getAuditLogs()
+      ]);
+
+      if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
+        setIncidents(apiIncidents);
+        setSelectedIncidentId(apiIncidents[0].id);
+      }
+      if (Array.isArray(apiZones) && apiZones.length > 0) {
+        setAttentionZones(apiZones);
+      }
+      if (Array.isArray(apiAuditLogs) && apiAuditLogs.length > 0) {
+        setAuditLog(apiAuditLogs);
+      }
+
+      setBackendConnected(true);
+      setBackendError(null);
+      if (isRetry) {
+        showToast("Connected to RESQNET AI Backend!", "success");
+      }
+    } catch (err) {
+      console.warn("Backend not reached, running in offline fallback mode:", err.message);
+      setBackendConnected(false);
+      setBackendError(err.message || "FastAPI backend unreachable at " + api.getBaseUrl());
+      if (isRetry) {
+        showToast("Backend connection failed. Using local fallback data.", "alert");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const selectedIncident = incidents.find(i => i.id === selectedIncidentId) || incidents[0];
 
@@ -62,22 +116,28 @@ export default function App() {
   };
 
   // 1. Change Verification Status (Kept strictly separate from response status!)
-  const handleVerifyStatusChange = (incidentId, newStatus) => {
-    setIncidents(prev => prev.map(inc => {
-      if (inc.id === incidentId) {
-        const oldStatus = inc.verificationStatus;
-        return {
-          ...inc,
-          verificationStatus: newStatus
-        };
+  const handleVerifyStatusChange = async (incidentId, newStatus) => {
+    // Optimistic UI update
+    setIncidents(prev => prev.map(inc => inc.id === incidentId ? { ...inc, verificationStatus: newStatus } : inc));
+
+    if (backendConnected) {
+      try {
+        const updated = await api.updateVerificationStatus(incidentId, newStatus);
+        setIncidents(prev => prev.map(inc => inc.id === incidentId ? updated : inc));
+        const logs = await api.getAuditLogs();
+        setAuditLog(logs);
+        showToast(`Verification status for ${incidentId} updated to ${newStatus.toUpperCase()}`, 'success');
+        return;
+      } catch (err) {
+        console.error("Failed to update verification status on backend:", err);
+        showToast(`Server update failed: ${err.message}`, 'alert');
       }
-      return inc;
-    }));
+    }
 
     const currentInc = incidents.find(i => i.id === incidentId);
     const oldStatus = currentInc ? currentInc.verificationStatus : 'unverified';
 
-    // Append to Audit Log
+    // Append to Local Audit Log
     const newLog = {
       id: `aud-${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -89,26 +149,32 @@ export default function App() {
       reason: `Coordinator manual verification status transition to ${newStatus}. Ground truth corroboration.`
     };
     setAuditLog(prev => [newLog, ...prev]);
-
     showToast(`Verification status for ${incidentId} updated to ${newStatus.toUpperCase()}`, 'success');
   };
 
   // 2. Change Response Status
-  const handleResponseStatusChange = (incidentId, newStatus) => {
-    setIncidents(prev => prev.map(inc => {
-      if (inc.id === incidentId) {
-        return {
-          ...inc,
-          responseStatus: newStatus
-        };
+  const handleResponseStatusChange = async (incidentId, newStatus) => {
+    // Optimistic UI update
+    setIncidents(prev => prev.map(inc => inc.id === incidentId ? { ...inc, responseStatus: newStatus } : inc));
+
+    if (backendConnected) {
+      try {
+        const updated = await api.updateResponseStatus(incidentId, newStatus);
+        setIncidents(prev => prev.map(inc => inc.id === incidentId ? updated : inc));
+        const logs = await api.getAuditLogs();
+        setAuditLog(logs);
+        showToast(`Response status for ${incidentId} set to ${newStatus.toUpperCase()}`, 'info');
+        return;
+      } catch (err) {
+        console.error("Failed to update response status on backend:", err);
+        showToast(`Server update failed: ${err.message}`, 'alert');
       }
-      return inc;
-    }));
+    }
 
     const currentInc = incidents.find(i => i.id === incidentId);
     const oldStatus = currentInc ? currentInc.responseStatus : 'unassigned';
 
-    // Append to Audit Log
+    // Append to Local Audit Log
     const newLog = {
       id: `aud-${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -120,12 +186,11 @@ export default function App() {
       reason: `Response lifecycle moved from ${oldStatus} to ${newStatus}.`
     };
     setAuditLog(prev => [newLog, ...prev]);
-
     showToast(`Response status for ${incidentId} set to ${newStatus.toUpperCase()}`, 'info');
   };
 
   // 3. Assign Response Team
-  const handleAssignTeam = (incidentId, teamName) => {
+  const handleAssignTeam = async (incidentId, teamName) => {
     setIncidents(prev => prev.map(inc => {
       if (inc.id === incidentId) {
         return {
@@ -136,6 +201,20 @@ export default function App() {
       }
       return inc;
     }));
+
+    if (backendConnected) {
+      try {
+        const updated = await api.assignResponseTeam(incidentId, teamName);
+        setIncidents(prev => prev.map(inc => inc.id === incidentId ? updated : inc));
+        const logs = await api.getAuditLogs();
+        setAuditLog(logs);
+        showToast(`${teamName} assigned to ${incidentId}`, 'info');
+        return;
+      } catch (err) {
+        console.error("Failed to assign team on backend:", err);
+        showToast(`Server assignment failed: ${err.message}`, 'alert');
+      }
+    }
 
     if (teamName) {
       const newLog = {
@@ -154,9 +233,24 @@ export default function App() {
   };
 
   // 4. Save Coordinator Override
-  const handleSaveOverride = (overrideData) => {
+  const handleSaveOverride = async (overrideData) => {
     const { incidentId, oldScore, newScore, oldStatus, newStatus, reason } = overrideData;
 
+    if (backendConnected) {
+      try {
+        const updated = await api.savePriorityOverride(incidentId, overrideData);
+        setIncidents(prev => prev.map(inc => inc.id === incidentId ? updated : inc));
+        const logs = await api.getAuditLogs();
+        setAuditLog(logs);
+        showToast(`Priority Override for ${incidentId} recorded in Audit Log`, 'success');
+        return;
+      } catch (err) {
+        console.error("Failed to save override on backend:", err);
+        showToast(`Server override failed: ${err.message}`, 'alert');
+      }
+    }
+
+    // Local state fallback
     setIncidents(prev => prev.map(inc => {
       if (inc.id === incidentId) {
         return {
@@ -177,7 +271,6 @@ export default function App() {
       return inc;
     }));
 
-    // Add to Audit Log
     const newLog = {
       id: `aud-${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -189,12 +282,25 @@ export default function App() {
       reason: reason
     };
     setAuditLog(prev => [newLog, ...prev]);
-
     showToast(`Priority Override for ${incidentId} recorded in Audit Log`, 'success');
   };
 
   // 5. Add Coordinator Note
-  const handleAddNote = (incidentId, noteText) => {
+  const handleAddNote = async (incidentId, noteText) => {
+    if (backendConnected) {
+      try {
+        const updated = await api.addIncidentNote(incidentId, {
+          author: "Coordinator Jordan Davis",
+          text: noteText
+        });
+        setIncidents(prev => prev.map(inc => inc.id === incidentId ? updated : inc));
+        showToast(`Note appended to ${incidentId}`, 'info');
+        return;
+      } catch (err) {
+        console.error("Failed to add note on backend:", err);
+      }
+    }
+
     setIncidents(prev => prev.map(inc => {
       if (inc.id === incidentId) {
         return {
@@ -216,16 +322,21 @@ export default function App() {
   };
 
   // 6. Dispatch Scout to Underreported Zone
-  const handleDispatchScout = (zone) => {
-    setAttentionZones(prev => prev.map(z => {
-      if (z.id === zone.id) {
-        return {
-          ...z,
-          scoutStatus: 'Recon In Progress'
-        };
+  const handleDispatchScout = async (zone) => {
+    setAttentionZones(prev => prev.map(z => z.id === zone.id ? { ...z, scoutStatus: 'Recon In Progress' } : z));
+
+    if (backendConnected) {
+      try {
+        const updatedZone = await api.dispatchZoneScout(zone.id);
+        setAttentionZones(prev => prev.map(z => z.id === zone.id ? updatedZone : z));
+        const logs = await api.getAuditLogs();
+        setAuditLog(logs);
+        showToast(`Scout team dispatched to underreported sector: ${zone.name}`, 'info');
+        return;
+      } catch (err) {
+        console.error("Failed to dispatch scout on backend:", err);
       }
-      return z;
-    }));
+    }
 
     const newLog = {
       id: `aud-${Date.now()}`,
@@ -238,12 +349,11 @@ export default function App() {
       reason: `Proactive ground truth scout sent to underreported sector ${zone.name}. Countering signal void.`
     };
     setAuditLog(prev => [newLog, ...prev]);
-
     showToast(`Scout team dispatched to underreported sector: ${zone.name}`, 'info');
   };
 
   // 7. Simulate New Incoming Incident (For live demonstration)
-  const handleSimulateIncoming = () => {
+  const handleSimulateIncoming = async () => {
     const idNum = Math.floor(430 + Math.random() * 50);
     const mockTypes = [
       {
@@ -310,6 +420,20 @@ export default function App() {
       notes: []
     };
 
+    if (backendConnected) {
+      try {
+        const created = await api.createIncident(newInc);
+        setIncidents(prev => [created, ...prev]);
+        setSelectedIncidentId(created.id);
+        const logs = await api.getAuditLogs();
+        setAuditLog(logs);
+        showToast(`⚡ New Alert Ingested: ${created.id} (${created.title})`, 'alert');
+        return;
+      } catch (err) {
+        console.error("Failed to persist simulated incident to backend:", err);
+      }
+    }
+
     setIncidents(prev => [newInc, ...prev]);
     setSelectedIncidentId(newInc.id);
 
@@ -324,8 +448,30 @@ export default function App() {
       reason: "Initial synthetic triage score calculated by mock multi-signal model."
     };
     setAuditLog(prev => [newLog, ...prev]);
-
     showToast(`⚡ New Alert Simulated: ${newInc.id} (${newInc.title})`, 'alert');
+  };
+
+  // 8. Handle Report Creation from NewIncidentModal
+  const handleIncidentCreated = (created) => {
+    setIncidents(prev => [created, ...prev]);
+    setSelectedIncidentId(created.id);
+    if (backendConnected) {
+      api.getAuditLogs().then(setAuditLog).catch(() => {});
+    }
+    showToast(`Report created: ${created.id} [${created.humaidCategory || 'HumAID Analyzed'}]`, 'success');
+  };
+
+  // 9. Handle Human-Reviewed Duplicate Merged
+  const handleDuplicateMerged = (updatedPrimary) => {
+    setIncidents(prev => prev.map(inc => {
+      if (inc.id === updatedPrimary.id) return updatedPrimary;
+      return inc;
+    }));
+    if (backendConnected) {
+      api.getAuditLogs().then(setAuditLog).catch(() => {});
+      api.getIncidents().then(setIncidents).catch(() => {});
+    }
+    showToast(`Corroborating report merged into ${updatedPrimary.id}. Reliability updated.`, 'success');
   };
 
   const handleSelectIncidentById = (id) => {
@@ -351,18 +497,60 @@ export default function App() {
           onSimulateIncoming={handleSimulateIncoming}
           onOpenExportBrief={() => setIsExportBriefOpen(true)}
           onOpenBroadcast={() => setIsBroadcastOpen(true)}
+          backendConnected={backendConnected}
+          onOpenNewIncidentModal={() => setIsNewIncidentModalOpen(true)}
         />
 
         {/* Dynamic Main Body Content */}
         <main className="flex-1 p-6 space-y-6 max-w-[1700px] w-full mx-auto">
+          {/* Backend Connectivity / Environment Status Banner */}
+          {backendConnected === false && (
+            <div className="bg-amber-950/40 border border-amber-600/50 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3 shadow-sm">
+              <div className="flex items-center space-x-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <div className="text-amber-200">
+                  <span className="font-semibold text-amber-300 font-mono">BACKEND OFFLINE:</span>{' '}
+                  Cannot connect to FastAPI at <code className="bg-amber-900/60 px-1 py-0.5 rounded text-amber-200 font-mono">{api.getBaseUrl()}</code>.
+                  Running in local mock mode. Start the backend with <code className="bg-amber-900/60 px-1 py-0.5 rounded font-mono">uvicorn app.main:app</code>.
+                </div>
+              </div>
+              <button
+                onClick={() => loadDashboardData(true)}
+                disabled={isLoading}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-800/60 hover:bg-amber-700/60 text-amber-100 border border-amber-500/50 transition-all font-mono text-[11px] self-start sm:self-auto flex-shrink-0"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Connecting...' : 'Retry Connection'}</span>
+              </button>
+            </div>
+          )}
+
+          {backendConnected === true && (
+            <div className="bg-emerald-950/30 border border-emerald-600/40 rounded-xl p-2.5 px-4 flex items-center justify-between text-xs gap-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-300 font-medium">
+                  FastAPI Backend Online
+                </span>
+                <span className="text-slate-400">·</span>
+                <span className="text-slate-400">
+                  SQLite Persistent Database Active · HumAID DistilBERT (87.8% F1) Ready
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400/80 uppercase tracking-wider">
+                api: {api.getBaseUrl()}
+              </span>
+            </div>
+          )}
+
           {/* Transparent Simulation Environment Disclaimer Banner */}
           <div className="bg-[#0c1424] border border-cyan-900/50 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2 shadow-sm">
             <div className="flex items-center space-x-2.5">
               <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
               <div className="text-slate-300 leading-snug">
-                <span className="font-semibold text-cyan-300 font-mono">SIMULATED DATA ENVIRONMENT:</span>{' '}
-                All incident feeds, algorithmic priority rankings, and signal syntheses are synthetic for hackathon demonstration. 
-                <span className="text-amber-300 font-medium ml-1">Verification status is kept strictly distinct from response status.</span>
+                <span className="font-semibold text-cyan-300 font-mono">HUMAID TRIAGE NOTICE:</span>{' '}
+                HumAID DistilBERT classifications are predictive decision-support suggestions for situational triage. 
+                <span className="text-amber-300 font-medium ml-1">Verification status and operational dispatch remain strictly human-in-the-loop.</span>
               </div>
             </div>
             <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider whitespace-nowrap self-start sm:self-auto">
@@ -437,6 +625,8 @@ export default function App() {
                     onAssignTeam={handleAssignTeam}
                     onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
                     onAddNote={handleAddNote}
+                    onDuplicateMerged={handleDuplicateMerged}
+                    onShowToast={showToast}
                     responseTeams={responseTeams}
                   />
                 </div>
@@ -472,6 +662,8 @@ export default function App() {
                     onAssignTeam={handleAssignTeam}
                     onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
                     onAddNote={handleAddNote}
+                    onDuplicateMerged={handleDuplicateMerged}
+                    onShowToast={showToast}
                     responseTeams={responseTeams}
                   />
                 </div>
@@ -507,6 +699,8 @@ export default function App() {
                     onAssignTeam={handleAssignTeam}
                     onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
                     onAddNote={handleAddNote}
+                    onDuplicateMerged={handleDuplicateMerged}
+                    onShowToast={showToast}
                     responseTeams={responseTeams}
                   />
                 </div>
@@ -588,6 +782,13 @@ export default function App() {
         onSendBroadcast={(data) => {
           showToast(`Emergency Broadcast dispatched to ${data.targetZone}!`, 'alert');
         }}
+      />
+
+      {/* 7. New Incident & HumAID Classifier Modal */}
+      <NewIncidentModal
+        isOpen={isNewIncidentModalOpen}
+        onClose={() => setIsNewIncidentModalOpen(false)}
+        onIncidentCreated={handleIncidentCreated}
       />
     </div>
   );

@@ -1,16 +1,209 @@
-# React + Vite
+# RESQNET AI — Emergency Response Coordination & Situational Triage
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI_0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/Frontend-React_19_+_Vite_8-61DAFB.svg?logo=react&logoColor=black)](https://react.dev)
+[![PyTorch](https://img.shields.io/badge/ML-PyTorch_2.6_+_DistilBERT-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org)
+[![Database](https://img.shields.io/badge/Database-SQLite_+_SQLAlchemy-003B57.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 
-Currently, two official plugins are available:
+**RESQNET AI** is an emergency-response operations dashboard and NLP situational triage system designed for disaster coordinators. It combines real-time incident mapping, priority queuing, underreported zone monitoring, and offline NLP message classification powered by a fine-tuned **HumAID DistilBERT** model (Macro F1: 87.8%).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🏗️ Clean Project Architecture
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+nex_3/
+├── frontend/                     # React 19 + Vite 8 Operations Dashboard
+│   ├── public/                   # Static assets (favicons, icons)
+│   ├── src/
+│   │   ├── components/           # IncidentMap, PriorityQueue, TopNav, Modals, etc.
+│   │   ├── pages/                # High-level page views
+│   │   ├── services/             # api.js (Axios/fetch client for FastAPI)
+│   │   ├── data/                 # mockData.js (seed schema & offline fallback)
+│   │   ├── App.jsx               # Dashboard coordinator interface
+│   │   ├── main.jsx              # React root entrypoint
+│   │   └── index.css             # TailwindCSS design system tokens
+│   ├── index.html                # Single-page application template
+│   ├── package.json              # Node.js dependencies & scripts
+│   ├── package-lock.json
+│   ├── vite.config.js            # Vite configuration with proxy settings
+│   ├── tailwind.config.js        # Tailwind theme tokens & palette
+│   ├── postcss.config.js
+│   ├── .env.example              # VITE_API_BASE_URL example
+│   ├── .gitignore
+│   └── README.md
+│
+├── backend/                      # FastAPI Python REST Application
+│   ├── app/
+│   │   ├── core/                 # config.py (Pydantic settings & REPO_ROOT resolution)
+│   │   ├── database/             # session.py (SQLAlchemy engine), init_db.py (seeding)
+│   │   ├── models/               # incident.py (Incident, AuditLog, AttentionZone)
+│   │   ├── schemas/              # incident.py, nlp.py (Pydantic validation schemas)
+│   │   ├── services/             # incident_service.py (CRUD), nlp_service.py (DistilBERT)
+│   │   ├── routers/              # health.py, nlp.py, incidents.py, zones.py, audit_log.py
+│   │   └── main.py               # FastAPI entrypoint, CORS & Lifespan handler
+│   ├── tests/                    # 16 unit & integration tests
+│   │   ├── conftest.py           # SQLite in-memory fixture with StaticPool
+│   │   ├── test_health.py        # /api/v1/health & /api/v1/health/ready tests
+│   │   ├── test_nlp.py           # Classification & validation tests
+│   │   └── test_incidents.py     # CRUD, persistence, & audit trail tests
+│   ├── requirements.txt          # Backend Python dependencies
+│   ├── .env.example              # Configurable host, port, DB URL, model path
+│   └── README.md
+│
+├── data/                         # Data, ML Pipeline & Trained Models
+│   ├── humaid/                   # Preserved original HumAID raw dataset
+│   └── nlp/                      # NLP Training & Inference Module
+│       ├── configs/              # training_config.yaml
+│       ├── datasets/             # raw/, processed/, splits/
+│       ├── logs/                 # Training and validation logs
+│       ├── models/
+│       │   └── resqnet_distilbert/ # Trained DistilBERT weights, tokenizer & label map
+│       ├── notebooks/            # RESQNET_HumAID_NLP_Training.ipynb
+│       ├── outputs/              # Evaluation metrics, confusion matrix, ROC plots
+│       ├── src/                  # preprocessing.py, data_loader.py, inference.py
+│       ├── tests/                # 29 NLP unit tests
+│       ├── requirements.txt      # PyTorch, Transformers, Scikit-learn
+│       └── README.md
+│
+├── .gitignore                    # Root gitignore rules
+└── README.md                     # Project master documentation
+```
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## ⚡ Quickstart Guide (Windows PowerShell)
+
+### Terminal 1 — Backend (FastAPI)
+
+```powershell
+# Navigate to backend directory
+cd d:\user\Documents\nex_3\backend
+
+# (Optional) Create and activate virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Install backend dependencies
+pip install -r requirements.txt
+
+# Start FastAPI development server with hot-reload
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+> **API Documentation**: Once running, view interactive OpenAPI Swagger docs at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+
+### Terminal 2 — Frontend (React / Vite)
+
+```powershell
+# Open a second PowerShell terminal and navigate to frontend directory
+cd d:\user\Documents\nex_3\frontend
+
+# Install dependencies (if not already installed)
+npm install
+
+# Start Vite development server
+npm run dev
+```
+
+> **Dashboard**: Access the coordinator dashboard at [http://localhost:5173](http://localhost:5173).
+
+---
+
+## 📡 Backend API Endpoints
+
+All endpoints are versioned under `/api/v1`:
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/health` | Liveness check (status, uptime, version) |
+| `GET` | `/api/v1/health/ready` | Readiness check (verifies SQLite DB and HumAID model offline readiness) |
+| `POST` | `/api/v1/classify` | Classify freeform text with DistilBERT into HumAID category + confidence |
+| `POST` | `/api/v1/reports/classify` | Classify structured report preserving incident fields & original text |
+| `GET` | `/api/v1/incidents` | List incidents with optional filters (`status`, `severity`, `category`) |
+| `POST` | `/api/v1/incidents` | Create a new incident (optionally auto-classifies raw report text) |
+| `GET` | `/api/v1/incidents/{id}` | Retrieve incident details, HumAID predictions, and coordinator notes |
+| `PATCH` | `/api/v1/incidents/{id}/verification` | Update verification status (`unverified`, `field_confirmed`, `debunked`) |
+| `PATCH` | `/api/v1/incidents/{id}/response` | Update response lifecycle (`unassigned`, `dispatched`, `on_scene`, `resolved`) |
+| `PATCH` | `/api/v1/incidents/{id}/team` | Assign response unit (creates audit trail) |
+| `POST` | `/api/v1/incidents/{id}/override` | Coordinator priority override with mandatory logged justification |
+| `POST` | `/api/v1/incidents/{id}/notes` | Append coordinator timestamped operational note |
+| `GET` | `/api/v1/incidents/{id}/duplicates` | Query ranked explainable duplicate candidates for an incident |
+| `POST` | `/api/v1/incidents/{id}/merge-duplicate` | Human-authorized merge of duplicate incident with provenance audit trail |
+| `POST` | `/api/v1/incidents/{id}/dismiss-duplicate` | Coordinator dismissal of false duplicate suggestion |
+| `GET` | `/api/v1/zones` | List underreported attention zones |
+| `PATCH` | `/api/v1/zones/{id}/dispatch` | Dispatch reconnaissance scout/drone to underreported sector |
+| `GET` | `/api/v1/audit-log` | Retrieve chronological audit & accountability trail |
+
+---
+
+## 🔍 Explainable Duplicate-Report Detection & Human-in-the-Loop Merge
+
+Duplicate emergency reports often inundate emergency dispatch centers during disasters, splitting resources and distorting real-time situational awareness. RESQNET AI implements an explainable multi-signal duplicate suggestion engine:
+
+1. **Multi-Factor Signal Fusion**:
+   - **Spatial Proximity (35%)**: Great-circle Haversine distance with tiered scoring (<250m immediate, <1km sector).
+   - **Lexical Overlap (35%)**: Word-level Dice coefficient with suffix stemming combined with character 3-gram Dice coefficient to match inflectional variations (`collapsed` vs `collapse`) and extract shared crisis terminology.
+   - **Temporal Proximity (18%)**: Timestamp delta analysis (<30m concurrent shift).
+   - **HumAID Category Match (12%)**: Automatic agreement verification between DistilBERT predicted disaster categories.
+
+2. **Full Explainability**:
+   - Every candidate duplicate surfaces an explicit overall match score (0-100), confidence level (`HIGH`, `MEDIUM`, `LOW`), exact physical distance (km/m), text similarity %, and plain-language bullet points explaining *why* the reports are suspected duplicates.
+
+3. **Human Review Before Merging**:
+   - Merging is **never automatic**.
+   - Coordinators review candidate reports side-by-side inside the `DuplicateReviewModal`.
+   - Authorized merges mark candidate records as `merged_duplicate` with `duplicate_of_id`, increment primary incident corroboration counts, boost `reportReliability` metrics safely, and write an immutable audit log entry.
+   - Coordinators can dismiss false suggestions, preventing re-surfacing and logging dismissal rationales.
+
+---
+
+## 🧠 HumAID DistilBERT NLP Classifier
+
+- **Model Architecture**: Fine-tuned `distilbert-base-uncased` sequence classifier with 11 humanitarian categories (Macro F1: 87.8%).
+- **Weights Location**: `data/nlp/models/resqnet_distilbert/` (includes `model.safetensors`, `config.json`, `tokenizer.json`, and `label_map.json`).
+- **Offline Inference**: `backend/app/services/nlp_service.py` connects directly to `data/nlp/src/inference.py`. It loads weights once into memory on startup and runs purely offline without external downloads.
+
+### 🛡️ Critical Safety & Data Integrity Principles
+
+1. **Predictive Triage vs. Ground Truth**: HumAID classification is an automated triage aid. A high model confidence score does **not** verify an incident as authentic or replace human ground confirmation.
+2. **Strict Verification Separation**: Verification status (`verificationStatus`) is kept strictly separate from the model category prediction (`humaidCategory`).
+3. **No Autonomous Dispatch**: Resource dispatch and severity scoring remain under human-in-the-loop coordinator control.
+4. **Coordinator Accountability**: Priority overrides, duplicate merges, and verification changes automatically generate immutable entries in the audit log with operator ID, before/after values, and logged justification.
+
+---
+
+## 🧪 Automated Test Suite
+
+Both backend and NLP test suites execute cleanly and independently (51 total tests):
+
+```powershell
+# Run backend API, persistence, and duplicate workflow tests (22 tests)
+python -m pytest backend/tests/ -v
+
+# Run NLP preprocessing, tokenizer, metric, and inference tests (29 tests)
+python -m pytest data/nlp/tests/ -v
+
+# Test frontend production bundle build
+cd frontend
+npm run build
+```
+
+---
+
+## ⚙️ Environment Configuration
+
+### Backend (`backend/.env`)
+```bash
+HOST=127.0.0.1
+PORT=8000
+DEBUG=false
+ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+DATABASE_URL=sqlite:///./resqnet.db
+MODEL_DIR=../data/nlp/models/resqnet_distilbert
+```
+
+### Frontend (`frontend/.env`)
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```

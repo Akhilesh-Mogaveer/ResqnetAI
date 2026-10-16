@@ -16,7 +16,9 @@ export default function TopNav({
   activeTabName, 
   onSimulateIncoming, 
   onOpenExportBrief, 
-  onOpenBroadcast 
+  onOpenBroadcast,
+  backendConnected,
+  onOpenNewIncidentModal,
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -59,18 +61,46 @@ export default function TopNav({
 
       {/* Center: Environment Indicator */}
       <div className="flex items-center space-x-2">
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-cyan-950/40 border border-cyan-800/50 text-cyan-300 font-mono text-[11px] shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-          <span>Mock data environment</span>
+        <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full font-mono text-[11px] shadow-sm border ${
+          backendConnected === true
+            ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
+            : backendConnected === false
+            ? 'bg-red-950/40 border-red-800/50 text-red-300'
+            : 'bg-cyan-950/40 border-cyan-800/50 text-cyan-300'
+        }`}>
+          <span className={`w-2 h-2 rounded-full ${
+            backendConnected === true
+              ? 'bg-emerald-400 animate-pulse'
+              : backendConnected === false
+              ? 'bg-red-500'
+              : 'bg-amber-400 animate-ping'
+          }`}></span>
+          <span>
+            {backendConnected === true
+              ? 'FastAPI Backend Online'
+              : backendConnected === false
+              ? 'Backend Offline (Port 8000)'
+              : 'Checking API status...'}
+          </span>
         </div>
       </div>
 
       {/* Right: Actions & User */}
       <div className="flex items-center space-x-2.5">
+        {/* New Report / NLP Intake Button */}
+        <button
+          onClick={onOpenNewIncidentModal}
+          title="Submit a new incident report and classify with HumAID DistilBERT"
+          className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 transition-all font-mono text-[11px] font-semibold"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <span>+ Submit Report</span>
+        </button>
+
         {/* Simulate New Report Button */}
         <button
           onClick={onSimulateIncoming}
-          title="Simulate a new incoming distress signal to test triage and map updates"
+          title="Simulate a new incoming distress signal and persist to backend"
           className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-[#0e172a] hover:bg-cyan-950/60 text-slate-300 hover:text-cyan-300 border border-[#1e293b] hover:border-cyan-500/40 transition-all font-mono text-[11px]"
         >
           <Zap className="w-3.5 h-3.5 text-amber-400" />
