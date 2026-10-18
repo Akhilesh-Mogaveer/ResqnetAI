@@ -18,6 +18,14 @@ from .incident_service import (
     get_audit_logs,
     get_attention_zones,
 )
+from .environmental_service import (
+    EnvironmentalDataService,
+    environmental_service,
+)
+from .india_environmental_service import (
+    IndiaEnvironmentalService,
+    india_environmental_service,
+)
 
 __all__ = [
     "classify_text_message",
@@ -33,4 +41,8 @@ __all__ = [
     "rescore_incident",
     "get_audit_logs",
     "get_attention_zones",
+    "EnvironmentalDataService",
+    "environmental_service",
+    "IndiaEnvironmentalService",
+    "india_environmental_service",
 ]

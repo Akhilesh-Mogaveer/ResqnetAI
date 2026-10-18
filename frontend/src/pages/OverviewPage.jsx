@@ -2,6 +2,7 @@ import React from 'react';
 import SummaryCards from '../components/SummaryCards';
 import IncidentMap from '../components/IncidentMap';
 import UnderreportedZones from '../components/UnderreportedZones';
+import EnvironmentalConditionsPanel from '../components/EnvironmentalConditionsPanel';
 import { 
   AlertTriangle, 
   ShieldAlert, 
@@ -342,6 +343,9 @@ export default function OverviewPage({
           />
         </div>
       </div>
+
+      {/* 4. Public Environmental Conditions & Hydrology (Open-Meteo Integration) */}
+      <EnvironmentalConditionsPanel selectedIncident={selectedIncident} />
     </div>
   );
 }

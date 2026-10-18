@@ -17,7 +17,17 @@ from .incident import (
     PriorityOverrideRequest,
     SeverityOverrideRequest,
     AuditLogResponse,
+    AuditLogResponse,
     AttentionZoneResponse,
+)
+from .environmental import (
+    CurrentWeatherMeasurement,
+    HourlyPrecipitationItem,
+    PrecipitationSummary,
+    FloodDischargeDay,
+    FloodRiskContext,
+    EnvironmentalLocation,
+    EnvironmentalDataResponse,
 )
 
 __all__ = [
@@ -35,4 +45,11 @@ __all__ = [
     "SeverityOverrideRequest",
     "AuditLogResponse",
     "AttentionZoneResponse",
+    "CurrentWeatherMeasurement",
+    "HourlyPrecipitationItem",
+    "PrecipitationSummary",
+    "FloodDischargeDay",
+    "FloodRiskContext",
+    "EnvironmentalLocation",
+    "EnvironmentalDataResponse",
 ]

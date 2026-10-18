@@ -41,6 +41,51 @@ export const api = {
   getHealth: () => request('/health'),
   getReadiness: () => request('/health/ready'),
 
+  // Public Environmental Data via Open-Meteo
+  getEnvironmentalData: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.latitude !== undefined && params.latitude !== null && params.latitude !== '') {
+      query.append('latitude', params.latitude);
+    }
+    if (params.longitude !== undefined && params.longitude !== null && params.longitude !== '') {
+      query.append('longitude', params.longitude);
+    }
+    if (params.locationName) {
+      query.append('location_name', params.locationName);
+    }
+    if (params.forceRefresh) {
+      query.append('force_refresh', 'true');
+    }
+    const qs = query.toString();
+    return request(`/environmental-data${qs ? `?${qs}` : ''}`);
+  },
+
+  // Official India Meteorological & Hydrological Stations (IMD & NWDP/CWC)
+  getIndiaStationsData: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.measurement_type && params.measurement_type !== 'all') {
+      query.append('measurement_type', params.measurement_type);
+    }
+    if (params.state) {
+      query.append('state', params.state);
+    }
+    if (params.basin) {
+      query.append('basin', params.basin);
+    }
+    if (params.limit) {
+      query.append('limit', params.limit);
+    }
+    if (params.forceRefresh) {
+      query.append('force_refresh', 'true');
+    }
+    const qs = query.toString();
+    return request(`/environmental-data/india-stations${qs ? `?${qs}` : ''}`);
+  },
+
+  getEnvironmentalAlerts: () => request('/environmental-data/alerts'),
+
+  getEnvironmentalSourcesStatus: () => request('/environmental-data/sources-status'),
+
   // Incidents CRUD
   getIncidents: (params = {}) => {
     const query = new URLSearchParams();
@@ -189,6 +234,31 @@ export const api = {
         duplicateIncidentId: payload.duplicateIncidentId,
         operator: payload.operator || 'Coordinator Jordan Davis',
         reason: payload.reason || 'Verified as distinct and separate incident by coordinator.',
+      }),
+    }),
+
+  // Hackathon Pipeline Option 1: Structure Messy Reports & Resolve Locations
+  structureReport: (text) =>
+    request('/incidents/structure-report', {
+      method: 'POST',
+      body: JSON.stringify({ raw_text: text }),
+    }),
+
+  searchLocationCandidates: (query, limit = 5) => {
+    const qs = `query=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}`;
+    return request(`/geocoding/search?${qs}`);
+  },
+
+  confirmLocation: (incidentId, payload) =>
+    request(`/incidents/${incidentId}/location`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        coordinates: payload.coordinates,
+        locationName: payload.locationName || null,
+        sector: payload.sector || null,
+        confirmationStatus: payload.confirmationStatus || 'officer_confirmed',
+        operator: payload.operator || 'Coordinator Jordan Davis',
+        reason: payload.reason || 'Officer confirmed coordinates for incident.',
       }),
     }),
 };

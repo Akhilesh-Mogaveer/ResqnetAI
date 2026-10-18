@@ -79,6 +79,7 @@ export default function IncidentMap({
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showUnderreported, setShowUnderreported] = useState(true);
+  const [showLegend, setShowLegend] = useState(true);
   const [severityFilter, setSeverityFilter] = useState('all');
   const [verificationFilter, setVerificationFilter] = useState('all');
 
@@ -100,14 +101,18 @@ export default function IncidentMap({
     }
     // Find first incident with coordinates
     const firstWithCoords = (incidents || []).find(
-      i => Array.isArray(i.coordinates) && i.coordinates.length === 2 && i.coordinates[0] != null && i.coordinates[1] != null
+      i => !i.is_duplicate && i.responseStatus !== 'merged_duplicate' && Array.isArray(i.coordinates) && i.coordinates.length === 2 && i.coordinates[0] != null && i.coordinates[1] != null
     );
     return firstWithCoords ? firstWithCoords.coordinates : defaultCenter;
   }, [selectedIncident, incidents, defaultCenter]);
 
-  // Filter incidents for map display
+  // Filter incidents for map display (ensuring merged duplicates do not render duplicate markers)
   const mapIncidents = useMemo(() => {
     return (incidents || []).filter(inc => {
+      // Exclude merged duplicates so they do not produce duplicate markers or double-count
+      if (inc.is_duplicate || inc.duplicate_of_id || inc.responseStatus === 'merged_duplicate') {
+        return false;
+      }
       if (!inc.coordinates || !Array.isArray(inc.coordinates) || inc.coordinates.length !== 2 || inc.coordinates[0] == null || inc.coordinates[1] == null) {
         return false;
       }
@@ -118,10 +123,11 @@ export default function IncidentMap({
     });
   }, [incidents, severityFilter, verificationFilter]);
 
-  // Count unmapped incidents
+  // Count unmapped incidents (excluding merged duplicates)
   const unmappedIncidents = useMemo(() => {
     return (incidents || []).filter(
-      (i) => !i.coordinates || !Array.isArray(i.coordinates) || i.coordinates.length !== 2 || i.coordinates[0] == null || i.coordinates[1] == null
+      (i) => (!i.coordinates || !Array.isArray(i.coordinates) || i.coordinates.length !== 2 || i.coordinates[0] == null || i.coordinates[1] == null) &&
+            !i.is_duplicate && i.responseStatus !== 'merged_duplicate'
     );
   }, [incidents]);
 
@@ -138,13 +144,19 @@ export default function IncidentMap({
     const colors = getSeverityColor(incident.severity);
     const iconSvg = getIconSvg(incident.type, incident.title);
     const isCritical = incident.severity === 'critical';
+    const isVerified = incident.verificationStatus === 'verified';
+
+    const statusClass = isVerified ? 'is-verified' : 'is-unverified';
+    const badgeChar = isVerified ? '✓' : '?';
+    const badgeTitle = isVerified ? 'Verified Ground Truth' : 'Unverified Field Report';
 
     const htmlString = `
-      <div class="resqnet-marker-wrapper ${isSelected ? 'is-selected' : ''}">
+      <div class="resqnet-marker-wrapper ${isSelected ? 'is-selected' : ''}" title="${incident.id}: ${incident.title} (${incident.severity.toUpperCase()} · ${incident.verificationStatus})">
         ${(isCritical || isSelected) ? `<div class="resqnet-marker-ping" style="background-color: ${colors.bg}; opacity: 0.25;"></div>` : ''}
-        <div class="resqnet-marker-core" style="background-color: ${colors.bg};">
+        <div class="resqnet-marker-core ${statusClass}" style="background-color: ${colors.bg};">
           ${iconSvg}
         </div>
+        <div class="resqnet-marker-badge ${statusClass}" title="${badgeTitle}">${badgeChar}</div>
       </div>
     `;
 
@@ -305,28 +317,47 @@ export default function IncidentMap({
                 }}
               >
                 <Popup>
-                  <div className="p-3 text-xs space-y-2 min-w-[200px]">
+                  <div className="p-3 text-xs space-y-2 min-w-[220px]">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                       <span className="font-mono font-bold text-blue-700">{inc.id}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-800">
-                        {inc.severity}
-                      </span>
+                      <div className="flex items-center space-x-1">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                          inc.verificationStatus === 'verified'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                          {inc.verificationStatus}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-800">
+                          {inc.severity}
+                        </span>
+                      </div>
                     </div>
                     <h4 className="font-semibold text-slate-900 leading-snug">
                       {inc.title}
                     </h4>
                     <div className="text-[11px] text-slate-600 flex items-center space-x-1">
-                      <MapPin className="w-3 h-3 text-slate-600" />
-                      <span>{inc.sector} · {inc.locationName}</span>
+                      <MapPin className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                      <span className="truncate">{inc.sector} · {inc.locationName}</span>
+                    </div>
+                    <div className="text-[10px] font-mono text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-200">
+                      Coords: [{inc.coordinates[0].toFixed(4)}, {inc.coordinates[1].toFixed(4)}]
+                      {inc.location_resolution_status && (
+                        <div className="text-slate-600 text-[9px] mt-0.5 font-sans">
+                          Resolution: <strong>{inc.location_resolution_status.replace(/_/g, ' ')}</strong>
+                        </div>
+                      )}
                     </div>
                     <div className="text-[11px] text-slate-600">
-                      Priority: <strong className="text-slate-900 font-mono">{inc.priorityScore}/100</strong>
+                      Priority Score: <strong className="text-slate-900 font-mono">{inc.priorityScore}/100</strong>
                     </div>
                     <button
+                      type="button"
                       onClick={() => onSelectIncident?.(inc)}
-                      className="w-full mt-2 py-1 px-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-medium text-[11px] transition-colors"
+                      className="w-full mt-2 py-1.5 px-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1"
                     >
-                      Inspect Incident Details
+                      <span>Inspect Incident Details</span>
+                      <ExternalLink className="w-3 h-3" />
                     </button>
                   </div>
                 </Popup>
@@ -335,12 +366,75 @@ export default function IncidentMap({
           })}
         </MapContainer>
 
+        {/* Accessible Map Legend */}
+        <div
+          className="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-xs rounded-lg shadow-md border border-slate-200 p-2.5 text-[11px] max-w-[210px]"
+          aria-label="Map Legend"
+        >
+          <div className="flex items-center justify-between font-bold text-slate-800 pb-1 mb-1.5 border-b border-slate-100">
+            <span className="flex items-center space-x-1 text-[10px] uppercase font-mono tracking-wider">
+              <Layers className="w-3 h-3 text-blue-600" />
+              <span>Map Legend</span>
+            </span>
+            <button
+              onClick={() => setShowLegend(!showLegend)}
+              className="text-slate-400 hover:text-slate-600 p-0.5 text-[10px] underline"
+              aria-label={showLegend ? "Collapse map legend" : "Expand map legend"}
+            >
+              {showLegend ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {showLegend && (
+            <div className="space-y-1.5">
+              <div>
+                <span className="text-[9px] uppercase font-mono text-slate-400 block font-semibold mb-0.5">Priority / Severity</span>
+                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-600 flex-shrink-0" />
+                    <span className="text-slate-700">Critical</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    <span className="text-slate-700">High</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-600 flex-shrink-0" />
+                    <span className="text-slate-700">Moderate</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Low</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-1 border-t border-slate-100">
+                <span className="text-[9px] uppercase font-mono text-slate-400 block font-semibold mb-0.5">Verification</span>
+                <div className="space-y-1 text-[10px]">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 bg-white flex items-center justify-center text-[7px] font-bold text-emerald-700">✓</span>
+                    <span className="text-slate-700">Verified (Solid)</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-amber-500 bg-white flex items-center justify-center text-[7px] font-bold text-amber-700">?</span>
+                    <span className="text-slate-700">Unverified (Dashed)</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-1 border-t border-slate-100 flex items-center space-x-1.5 text-[10px]">
+                <span className="w-3.5 h-3.5 rounded-full border border-dashed border-amber-600 bg-amber-500/10 flex-shrink-0" />
+                <span className="text-slate-700">Signal Gap Void</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Floating Zoom & Recenter Controls */}
         <div className="absolute bottom-4 right-4 z-20 flex flex-col space-y-1.5 bg-white rounded-lg shadow-md border border-slate-200 p-1">
           <button
             onClick={handleZoomIn}
             className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition-colors"
             title="Zoom In"
+            aria-label="Zoom In"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -348,6 +442,7 @@ export default function IncidentMap({
             onClick={handleZoomOut}
             className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition-colors"
             title="Zoom Out"
+            aria-label="Zoom Out"
           >
             <Minus className="w-4 h-4" />
           </button>
@@ -355,6 +450,7 @@ export default function IncidentMap({
             onClick={handleRecenter}
             className="p-1.5 hover:bg-slate-100 rounded text-blue-600 border-t border-slate-100 transition-colors"
             title="Recenter Map"
+            aria-label="Recenter Map"
           >
             <RotateCcw className="w-4 h-4" />
           </button>

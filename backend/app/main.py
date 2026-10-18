@@ -30,6 +30,8 @@ from backend.app.routers import (
     incidents_router,
     audit_log_router,
     zones_router,
+    environmental_router,
+    geocoding_router,
 )
 
 # Configure logging
@@ -95,6 +97,8 @@ app.include_router(nlp_router, prefix=settings.API_V1_STR)
 app.include_router(incidents_router, prefix=settings.API_V1_STR)
 app.include_router(audit_log_router, prefix=settings.API_V1_STR)
 app.include_router(zones_router, prefix=settings.API_V1_STR)
+app.include_router(environmental_router, prefix=settings.API_V1_STR)
+app.include_router(geocoding_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", tags=["Root"])

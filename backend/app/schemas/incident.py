@@ -14,6 +14,8 @@ class IncidentBase(BaseModel):
     coordinates: Optional[List[float]] = Field(default=None, description="[Latitude, Longitude] or null if unknown.")
     is_synthetic_location: bool = Field(default=False, description="True if coordinates are simulated demo coordinates.")
     location_source: Optional[str] = Field(default=None, description="user_supplied | geocoded | synthetic_demo | unmatched_unknown")
+    location_resolution_status: Optional[str] = Field(default=None, description="resolved_verified | candidate_selected | unresolved_ambiguous | user_manual | synthetic_demo | unknown")
+    locationResolutionStatus: Optional[str] = None
     severity: str = Field(default="moderate", description="critical | high | moderate | low")
     priorityScore: int = Field(default=50, ge=0, le=100, description="Priority score 0-100.")
     reportReliability: int = Field(default=70, ge=0, le=100)
@@ -21,6 +23,8 @@ class IncidentBase(BaseModel):
     peopleAffected: str = Field(default="Unknown count")
     people_affected: Optional[str] = Field(default=None, description="Alias for peopleAffected.")
     affectedCountNumeric: int = Field(default=0)
+    report_source: Optional[str] = Field(default="Officer/Phone Call", description="Officer/Phone Call | SMS | Field Responder | Sensor | Social Media | Other")
+    source_reference: Optional[str] = Field(default=None, description="Available source/channel reference (CAD #, dispatch channel, sensor ID, etc.)")
     sourceSummary: str = Field(default="")
     signalSynthesis: str = Field(default="")
     whyPrioritised: str = Field(default="")
@@ -36,6 +40,8 @@ class IncidentCreate(IncidentBase):
     run_nlp_classification: bool = Field(default=True, description="Whether to run HumAID text classifier upon creation.")
     is_priority_overridden: Optional[bool] = Field(default=None, description="Set True if priorityScore was deliberately overridden by a coordinator.")
     is_severity_overridden: Optional[bool] = Field(default=None, description="Set True if severity was deliberately overridden by a coordinator.")
+    override_reason: Optional[str] = Field(default=None, description="Operational rationale if manual coordinator priority override is applied.")
+    override_operator: Optional[str] = Field(default=None, description="Identity of the coordinator applying the override.")
 
 
 class IncidentUpdate(BaseModel):

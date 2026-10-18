@@ -269,7 +269,7 @@ def get_classifier(
     Parameters
     ----------
     model_dir : Optional[Union[str, Path]]
-        Path to local model directory (defaults to 'data/nlp/models/resqnet_distilbert').
+        Path to local model directory.
     device : Optional[str]
         Target device ('cpu', 'cuda', or 'auto').
     force_reload : bool
@@ -282,19 +282,29 @@ def get_classifier(
     """
     global _GLOBAL_CLASSIFIER
 
-    if model_dir is not None:
-        target_path = Path(model_dir)
-        # If caller specifies a custom model_dir that differs from cached, instantiate fresh
-        if _GLOBAL_CLASSIFIER is None or force_reload or _GLOBAL_CLASSIFIER.model_dir != target_path:
-            return ResqnetClassifier(model_dir=target_path, device=device)
-        return _GLOBAL_CLASSIFIER
+    target_path = Path(model_dir) if model_dir is not None else Path("data/nlp/models/resqnet_distilbert")
+    if not target_path.exists():
+        repo_root = Path(__file__).resolve().parents[3]
+        candidate = repo_root / target_path
+        if candidate.exists():
+            target_path = candidate
 
-    # Default model directory
-    default_dir = Path("data/nlp/models/resqnet_distilbert")
-    if _GLOBAL_CLASSIFIER is None or force_reload:
-        _GLOBAL_CLASSIFIER = ResqnetClassifier(model_dir=default_dir, device=device)
+    resolved_target = target_path.resolve()
+
+    if (
+        _GLOBAL_CLASSIFIER is None
+        or force_reload
+        or _GLOBAL_CLASSIFIER.model_dir.resolve() != resolved_target
+    ):
+        _GLOBAL_CLASSIFIER = ResqnetClassifier(model_dir=target_path, device=device)
 
     return _GLOBAL_CLASSIFIER
+
+
+def reset_classifier() -> None:
+    """Clear the cached singleton classifier instance (primarily for testing)."""
+    global _GLOBAL_CLASSIFIER
+    _GLOBAL_CLASSIFIER = None
 
 
 def classify_report(

@@ -6,6 +6,8 @@ from .nlp import router as nlp_router
 from .incidents import router as incidents_router
 from .audit_log import router as audit_log_router
 from .zones import router as zones_router
+from .environmental import router as environmental_router
+from .geocoding import router as geocoding_router
 
 __all__ = [
     "health_router",
@@ -13,4 +15,6 @@ __all__ = [
     "incidents_router",
     "audit_log_router",
     "zones_router",
+    "environmental_router",
+    "geocoding_router",
 ]

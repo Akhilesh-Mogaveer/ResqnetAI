@@ -13,12 +13,17 @@ from sqlalchemy import desc
 from backend.app.models.incident import Incident, AuditLog, AttentionZone
 from backend.app.schemas.incident import IncidentCreate, IncidentUpdate
 from backend.app.services.nlp_service import enrich_incident_with_nlp
-from backend.app.services.geocoding_service import resolve_incident_coordinates
+from backend.app.services.geocoding_service import (
+    resolve_incident_coordinates,
+    validate_coordinates,
+    get_resolution_status_for_source,
+)
 from backend.app.services.scoring_service import (
     calculate_incident_scores,
     calculate_incident_severity,
     calculate_priority_score,
     calculate_report_reliability,
+    calculate_location_confidence,
     generate_why_prioritised,
     parse_affected_count,
     extract_risk_factors,
@@ -71,11 +76,20 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         }
 
     # 1. Resolve Geographic Coordinates
+    if incident_in.coordinates is not None:
+        is_valid_c, c_err = validate_coordinates(incident_in.coordinates)
+        if not is_valid_c:
+            raise ValueError(f"Invalid coordinate specification: {c_err}")
+
     resolved_coords, is_synth, loc_source = resolve_incident_coordinates(
         supplied_coords=incident_in.coordinates,
         location_name=incident_in.locationName,
         sector=incident_in.sector,
         explicit_synthetic_flag=getattr(incident_in, "is_synthetic_location", False),
+    )
+    loc_resolution_status = (
+        incident_in.location_resolution_status
+        or get_resolution_status_for_source(loc_source, resolved_coords)
     )
 
     humaid_cat = nlp_results.get("humaid_category") or incident_in.humaid_category
@@ -134,6 +148,15 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         or (f"{final_affected_numeric} individuals affected" if final_affected_numeric > 0 else incident_in.peopleAffected)
     )
 
+    rep_source = getattr(incident_in, "report_source", None) or "Officer/Phone Call"
+    src_ref = getattr(incident_in, "source_reference", None)
+    if incident_in.sourceSummary:
+        final_source_summary = incident_in.sourceSummary
+    elif src_ref:
+        final_source_summary = f"{rep_source} [Ref: {src_ref}] - Intake via Emergency Report Form"
+    else:
+        final_source_summary = f"{rep_source} - Intake via Emergency Report Form"
+
     incident = Incident(
         id=incident_id,
         title=incident_in.title,
@@ -151,8 +174,8 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         verificationStatus="unverified",
         responseStatus="triage",
         assignedTeam=None,
-        sourceSummary=incident_in.sourceSummary or "Citizen / Dispatch incoming report",
-        signalSynthesis=incident_in.signalSynthesis or "Automated sensor & transcript intake",
+        sourceSummary=final_source_summary,
+        signalSynthesis=incident_in.signalSynthesis or f"Intake channel: {rep_source}. Automated NLP & scoring applied.",
         whyPrioritised=final_why,
         report_text=report_text,
         original_report_text=report_text,
@@ -165,24 +188,30 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
     incident.coordinates = resolved_coords
     incident.is_synthetic_location = is_synth
     incident.location_source = loc_source
+    incident.location_resolution_status = loc_resolution_status
     incident.riskFactors = final_risks
+    incident.report_source = rep_source
+    incident.source_reference = src_ref
+
+    override_op = getattr(incident_in, "override_operator", None) or "Coordinator Intake"
+    override_rs = getattr(incident_in, "override_reason", None) or "Manual coordinator intake override."
 
     initial_notes = []
     if is_prio_overridden:
         initial_notes.append({
             "id": f"n-prio-{incident.id}",
-            "author": "Coordinator Intake",
+            "author": override_op,
             "time": "Just now",
-            "text": f"Priority manually overridden at intake to {final_priority}.",
+            "text": f"Priority manually overridden at intake to {final_priority}. Reason: {override_rs}",
             "override_type": "priority",
             "value": final_priority,
         })
     if is_sev_overridden:
         initial_notes.append({
             "id": f"n-sev-{incident.id}",
-            "author": "Coordinator Intake",
+            "author": override_op,
             "time": "Just now",
-            "text": f"Severity manually overridden at intake to {final_severity}.",
+            "text": f"Severity manually overridden at intake to {final_severity}. Reason: {override_rs}",
             "override_type": "severity",
             "value": final_severity,
         })
@@ -200,7 +229,7 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=incident.id,
-        operator="System Intake",
+        operator=override_op if (is_prio_overridden or is_sev_overridden) else "System Intake",
         actionType="INCIDENT_CREATED",
         oldValue="None",
         newValue=f"{incident.title} ({incident.severity.upper()} - Priority {incident.priorityScore})",
@@ -213,11 +242,11 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
             id=_generate_audit_log_id(),
             timestamp=now_iso,
             incidentId=incident.id,
-            operator="Coordinator Intake",
+            operator=override_op,
             actionType="PRIORITY_OVERRIDE",
             oldValue=str(scoring_result.priority_score),
             newValue=str(final_priority),
-            reason="Explicit manual priority override supplied at incident intake.",
+            reason=override_rs,
         )
         db.add(audit_prio)
 
@@ -226,11 +255,11 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
             id=_generate_audit_log_id(),
             timestamp=now_iso,
             incidentId=incident.id,
-            operator="Coordinator Intake",
+            operator=override_op,
             actionType="SEVERITY_OVERRIDE",
             oldValue=str(scoring_result.severity),
             newValue=str(final_severity),
-            reason="Explicit manual severity override supplied at incident intake.",
+            reason=override_rs,
         )
         db.add(audit_sev)
 
@@ -681,3 +710,84 @@ def dispatch_zone_scout(
     db.refresh(zone)
     return zone
 
+
+def update_incident_location(
+    db: Session,
+    incident_id: str,
+    coordinates: List[float],
+    location_name: Optional[str] = None,
+    sector: Optional[str] = None,
+    confirmation_status: str = "officer_confirmed",
+    operator: str = "Coordinator Jordan Davis",
+    reason: str = "Officer selected confirmed location after candidate review",
+) -> Optional[Incident]:
+    """
+    Update or correct the coordinates and location of an existing incident report.
+    Validates coordinates, updates location provenance, recalculates location confidence,
+    and logs the action in the audit trail.
+    """
+    incident = get_incident_by_id(db, incident_id)
+    if not incident:
+        return None
+
+    is_valid, err = validate_coordinates(coordinates)
+    if not is_valid:
+        raise ValueError(f"Invalid coordinate values: {err}")
+
+    old_coords = incident.coordinates
+    old_source = incident.location_source or "unknown"
+
+    clean_coords = [float(coordinates[0]), float(coordinates[1])]
+    incident.coordinates = clean_coords
+    if location_name and location_name.strip():
+        incident.locationName = location_name.strip()
+    if sector and sector.strip():
+        incident.sector = sector.strip()
+
+    incident.location_source = f"{confirmation_status} ({operator})"
+    incident.location_resolution_status = "candidate_selected"
+    incident.is_synthetic_location = False
+
+    # Recalculate location confidence
+    incident.locationConfidence = calculate_location_confidence(
+        coordinates=clean_coords,
+        location_source=incident.location_source,
+        location_name=incident.locationName,
+        sector=incident.sector,
+    )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    audit_entry = AuditLog(
+        id=_generate_audit_log_id(),
+        timestamp=now_iso,
+        incidentId=incident.id,
+        operator=operator,
+        actionType="LOCATION_CONFIRMED",
+        oldValue=f"{old_coords} ({old_source})",
+        newValue=f"{clean_coords} ({incident.location_source})",
+        reason=reason,
+    )
+    db.add(audit_entry)
+
+    # Append note to incident notes
+    current_notes = list(incident.notes)
+    current_notes.append({
+        "id": f"n-loc-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        "author": operator,
+        "time": "Just now",
+        "text": f"Location resolved and confirmed to {clean_coords}. Reason: {reason}",
+    })
+    incident.notes = current_notes
+
+    # Rescore incident to reflect updated location confidence
+    rescore_incident(
+        db=db,
+        incident=incident,
+        reason=f"Location coordinates resolved and confirmed to {clean_coords}.",
+        operator=operator,
+        commit=False,
+    )
+
+    db.commit()
+    db.refresh(incident)
+    return incident

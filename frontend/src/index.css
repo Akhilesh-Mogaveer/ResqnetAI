@@ -101,6 +101,43 @@
   box-shadow: 0 0 0 3px #0284c7, 0 4px 12px rgba(0, 0, 0, 0.35) !important;
 }
 
+/* Distinct Verified & Unverified Marker Indicators */
+.resqnet-marker-core.is-verified {
+  border: 2px solid #10b981 !important;
+  box-shadow: 0 0 0 2px #d1fae5, 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}
+
+.resqnet-marker-core.is-unverified {
+  border: 2px dashed #f59e0b !important;
+  box-shadow: 0 0 0 2px #fef3c7, 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}
+
+.resqnet-marker-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  z-index: 12;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.resqnet-marker-badge.is-verified {
+  background-color: #10b981;
+}
+
+.resqnet-marker-badge.is-unverified {
+  background-color: #f59e0b;
+}
+
 .resqnet-marker-halo {
   position: absolute;
   inset: -3px;

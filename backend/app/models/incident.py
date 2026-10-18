@@ -77,6 +77,66 @@ class Incident(Base):
             self.coordinates_json = json.dumps([float(val[0]), float(val[1])])
 
     @property
+    def location_resolution_status(self) -> str:
+        explicit = getattr(self, "_location_resolution_status", None)
+        if explicit:
+            return explicit
+        if not self.coordinates or self.coordinates[0] is None or self.coordinates[1] is None:
+            if self.location_source == "unresolved_ambiguous":
+                return "unresolved_ambiguous"
+            return "unknown"
+        if not self.location_source:
+            return "unknown"
+        if self.location_source == "user_supplied":
+            return "user_manual"
+        if "officer_confirmed" in self.location_source or "manual_correction" in self.location_source:
+            return "candidate_selected"
+        if "geocoded" in self.location_source:
+            return "resolved_verified"
+        if "synthetic_demo" in self.location_source:
+            return "synthetic_demo"
+        return "resolved_verified"
+
+    @location_resolution_status.setter
+    def location_resolution_status(self, val: Optional[str]):
+        # Stored dynamically; if explicitly set, can be stored as attribute
+        self._location_resolution_status = val
+
+    @property
+    def report_source(self) -> str:
+        explicit = getattr(self, "_report_source", None)
+        if explicit:
+            return explicit
+        if self.sourceSummary:
+            first_part = self.sourceSummary.split(" - ")[0].split(" [")[0].strip()
+            if first_part in ("Officer/Phone Call", "SMS", "Field Responder", "Sensor", "Social Media", "Other"):
+                return first_part
+        return "Officer/Phone Call"
+
+    @report_source.setter
+    def report_source(self, val: Optional[str]):
+        self._report_source = val
+
+    @property
+    def source_reference(self) -> Optional[str]:
+        explicit = getattr(self, "_source_reference", None)
+        if explicit:
+            return explicit
+        if self.sourceSummary and "[Ref:" in self.sourceSummary:
+            try:
+                start = self.sourceSummary.index("[Ref:") + 5
+                end = self.sourceSummary.index("]", start)
+                return self.sourceSummary[start:end].strip()
+            except Exception:
+                return None
+        return None
+
+    @source_reference.setter
+    def source_reference(self, val: Optional[str]):
+        self._source_reference = val
+
+
+    @property
     def riskFactors(self) -> List[str]:
         try:
             return json.loads(self.riskFactors_json) if self.riskFactors_json else []
@@ -191,8 +251,12 @@ class Incident(Base):
             "dismissed_duplicates": self.dismissed_duplicates,
             "is_synthetic_location": self.is_synthetic_location,
             "location_source": self.location_source,
+            "location_resolution_status": getattr(self, "location_resolution_status", None) or ("user_manual" if self.location_source == "user_supplied" else "unknown" if not self.coordinates else "resolved_verified"),
+            "locationResolutionStatus": getattr(self, "location_resolution_status", None) or ("user_manual" if self.location_source == "user_supplied" else "unknown" if not self.coordinates else "resolved_verified"),
             "is_priority_overridden": self.is_priority_overridden,
             "is_severity_overridden": self.is_severity_overridden,
+            "report_source": self.report_source,
+            "source_reference": self.source_reference,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

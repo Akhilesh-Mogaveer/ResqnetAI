@@ -12,22 +12,43 @@ import {
   ChevronRight,
   Eye,
   CheckCircle2,
-  Compass
+  Compass,
+  Search,
+  Loader2,
+  CheckCircle,
+  X
 } from 'lucide-react';
+import api from '../services/api';
 
 export default function LiveMapPage({
   incidents = [],
   attentionZones = [],
   selectedIncident,
   onSelectIncident,
-  onNavigateTab
+  onNavigateTab,
+  onLocationUpdated,
+  onShowToast
 }) {
   const [filterSeverity, setFilterSeverity] = useState('all'); // all | critical | high | moderate
   const [filterVerification, setFilterVerification] = useState('all'); // all | verified | unverified
   const [showZonesLayer, setShowZonesLayer] = useState(true);
 
+  // Quick Resolve Location Modal state
+  const [resolvingIncident, setResolvingIncident] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [candidates, setCandidates] = useState([]);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [customLat, setCustomLat] = useState('');
+  const [customLng, setCustomLng] = useState('');
+  const [isSubmittingLocation, setIsSubmittingLocation] = useState(false);
+  const [resolveError, setResolveError] = useState(null);
+
+  // Filter active incidents excluding merged duplicates
+  const activeIncidents = incidents.filter(inc => !inc.is_duplicate && inc.responseStatus !== 'merged_duplicate');
+
   // Filter incidents for display on the map
-  const filteredIncidents = incidents.filter(inc => {
+  const filteredIncidents = activeIncidents.filter(inc => {
     if (filterSeverity === 'critical' && inc.severity !== 'critical') return false;
     if (filterSeverity === 'high' && inc.severity !== 'high') return false;
     if (filterSeverity === 'moderate' && inc.severity !== 'moderate') return false;
@@ -39,10 +60,97 @@ export default function LiveMapPage({
   });
 
   // Calculate coordinates statistics
-  const mappedCount = incidents.filter(i => i.coordinates && Array.isArray(i.coordinates) && i.coordinates[0] != null).length;
-  const unmappedIncidents = incidents.filter(i => !i.coordinates || !Array.isArray(i.coordinates) || i.coordinates[0] == null);
-  const syntheticCount = incidents.filter(i => i.is_synthetic_location).length;
-  const geocodedCount = incidents.filter(i => i.location_source && i.location_source.startsWith('geocoded')).length;
+  const mappedCount = activeIncidents.filter(i => i.coordinates && Array.isArray(i.coordinates) && i.coordinates[0] != null).length;
+  const unmappedIncidents = activeIncidents.filter(i => !i.coordinates || !Array.isArray(i.coordinates) || i.coordinates[0] == null);
+  const syntheticCount = activeIncidents.filter(i => i.is_synthetic_location).length;
+  const geocodedCount = activeIncidents.filter(i => i.location_source && i.location_source.startsWith('geocoded')).length;
+
+  const handleOpenResolver = (inc) => {
+    setResolvingIncident(inc);
+    setSearchQuery(inc.locationName || inc.title || '');
+    setCandidates([]);
+    setSelectedCandidate(null);
+    setCustomLat('');
+    setCustomLng('');
+    setResolveError(null);
+  };
+
+  const handleSearchCandidates = async () => {
+    if (!searchQuery.trim()) {
+      setResolveError('Please enter a location query to search.');
+      return;
+    }
+    setIsSearching(true);
+    setResolveError(null);
+    setCandidates([]);
+    setSelectedCandidate(null);
+
+    try {
+      const res = await api.searchLocationCandidates(searchQuery.trim());
+      if (res && res.candidates && res.candidates.length > 0) {
+        setCandidates(res.candidates);
+        if (res.candidates.length === 1) {
+          setSelectedCandidate(res.candidates[0]);
+          setCustomLat(res.candidates[0].latitude.toString());
+          setCustomLng(res.candidates[0].longitude.toString());
+        }
+      } else {
+        setResolveError('No matching locations found in gazetteer or geocoder.');
+      }
+    } catch (err) {
+      console.error(err);
+      setResolveError(err.message || 'Geocoding candidate lookup failed.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleConfirmLocation = async () => {
+    if (!resolvingIncident) return;
+
+    let coords = null;
+    let chosenName = searchQuery;
+
+    if (selectedCandidate) {
+      coords = [selectedCandidate.latitude, selectedCandidate.longitude];
+      chosenName = selectedCandidate.display_name || chosenName;
+    } else if (customLat && customLng) {
+      const latF = parseFloat(customLat);
+      const lngF = parseFloat(customLng);
+      if (isNaN(latF) || latF < -90 || latF > 90 || isNaN(lngF) || lngF < -180 || lngF > 180) {
+        setResolveError('Coordinates must be valid numbers (Lat: -90 to 90, Lng: -180 to 180).');
+        return;
+      }
+      coords = [latF, lngF];
+    } else {
+      setResolveError('Please select a candidate or enter valid latitude/longitude.');
+      return;
+    }
+
+    setIsSubmittingLocation(true);
+    setResolveError(null);
+
+    try {
+      const updated = await api.confirmLocation(resolvingIncident.id, {
+        coordinates: coords,
+        locationName: chosenName,
+        sector: resolvingIncident.sector,
+        confirmationStatus: 'officer_confirmed',
+        operator: 'Coordinator Jordan Davis',
+        reason: `Officer confirmed coordinates for ${resolvingIncident.id} via geospatial resolver.`
+      });
+
+      onLocationUpdated?.(updated);
+      onShowToast?.(`Coordinates for ${resolvingIncident.id} confirmed and plotted on map!`, 'success');
+      setResolvingIncident(null);
+    } catch (err) {
+      console.error(err);
+      setResolveError(err.message || 'Failed to update incident coordinates.');
+      onShowToast?.(`Location update failed: ${err.message}`, 'alert');
+    } finally {
+      setIsSubmittingLocation(false);
+    }
+  };
 
   return (
     <div className="space-y-4 flex flex-col h-[calc(100vh-140px)] min-h-[650px]">
@@ -209,8 +317,18 @@ export default function LiveMapPage({
                       )}
                     </div>
                   ) : (
-                    <div className="text-[10px] text-amber-700 font-semibold font-mono">
-                      ⚠️ Coordinates Unknown — Location Unmatched in Gazetteer
+                    <div className="space-y-1.5 pt-1">
+                      <div className="text-[10px] text-amber-700 font-semibold font-mono">
+                        ⚠️ Coordinates Unknown — Location Unmatched
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenResolver(selectedIncident)}
+                        className="w-full py-1.5 px-2 rounded bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1"
+                      >
+                        <Compass className="w-3.5 h-3.5" />
+                        <span>Resolve & Plot Coordinates</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -266,20 +384,34 @@ export default function LiveMapPage({
                 These emergencies cannot be plotted on the map because coordinates could not be safely resolved. They remain tracked in the priority queue.
               </p>
 
-              <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                 {unmappedIncidents.map(inc => (
                   <div
                     key={inc.id}
-                    onClick={() => onSelectIncident(inc)}
-                    className="p-2 rounded bg-white border border-amber-200 text-xs flex items-center justify-between cursor-pointer hover:border-amber-400"
+                    className="p-2 rounded bg-white border border-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:border-amber-400 transition-colors"
                   >
-                    <div className="truncate pr-2">
+                    <div
+                      onClick={() => onSelectIncident(inc)}
+                      className="truncate cursor-pointer flex-1"
+                    >
                       <span className="font-mono font-bold text-slate-800">{inc.id}</span>
                       <span className="text-slate-600 ml-1.5 truncate">{inc.title}</span>
                     </div>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold flex-shrink-0">
-                      Score {inc.priorityScore}
-                    </span>
+                    <div className="flex items-center space-x-1.5 flex-shrink-0">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
+                        Score {inc.priorityScore}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenResolver(inc);
+                        }}
+                        className="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-medium text-[10px] transition-colors"
+                      >
+                        Resolve
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -287,6 +419,168 @@ export default function LiveMapPage({
           )}
         </div>
       </div>
+
+      {/* Quick Location Resolution Modal for Unmapped Incidents */}
+      {resolvingIncident && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full p-5 shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => setResolvingIncident(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              aria-label="Close resolver modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-2 text-blue-700 font-mono text-xs uppercase tracking-wider mb-1 font-bold">
+              <Compass className="w-4 h-4 text-blue-600" />
+              <span>Geospatial Location Resolver</span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1">
+              Resolve Coordinates for {resolvingIncident.id}
+            </h3>
+            <p className="text-xs text-slate-500 mb-3 truncate">
+              {resolvingIncident.title}
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">
+                  Search Landmark / City / Facility
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="e.g. Wayanad Relief Camp or Andheri West"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearchCandidates}
+                    disabled={isSearching}
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center space-x-1 disabled:opacity-50 transition-colors"
+                  >
+                    {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    <span>Search</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Candidates selection */}
+              {candidates.length > 0 && (
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="text-[10px] font-mono text-slate-500 px-1 font-semibold uppercase">
+                    Select a Confirmed Candidate ({candidates.length} found):
+                  </div>
+                  {candidates.map((cand, idx) => {
+                    const isChosen = selectedCandidate && selectedCandidate.latitude === cand.latitude && selectedCandidate.longitude === cand.longitude;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setSelectedCandidate(cand);
+                          setCustomLat(cand.latitude.toString());
+                          setCustomLng(cand.longitude.toString());
+                        }}
+                        className={`p-2 rounded cursor-pointer border text-[11px] transition-colors ${
+                          isChosen
+                            ? 'bg-blue-50 border-blue-400 text-blue-900 font-medium'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">{cand.display_name}</span>
+                          <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded bg-slate-100 text-slate-600">
+                            {cand.provider}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                          [{cand.latitude.toFixed(4)}, {cand.longitude.toFixed(4)}] · Conf: {(cand.confidence * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Manual Lat/Lng inputs */}
+              <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div>
+                  <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                    Latitude (-90 to 90)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={customLat}
+                    onChange={(e) => {
+                      setCustomLat(e.target.value);
+                      setSelectedCandidate(null);
+                    }}
+                    placeholder="e.g. 11.6854"
+                    className="w-full bg-white border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                    Longitude (-180 to 180)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={customLng}
+                    onChange={(e) => {
+                      setCustomLng(e.target.value);
+                      setSelectedCandidate(null);
+                    }}
+                    placeholder="e.g. 76.1320"
+                    className="w-full bg-white border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {resolveError && (
+                <div className="p-2 rounded bg-rose-50 border border-rose-200 text-rose-800 text-[11px] flex items-center space-x-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                  <span>{resolveError}</span>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setResolvingIncident(null)}
+                  disabled={isSubmittingLocation}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmLocation}
+                  disabled={isSubmittingLocation || (!selectedCandidate && (!customLat || !customLng))}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1 disabled:opacity-50 transition-colors"
+                >
+                  {isSubmittingLocation ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Plotting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>Confirm & Plot on Map</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

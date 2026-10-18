@@ -464,6 +464,18 @@ export default function App() {
     showToast(`Report created: ${created.id} [${created.humaidCategory || 'HumAID Analyzed'}]`, 'success');
   };
 
+  // 8b. Handle Officer Location Confirmation
+  const handleLocationUpdated = (updatedIncident) => {
+    setIncidents(prev => prev.map(inc => inc.id === updatedIncident.id ? { ...inc, ...updatedIncident } : inc));
+    setSelectedIncidentId(updatedIncident.id);
+    if (backendConnected) {
+      api.getAuditLogs().then(logs => {
+        if (Array.isArray(logs)) setAuditLog(logs);
+      }).catch(() => {});
+    }
+    showToast(`Location resolved and coordinates confirmed for ${updatedIncident.id}!`, 'success');
+  };
+
   // 9. Handle Human-Reviewed Duplicate Merged
   const handleDuplicateMerged = ({ primaryId, duplicateId, updatedPrimary, updatedDuplicate }) => {
     setIncidents(prev => prev.map(inc => {
@@ -553,6 +565,7 @@ export default function App() {
           onOpenBroadcast={() => setIsBroadcastOpen(true)}
           backendConnected={backendConnected}
           onOpenNewIncidentModal={() => setIsNewIncidentModalOpen(true)}
+          onOpenNewIncident={() => setIsNewIncidentModalOpen(true)}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
@@ -622,6 +635,8 @@ export default function App() {
               selectedIncident={selectedIncident}
               onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
               onNavigateTab={(tab) => setActiveTab(tab)}
+              onLocationUpdated={handleLocationUpdated}
+              onShowToast={showToast}
             />
           )}
 

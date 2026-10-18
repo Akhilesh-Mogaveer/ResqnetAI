@@ -22,6 +22,11 @@ from backend.app.schemas.incident import (
     DuplicateMergeResponse,
     DuplicateDismissResponse,
 )
+from backend.app.schemas.report_structuring import (
+    ReportStructuringRequest,
+    ReportStructuringResponse,
+)
+from backend.app.schemas.geocoding import LocationConfirmationRequest
 from backend.app.services.incident_service import (
     create_incident,
     get_incident_by_id,
@@ -30,8 +35,10 @@ from backend.app.services.incident_service import (
     override_incident_severity,
     update_incident_response_status,
     update_incident_verification,
+    update_incident_location,
     get_audit_logs,
 )
+from backend.app.services.report_structuring_service import extract_structured_incident_report
 from backend.app.services.duplicate_service import (
     find_duplicate_suggestions,
     merge_duplicate_incident,
@@ -64,14 +71,63 @@ def list_incidents(
     return [i.to_dict() for i in incidents]
 
 
+@router.post("/structure-report", response_model=ReportStructuringResponse)
+def structure_report_endpoint(payload: ReportStructuringRequest):
+    """
+    Structure messy or unstructured crisis report text into validated fields.
+    Extracts hazard category, casualties, location clues, time references, and urgency flags.
+    """
+    return extract_structured_incident_report(payload.text)
+
+
 @router.post("", response_model=IncidentResponse, status_code=status.HTTP_201_CREATED)
 def create_incident_endpoint(payload: IncidentCreate, db: Session = Depends(get_db)):
     """
     Submit a new emergency incident report.
     Optionally triggers NLP classification using HumAID DistilBERT to suggest situation category.
     """
-    incident = create_incident(db, payload)
-    return incident.to_dict()
+    try:
+        incident = create_incident(db, payload)
+        return incident.to_dict()
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+
+
+@router.patch("/{incident_id}/location", response_model=IncidentResponse)
+def update_location_endpoint(
+    incident_id: str,
+    payload: LocationConfirmationRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Confirm or correct coordinates and landmark location for an incident.
+    Records operator action in the immutable audit log and rescores priority.
+    """
+    try:
+        incident = update_incident_location(
+            db=db,
+            incident_id=incident_id,
+            coordinates=payload.coordinates,
+            location_name=payload.locationName,
+            sector=payload.sector,
+            confirmation_status=payload.confirmationStatus,
+            operator=payload.operator,
+            reason=payload.reason,
+        )
+        if not incident:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Incident '{incident_id}' not found.",
+            )
+        return incident.to_dict()
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
 
 
 @router.get("/{incident_id}", response_model=IncidentResponse)

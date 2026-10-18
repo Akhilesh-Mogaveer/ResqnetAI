@@ -43,6 +43,27 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     MAPS_API_KEY: str = ""
 
+    # Open-Meteo Environmental Data Integration Settings
+    OPEN_METEO_WEATHER_URL: str = "https://api.open-meteo.com/v1/forecast"
+    OPEN_METEO_FLOOD_URL: str = "https://flood-api.open-meteo.com/v1/flood"
+    OPEN_METEO_TIMEOUT_SECONDS: float = 8.0
+    ENV_DATA_CACHE_TTL_SECONDS: int = 900  # 15 minutes cache TTL
+
+    # Official Indian Meteorological & Hydrological Sources (IMD & NWDP/CWC)
+    IMD_API_BASE_URL: str = "https://api.imd.gov.in/api/v1"
+    IMD_API_KEY: str = ""
+    IMD_AUTH_TOKEN: str = ""
+    IMD_TIMEOUT_SECONDS: float = 8.0
+    NWDP_BASE_URL: str = "https://nwdp.nwic.gov.in"
+    NWDP_TIMEOUT_SECONDS: float = 12.0
+    INDIA_STATIONS_CACHE_TTL_SECONDS: int = 600
+    ENABLE_DEMO_SIMULATED_FEEDS: bool = True
+
+    # Configurable Reference Location (Udupi, Karnataka)
+    DEFAULT_ENV_LATITUDE: float = 13.3409
+    DEFAULT_ENV_LONGITUDE: float = 74.7421
+    DEFAULT_ENV_LOCATION_NAME: str = "Udupi, Karnataka"
+
     # Canonical Database path
     CANONICAL_DB_PATH: Path = (REPO_ROOT / "backend" / "resqnet.db").resolve()
 

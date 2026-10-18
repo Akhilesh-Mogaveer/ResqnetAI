@@ -48,3 +48,12 @@ def classify_report_endpoint(report: Dict[str, Any]):
     Preserves all original fields and attaches HumAID categorization output.
     """
     return enrich_incident_with_nlp(report)
+
+
+@router.post("/extract-report")
+def extract_report_endpoint(payload: TextClassificationRequest):
+    """
+    Extract structured incident report fields from raw text.
+    """
+    from backend.app.services.report_structuring_service import extract_structured_incident_report
+    return extract_structured_incident_report(payload.text)
