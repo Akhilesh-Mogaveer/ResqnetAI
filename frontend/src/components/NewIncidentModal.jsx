@@ -4,25 +4,16 @@ import {
   Sparkles,
   AlertTriangle,
   CheckCircle,
-  MapPin,
   Send,
   Loader2,
   Brain,
-  FilePlus,
   Search,
   Compass,
   CheckCircle2,
   HelpCircle,
-  Clock,
-  Users,
   ShieldAlert,
   Radio,
-  Phone,
-  MessageSquare,
-  Activity,
-  Share2,
   Lock,
-  Layers,
   Info,
   Map as MapIcon
 } from 'lucide-react';
@@ -62,7 +53,7 @@ function MapCenterController({ center, zoom }) {
     if (center && center[0] != null && center[1] != null && map && map.flyTo) {
       try {
         map.flyTo(center, zoom || 12, { duration: 0.5 });
-      } catch (e) {
+      } catch {
         // Safe in test environments
       }
     }
@@ -118,7 +109,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           iconAnchor: [11, 11],
         });
       }
-    } catch (e) {
+    } catch {
       // Safe fallback in test mock
     }
     return undefined;
@@ -134,7 +125,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           iconAnchor: [12, 12],
         });
       }
-    } catch (e) {
+    } catch {
       // Safe fallback
     }
     return undefined;

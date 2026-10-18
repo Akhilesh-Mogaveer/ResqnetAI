@@ -1,13 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sliders, 
-  AlertTriangle, 
   X, 
-  ShieldAlert, 
-  CheckCircle2, 
-  FileText,
-  User,
-  Clock
+  ShieldAlert
 } from 'lucide-react';
 
 export default function CoordinatorOverrideModal({ 
@@ -16,12 +11,19 @@ export default function CoordinatorOverrideModal({
   incident, 
   onSaveOverride 
 }) {
-  if (!isOpen || !incident) return null;
-
-  const [newScore, setNewScore] = useState(incident.priorityScore);
-  const [newStatus, setNewStatus] = useState(incident.responseStatus);
+  const [newScore, setNewScore] = useState(incident?.priorityScore ?? 50);
+  const [newStatus, setNewStatus] = useState(incident?.responseStatus ?? 'unassigned');
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (incident) {
+      setNewScore(incident.priorityScore ?? 50);
+      setNewStatus(incident.responseStatus ?? 'unassigned');
+      setReason('');
+      setError('');
+    }
+  }, [incident, isOpen]);
 
   const quickReasons = [
     "Direct radio contact with on-scene incident commander",
@@ -48,6 +50,8 @@ export default function CoordinatorOverrideModal({
     });
     onClose();
   };
+
+  if (!isOpen || !incident) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">

@@ -1,32 +1,38 @@
-import React, { useState } from 'react';
-import { Radio, X, AlertTriangle, Send, CheckCircle2, Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Radio, X, AlertTriangle, Send, CheckCircle2 } from 'lucide-react';
 
 export default function BroadcastModal({ isOpen, onClose, selectedIncident, onSendBroadcast }) {
-  if (!isOpen) return null;
-
   const [alertType, setAlertType] = useState('EVACUATION');
-  const [targetZone, setTargetZone] = useState(selectedIncident ? selectedIncident.sector : 'All Sectors');
-  const [headline, setHeadline] = useState(
-    selectedIncident 
-      ? `EMERGENCY ALERT: ${selectedIncident.title.toUpperCase()} in ${selectedIncident.sector}`
-      : 'EMERGENCY ALERT: Severe conditions reported across metro sectors.'
-  );
-  const [instructions, setInstructions] = useState(
-    selectedIncident
-      ? `Avoid ${selectedIncident.locationName}. Follow marked evacuation routes. Keep radio tuned to 98.5 FM.`
-      : 'Stay indoors, shelter in place, and keep emergency channels open.'
-  );
+  const [targetZone, setTargetZone] = useState('All Sectors');
+  const [headline, setHeadline] = useState('EMERGENCY ALERT: Severe conditions reported across metro sectors.');
+  const [instructions, setInstructions] = useState('Stay indoors, shelter in place, and keep emergency channels open.');
   const [sentSuccess, setSentSuccess] = useState(false);
+
+  useEffect(() => {
+    if (selectedIncident) {
+      setTargetZone(selectedIncident.sector || 'All Sectors');
+      setHeadline(`EMERGENCY ALERT: ${(selectedIncident.title || 'CRITICAL INCIDENT').toUpperCase()} in ${selectedIncident.sector || 'Area'}`);
+      setInstructions(`Avoid ${selectedIncident.locationName || 'the impacted area'}. Follow marked evacuation routes. Keep radio tuned to 98.5 FM.`);
+    } else {
+      setTargetZone('All Sectors');
+      setHeadline('EMERGENCY ALERT: Severe conditions reported across metro sectors.');
+      setInstructions('Stay indoors, shelter in place, and keep emergency channels open.');
+    }
+  }, [selectedIncident, isOpen]);
 
   const handleSend = (e) => {
     e.preventDefault();
     setSentSuccess(true);
     setTimeout(() => {
-      onSendBroadcast && onSendBroadcast({ alertType, targetZone, headline, instructions });
+      if (typeof onSendBroadcast === 'function') {
+        onSendBroadcast({ alertType, targetZone, headline, instructions });
+      }
       setSentSuccess(false);
       onClose();
     }, 1500);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">

@@ -13,15 +13,10 @@ import {
   MapPin,
   CheckCircle2,
   Clock,
-  Radio,
-  ShieldCheck,
   ShieldAlert,
-  Layers,
   Filter,
-  BarChart3,
   TrendingUp,
-  Activity,
-  Compass
+  Activity
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -769,8 +764,6 @@ export default function EnvironmentalConditionsPanel({
                 const latestRec = group.readings[0] || {};
                 const hasMultiple = group.readings.length > 1;
                 const hasCoords = group.latitude != null && group.longitude != null;
-                const isHistorical = group.classification === 'historical';
-                const isSimulated = group.quality_status === 'simulated';
 
                 return (
                   <div

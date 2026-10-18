@@ -17,7 +17,6 @@ from .incident import (
     PriorityOverrideRequest,
     SeverityOverrideRequest,
     AuditLogResponse,
-    AuditLogResponse,
     AttentionZoneResponse,
 )
 from .environmental import (

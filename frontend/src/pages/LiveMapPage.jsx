@@ -2,16 +2,9 @@ import React, { useState } from 'react';
 import IncidentMap from '../components/IncidentMap';
 import { 
   MapPin, 
-  Layers, 
-  Filter, 
   AlertTriangle, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Info, 
   ExternalLink,
   ChevronRight,
-  Eye,
-  CheckCircle2,
   Compass,
   Search,
   Loader2,

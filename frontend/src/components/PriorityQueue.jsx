@@ -3,13 +3,6 @@ import {
   Search,
   Filter,
   ChevronRight,
-  AlertTriangle,
-  ShieldCheck,
-  ShieldAlert,
-  CheckCircle2,
-  Clock,
-  SlidersHorizontal,
-  Flame,
   ArrowUpDown
 } from 'lucide-react';
 

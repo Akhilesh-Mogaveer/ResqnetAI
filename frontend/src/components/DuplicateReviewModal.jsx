@@ -4,11 +4,7 @@ import {
   X,
   AlertTriangle,
   MapPin,
-  Clock,
-  FileText,
-  ShieldCheck,
   Sparkles,
-  ArrowRight,
   CheckCircle2
 } from 'lucide-react';
 

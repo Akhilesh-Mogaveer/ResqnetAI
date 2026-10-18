@@ -59,7 +59,7 @@ export default function DuplicateSuggestionsCard({
     } finally {
       setIsLoading(false);
     }
-  }, [incident?.id, incident?.is_duplicate, incident?.responseStatus]);
+  }, [incident]);
 
   useEffect(() => {
     fetchDuplicates();

@@ -27,8 +27,7 @@ import {
 import {
   AlertTriangle,
   CheckCircle,
-  RefreshCw,
-  Sparkles
+  RefreshCw
 } from 'lucide-react';
 
 export default function App() {
@@ -38,7 +37,7 @@ export default function App() {
   const [selectedIncidentId, setSelectedIncidentId] = useState(INITIAL_INCIDENTS[0].id);
   const [attentionZones, setAttentionZones] = useState(ATTENTION_NEEDED_ZONES);
   const [auditLog, setAuditLog] = useState(INITIAL_AUDIT_LOG);
-  const [responseTeams, setResponseTeams] = useState(RESPONSE_TEAMS);
+  const [responseTeams, _setResponseTeams] = useState(RESPONSE_TEAMS);
 
   // Backend Integration State
   const [backendConnected, setBackendConnected] = useState(null); // null = checking, true = live, false = fallback
@@ -510,7 +509,7 @@ export default function App() {
   };
 
   // 10. Handle Human-Reviewed Duplicate Dismissed
-  const handleDuplicateDismissed = ({ primaryId, candidateId, updatedPrimary }) => {
+  const handleDuplicateDismissed = ({ primaryId: _primaryId, candidateId: _candidateId, updatedPrimary }) => {
     if (updatedPrimary) {
       setIncidents(prev => prev.map(inc => inc.id === updatedPrimary.id ? { ...inc, ...updatedPrimary } : inc));
     }

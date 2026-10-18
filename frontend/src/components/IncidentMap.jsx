@@ -18,9 +18,7 @@ import {
   Minimize2,
   AlertTriangle,
   RotateCcw,
-  CheckCircle2,
   ExternalLink,
-  Flame,
   Radio
 } from 'lucide-react';
 
@@ -81,7 +79,7 @@ export default function IncidentMap({
   const [showUnderreported, setShowUnderreported] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
   const [severityFilter, setSeverityFilter] = useState('all');
-  const [verificationFilter, setVerificationFilter] = useState('all');
+  const [verificationFilter, _setVerificationFilter] = useState('all');
 
   const mapInstanceRef = useRef(null);
   const mapContainerRef = useRef(null);
