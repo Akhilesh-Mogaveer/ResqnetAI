@@ -43,11 +43,34 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     MAPS_API_KEY: str = ""
 
+    # Canonical Database path
+    CANONICAL_DB_PATH: Path = (REPO_ROOT / "backend" / "resqnet.db").resolve()
+
     # Database configuration
-    DATABASE_URL: str = f"sqlite:///{REPO_ROOT / 'resqnet.db'}"
+    DATABASE_URL: str = f"sqlite:///{REPO_ROOT / 'backend' / 'resqnet.db'}"
 
     # Path to trained HumAID DistilBERT model
-    MODEL_DIR: str = str(REPO_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert")
+    MODEL_DIR: str = str((REPO_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert").resolve())
+
+    @field_validator("DATABASE_URL", mode="after")
+    def resolve_database_url(cls, v: str) -> str:
+        if v.startswith("sqlite:///"):
+            raw_path = v[len("sqlite:///"):]
+            p = Path(raw_path)
+            # If relative, anchor to canonical backend database file
+            if not p.is_absolute() or raw_path in (".", "./resqnet.db", "resqnet.db"):
+                canonical = (REPO_ROOT / "backend" / "resqnet.db").resolve()
+                return f"sqlite:///{canonical.as_posix()}"
+            return f"sqlite:///{p.as_posix()}"
+        return v
+
+    @field_validator("MODEL_DIR", mode="after")
+    def resolve_model_dir(cls, v: str) -> str:
+        p = Path(v)
+        if not p.is_absolute() or not p.exists():
+            canonical = (REPO_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert").resolve()
+            return str(canonical)
+        return str(p.resolve())
 
     model_config = SettingsConfigDict(
         env_file=(

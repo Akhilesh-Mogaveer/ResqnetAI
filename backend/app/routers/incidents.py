@@ -18,6 +18,8 @@ from backend.app.schemas.incident import (
     DuplicateSuggestion,
     DuplicateMergeRequest,
     DuplicateDismissRequest,
+    DuplicateMergeResponse,
+    DuplicateDismissResponse,
 )
 from backend.app.services.incident_service import (
     create_incident,
@@ -166,7 +168,7 @@ def get_incident_duplicate_suggestions(incident_id: str, db: Session = Depends(g
     return suggestions
 
 
-@router.post("/{incident_id}/merge-duplicate", response_model=IncidentResponse)
+@router.post("/{incident_id}/merge-duplicate", response_model=DuplicateMergeResponse)
 def merge_duplicate_endpoint(
     incident_id: str,
     payload: DuplicateMergeRequest,
@@ -175,21 +177,40 @@ def merge_duplicate_endpoint(
     """
     Coordinator action: Merge a duplicate report into this primary incident.
     Requires human review. Updates duplicate status, boosts corroboration, and writes audit trail.
+    Supports coordinator confirmation of primary incident.
     """
-    incident = merge_duplicate_incident(
+    if payload.primaryIncidentId and payload.primaryIncidentId != incident_id:
+        primary_id = payload.primaryIncidentId
+        duplicate_id = payload.duplicateIncidentId if payload.duplicateIncidentId != primary_id else incident_id
+    else:
+        primary_id = incident_id
+        duplicate_id = payload.duplicateIncidentId
+
+    if primary_id == duplicate_id:
+        raise HTTPException(status_code=400, detail="Cannot merge an incident into itself.")
+
+    primary, duplicate, audit_log = merge_duplicate_incident(
         db=db,
-        primary_id=incident_id,
-        duplicate_id=payload.duplicateIncidentId,
+        primary_id=primary_id,
+        duplicate_id=duplicate_id,
         operator=payload.operator,
         reason=payload.reason,
         update_corroboration=payload.updateCorroboration,
     )
-    if not incident:
+    if not primary or not duplicate:
         raise HTTPException(status_code=404, detail="Primary incident or duplicate incident not found.")
-    return incident.to_dict()
+
+    res = primary.to_dict()
+    res["primary_incident_id"] = primary.id
+    res["merged_incident_id"] = duplicate.id
+    res["review_status"] = "merged"
+    res["message"] = f"Merged {duplicate.id} into primary record {primary.id}."
+    res["merged_incident"] = duplicate.to_dict()
+    res["audit_log_id"] = audit_log.id if audit_log else None
+    return res
 
 
-@router.post("/{incident_id}/dismiss-duplicate", response_model=IncidentResponse)
+@router.post("/{incident_id}/dismiss-duplicate", response_model=DuplicateDismissResponse)
 def dismiss_duplicate_endpoint(
     incident_id: str,
     payload: DuplicateDismissRequest,
@@ -199,14 +220,23 @@ def dismiss_duplicate_endpoint(
     Coordinator action: Dismiss a duplicate candidate suggestion as a distinct event.
     Logs coordinator rationale and ensures the suggestion is not shown again.
     """
-    incident = dismiss_duplicate_suggestion(
+    primary, duplicate, audit_log = dismiss_duplicate_suggestion(
         db=db,
         primary_id=incident_id,
         duplicate_id=payload.duplicateIncidentId,
         operator=payload.operator,
         reason=payload.reason,
     )
-    if not incident:
+    if not primary or not duplicate:
         raise HTTPException(status_code=404, detail="Incident not found.")
-    return incident.to_dict()
+
+    res = primary.to_dict()
+    res["primary_incident_id"] = primary.id
+    res["candidate_incident_id"] = duplicate.id
+    res["dismissed_suggestion_id"] = f"dup-{primary.id}-{duplicate.id}"
+    res["review_status"] = "dismissed"
+    res["message"] = f"Dismissed duplicate suggestion for {duplicate.id}."
+    res["audit_log_id"] = audit_log.id if audit_log else None
+    return res
+
 

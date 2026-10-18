@@ -112,7 +112,25 @@ export default function IncidentMap({
 
   // Metro area cluster center (San Francisco / Coastal Bay simulated cluster)
   const defaultCenter = useMemo(() => [37.7749, -122.4194], []);
-  const activeCenter = selectedIncident ? selectedIncident.coordinates : defaultCenter;
+  const activeCenter = useMemo(() => {
+    if (
+      selectedIncident &&
+      Array.isArray(selectedIncident.coordinates) &&
+      selectedIncident.coordinates.length === 2 &&
+      selectedIncident.coordinates[0] != null &&
+      selectedIncident.coordinates[1] != null
+    ) {
+      return selectedIncident.coordinates;
+    }
+    return defaultCenter;
+  }, [selectedIncident, defaultCenter]);
+
+  // Count unmapped incidents
+  const unmappedCount = useMemo(() => {
+    return (incidents || []).filter(
+      (i) => !i.coordinates || !Array.isArray(i.coordinates) || i.coordinates.length !== 2 || i.coordinates[0] == null || i.coordinates[1] == null
+    ).length;
+  }, [incidents]);
 
   // Severity styles mapping
   const getSeverityStyle = (severity) => {
@@ -233,6 +251,13 @@ export default function IncidentMap({
               {incidents.filter(i => i.responseStatus !== 'resolved').length} active incidents
             </span>
           </div>
+
+          {unmappedCount > 0 && (
+            <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-700/60 text-amber-300 text-[11px] font-mono" title={`${unmappedCount} incidents have unmapped/unknown coordinates and are not plotted on the map`}>
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              <span>{unmappedCount} unmapped</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-3">
@@ -370,6 +395,21 @@ export default function IncidentMap({
                       <MapPin className="w-3 h-3 text-cyan-400 flex-shrink-0" />
                       <span className="truncate">{incident.sector} · {incident.locationName}</span>
                     </div>
+
+                    {/* Location Provenance / Synthetic Label */}
+                    {incident.is_synthetic_location ? (
+                      <div className="mt-1.5 text-[9px] font-mono text-amber-400 bg-amber-950/70 border border-amber-800/60 rounded px-1.5 py-0.5">
+                        ⚡ Synthetic Demo Coordinates (SF Bay Simulation)
+                      </div>
+                    ) : incident.location_source && incident.location_source.startsWith('geocoded') ? (
+                      <div className="mt-1.5 text-[9px] font-mono text-emerald-400 bg-emerald-950/70 border border-emerald-800/60 rounded px-1.5 py-0.5">
+                        📍 Geocoded Indian Location
+                      </div>
+                    ) : incident.coordinates ? (
+                      <div className="mt-1.5 text-[9px] font-mono text-cyan-300 bg-cyan-950/70 border border-cyan-800/60 rounded px-1.5 py-0.5">
+                        🛰️ User GPS Coordinates
+                      </div>
+                    ) : null}
 
                     <div className="mt-2.5 pt-2 border-t border-[#162035] grid grid-cols-2 gap-2 text-[10px] font-mono">
                       <div>

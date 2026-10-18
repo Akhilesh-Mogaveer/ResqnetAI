@@ -35,8 +35,7 @@ export default function PriorityQueue({
     if (filterSeverity === 'critical') return incident.severity === 'critical';
     if (filterSeverity === 'high') return incident.severity === 'high';
     if (filterSeverity === 'moderate') return incident.severity === 'moderate';
-    if (filterSeverity === 'unverified') return incident.verificationStatus === 'unverified';
-    if (filterSeverity === 'active') return incident.responseStatus !== 'resolved';
+    if (filterSeverity === 'active') return incident.responseStatus !== 'resolved' && !incident.is_duplicate && incident.responseStatus !== 'merged_duplicate';
 
     return true;
   });
@@ -200,6 +199,37 @@ export default function PriorityQueue({
                         <span className={`text-[9px] font-mono uppercase px-1.5 py-0.2 rounded border ${verif.cls}`}>
                           {verif.text}
                         </span>
+
+                        {/* Merged Duplicate Tag */}
+                        {(incident.is_duplicate || incident.responseStatus === 'merged_duplicate') && (
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded border bg-purple-950/70 text-purple-300 border-purple-800/60 font-semibold">
+                            MERGED DUPLICATE
+                          </span>
+                        )}
+
+                        {incident.duplicate_count > 0 && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-amber-950/60 text-amber-300 border-amber-800/50">
+                            +{incident.duplicate_count} CORROBORATED
+                          </span>
+                        )}
+
+                        {(!incident.coordinates || !Array.isArray(incident.coordinates) || incident.coordinates.length !== 2 || incident.coordinates[0] == null) && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-amber-950/70 text-amber-300 border-amber-700/60 font-semibold" title="Coordinates are unknown / unmapped">
+                            COORDS UNKNOWN
+                          </span>
+                        )}
+
+                        {incident.is_synthetic_location && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-slate-900/80 text-slate-400 border-slate-700/60" title="Synthetic demo coordinates (SF Bay Simulation)">
+                            DEMO COORDS
+                          </span>
+                        )}
+
+                        {incident.location_source && incident.location_source.startsWith('geocoded') && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-emerald-950/60 text-emerald-300 border-emerald-800/50" title={incident.location_source}>
+                            GEOCODED
+                          </span>
+                        )}
                       </div>
 
                       {/* Location & Time */}

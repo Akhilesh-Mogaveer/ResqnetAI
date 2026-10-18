@@ -1,6 +1,8 @@
 """
 Script to build the official RESQNET_HumAID_NLP_Training.ipynb notebook
 using nbformat for guaranteed Jupyter format compliance and schema validity.
+Updated for Google Colab GPU training, checkpoint/resume, held-out test evaluation,
+and safe isolated model artifact directories.
 """
 
 import json
@@ -22,21 +24,31 @@ def create_notebook():
             "name": "python",
             "nbconvert_exporter": "python",
             "pygments_lexer": "ipython3",
-            "version": "3.13.0"
-        }
+            "version": "3.10.0"
+        },
+        "accelerator": "GPU"
     }
 
     cells = []
 
-    # 1. Project introduction
+    # 1. Project introduction & Colab Quickstart
     cells.append(nbf.v4.new_markdown_cell("""# RESQNET AI — Disaster Message Classification with HumAID & DistilBERT
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
 
-## 1. Project Introduction
+## 1. Project Introduction & Google Colab Quickstart
 
 **RESQNET AI** is an intelligent emergency-response coordination platform designed to empower disaster dispatchers, incident commanders, and first-responder coordinators. During large-scale emergencies (such as earthquakes, hurricanes, floods, and wildfires), emergency dispatch centers are flooded with thousands of incoming citizen reports and social media messages every hour.
 
 ### Objective
 This notebook develops and validates the **multi-class NLP classification pipeline** for incoming crisis messages using the curated **HumAID** (Humanitarian Aid) dataset. The classifier automatically identifies the operational category of a report so that requests can be routed to the appropriate response team.
+
+### Google Colab GPU Setup Instructions:
+1. **Enable GPU Acceleration:**
+   Navigate to **Runtime** > **Change runtime type** > Select **T4 GPU** (or A100 if Colab Pro) > Click **Save**.
+2. **Mount Google Drive (Optional):**
+   If you want checkpoints automatically synced to Google Drive across session reconnects, run the Drive mount cell below.
+3. **Safety Protection:**
+   New model checkpoints are saved to a separate output directory (`data/nlp/models/resqnet_distilbert_full/`) so you can validate all held-out metrics before replacing the local prototype checkpoint.
 
 ### Operational Scope & Mission Safety Notice
 > **CRITICAL RESQNET MISSION SAFETY GUIDELINES:**
@@ -47,14 +59,29 @@ This notebook develops and validates the **multi-class NLP classification pipeli
 > - **Human-in-the-Loop:** Predictions must assist human dispatchers and coordinators, never trigger automated unit dispatch without human authorization.
 """))
 
-    # 2. Environment setup
-    cells.append(nbf.v4.new_markdown_cell("""## 2. Environment Setup
+    # 2. Environment setup & Colab detection
+    cells.append(nbf.v4.new_markdown_cell("""## 2. Environment Setup & Hardware Acceleration
 
-We verify the local Python environment, PyTorch backend, Transformers, Datasets, and hardware acceleration status (CUDA GPU vs. CPU fallback). We also ensure that the working directory is aligned with the project root."""))
+We verify the runtime environment, Google Colab runtime detection, optional Google Drive mounting, and GPU acceleration status (CUDA GPU vs. CPU fallback)."""))
 
     cells.append(nbf.v4.new_code_cell("""import os
 import sys
 from pathlib import Path
+
+# Detect Google Colab environment
+try:
+    import google.colab
+    IN_COLAB = True
+    print("Detected Google Colab environment.")
+except ImportError:
+    IN_COLAB = False
+    print("Running in standard local/remote Python environment.")
+
+# Optional: Mount Google Drive if running in Colab
+# Uncomment the following two lines if you want to store checkpoints on Google Drive:
+# if IN_COLAB:
+#     from google.colab import drive
+#     drive.mount('/content/drive')
 
 # Align working directory to project root
 current_dir = Path.cwd()
@@ -88,19 +115,22 @@ print(f"PyTorch Version        : {torch.__version__}")
 print(f"CUDA Available (GPU)   : {torch.cuda.is_available()}")
 if torch.cuda.is_available():
     print(f"CUDA Device Name       : {torch.cuda.get_device_name(0)}")
+    vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+    print(f"GPU Total VRAM         : {vram_gb:.2f} GB")
+    print(f"BF16 Precision Support : {torch.cuda.is_bf16_supported()}")
 else:
-    print("Execution Device       : CPU (Fallback mode enabled)")
+    print("Execution Device       : CPU (Warning: GPU is recommended for full HumAID training)")
 print(f"Transformers Version   : {transformers.__version__}")
 print(f"Datasets Version       : {datasets.__version__}")
 """))
 
     # 3. Dataset loading
-    cells.append(nbf.v4.new_markdown_cell("""## 3. Dataset Loading
+    cells.append(nbf.v4.new_markdown_cell("""## 3. Dataset Loading & Partition Verification
 
-We load the HumAID dataset splits from `data/nlp/datasets/raw/humaid/`:
-- `train.jsonl` — Primary training split (53,531 records)
-- `dev.jsonl` — Validation split for model selection and checkpoint evaluation (7,793 records)
-- `test.jsonl` — Held-out test split reserved for final unbiased performance assessment (15,160 records)
+We load the complete HumAID dataset splits from `data/nlp/datasets/raw/humaid/`:
+- `train.jsonl` — Primary training split (**53,531 records**)
+- `dev.jsonl` — Validation split for model selection and checkpoint evaluation (**7,793 records**)
+- `test.jsonl` — Held-out test split reserved exclusively for final unbiased performance assessment (**15,160 records**)
 """))
 
     cells.append(nbf.v4.new_code_cell("""import json
@@ -172,22 +202,7 @@ assert unique_train_labels == unique_dev_labels == unique_test_labels, "Label se
 print("\\nLabel Consistency Check: PASSED (Identical 10 classes across all 3 splits)")
 """))
 
-    cells.append(nbf.v4.new_code_cell("""# 3. Check for duplicates and cross-split leakage
-train_texts = set(df_train["tweet_text"].str.strip())
-dev_texts = set(df_dev["tweet_text"].str.strip())
-test_texts = set(df_test["tweet_text"].str.strip())
-
-train_dev_overlap = train_texts.intersection(dev_texts)
-train_test_overlap = train_texts.intersection(test_texts)
-
-print(f"Unique texts in Train: {len(train_texts):,}")
-print(f"Unique texts in Dev  : {len(dev_texts):,}")
-print(f"Unique texts in Test : {len(test_texts):,}")
-print(f"Train-Dev text overlap  : {len(train_dev_overlap)} texts (viral retweets during disasters)")
-print(f"Train-Test text overlap : {len(train_test_overlap)} texts (strict separation)")
-"""))
-
-    cells.append(nbf.v4.new_code_cell("""# 4. Class Distribution Comparison Table & Plot
+    cells.append(nbf.v4.new_code_cell("""# 3. Class Distribution Comparison Table & Plot
 dist_rows = []
 for lbl in unique_train_labels:
     tr_count = int((df_train["class_label"] == lbl).sum())
@@ -218,14 +233,12 @@ plt.show()
 """))
 
     # 5. Text preprocessing
-    cells.append(nbf.v4.new_markdown_cell("""## 5. Text Preprocessing
+    cells.append(nbf.v4.new_markdown_cell("""## 5. Text Preprocessing & Label Encoding
 
-Social-media crisis texts typically contain HTML entities (`&amp;`, `&lt;`), URLs, `@mentions`, and non-standard control characters.
 We reuse `clean_text` and `LabelMapper` from `data/nlp/src/preprocessing.py`:
-- Unescapes HTML entities.
-- Strips non-informative URLs.
+- Unescapes HTML entities (`&amp;`, `&lt;`).
 - Normalizes excess whitespace and control characters.
-- Encodes labels to deterministic numerical IDs.
+- Encodes labels to deterministic numerical IDs based on the canonical alphabetical mapping.
 """))
 
     cells.append(nbf.v4.new_code_cell("""from data.nlp.src.preprocessing import clean_text, LabelMapper
@@ -279,96 +292,108 @@ print(f"Tokens              : {tokenizer.convert_ids_to_tokens(encoded['input_id
 """))
 
     # 7. Model training
-    cells.append(nbf.v4.new_markdown_cell("""## 7. Model Training Pipeline
+    cells.append(nbf.v4.new_markdown_cell("""## 7. Full HumAID Model Training Pipeline (Google Colab / GPU)
 
-The training pipeline is fully implemented in `data/nlp/src/train.py`. It integrates:
+The training pipeline integrates:
 - **Pretrained Architecture:** `DistilBertForSequenceClassification`
-- **Loss & Optimizer:** CrossEntropyLoss with AdamW and linear learning-rate warmup
-- **Validation Model Selection:** Checkpoints are evaluated on the dev split at each epoch; the best model is selected based on `macro_f1`.
-- **Test Split Isolation:** The test split is kept strictly untouched during training.
+- **GPU Acceleration:** Automatic FP16 mixed precision on Tesla T4, V100, or A100 (2.5x-3x speedup).
+- **Validation Model Selection:** Checkpoints are evaluated on the `dev` split (`dev.jsonl`) at every epoch; the best model is selected based on `macro_f1`.
+- **Test Split Isolation:** The held-out `test` split (`test.jsonl`) is strictly excluded from training and checkpoint selection.
+- **Isolated Artifact Directory:** New weights are saved to `data/nlp/models/resqnet_distilbert_full/` to preserve the existing prototype.
+- **Resume Support:** Automatically resumes from the latest checkpoint if a session disconnects via `--resume auto`.
 
-### How to Run Training:
-1. **Full Training (Recommended via CLI):**
-   ```bash
-   python data/nlp/src/train.py --epochs 3 --batch_size 16 --lr 2e-5
-   ```
-2. **Smoke Test / Debug Run (Limits samples for quick verification):**
-   ```bash
-   python data/nlp/src/train.py --sample_limit 30 --epochs 1 --batch_size 8
-   ```
-3. **Resuming from Checkpoint:**
-   ```bash
-   python data/nlp/src/train.py --resume data/nlp/models/checkpoints/checkpoint-4
-   ```
+### Commands to Run Training in Colab:
+```bash
+# Full 3-epoch training on GPU with FP16
+!python data/nlp/src/train_colab.py --epochs 3 --batch_size 16 --lr 2e-5
 
-*Note: In this notebook, training is disabled by default to avoid long-running operations on CPU.*
+# Resume from latest checkpoint if disconnected:
+!python data/nlp/src/train_colab.py --resume auto
+```
 """))
 
     cells.append(nbf.v4.new_code_cell("""# Training Execution Interface (Toggleable)
-RUN_TRAINING_IN_NOTEBOOK = False
-SMOKE_TEST_MODE = True  # If True, trains on 30 samples for fast verification
+RUN_TRAINING_NOW = False       # Set to True to launch training in this notebook
+SMOKE_TEST_MODE = False        # Set to True to train on 50 samples for quick code test
+RESUME_CHECKPOINT = None       # Set to 'auto' or path to checkpoint to resume training
 
-if RUN_TRAINING_IN_NOTEBOOK:
-    from data.nlp.src.train import train_pipeline
-    sample_limit = 30 if SMOKE_TEST_MODE else None
-    epochs = 1 if SMOKE_TEST_MODE else 3
-    batch_size = 8 if SMOKE_TEST_MODE else 16
+if RUN_TRAINING_NOW:
+    from data.nlp.src.train_colab import run_colab_training
     
-    print(f"Launching training pipeline (Sample Limit: {sample_limit}, Epochs: {epochs})...")
-    results = train_pipeline(
+    sample_limit = 50 if SMOKE_TEST_MODE else None
+    epochs = 1 if SMOKE_TEST_MODE else 3
+    batch_size = 16
+    
+    print(f"Launching training (Sample Limit: {sample_limit}, Epochs: {epochs}, Resume: {RESUME_CHECKPOINT})...")
+    train_results = run_colab_training(
         epochs=epochs,
         batch_size=batch_size,
         sample_limit=sample_limit,
-        run_test_eval=True
+        resume=RESUME_CHECKPOINT,
+        model_save_dir="data/nlp/models/resqnet_distilbert_full",
+        output_dir="data/nlp/models/checkpoints_full",
     )
-    print("Training finished! Saved model to:", results["model_dir"])
+    print("Training finished! Saved model to:", train_results["model_dir"])
 else:
-    print("Notebook training skipped (RUN_TRAINING_IN_NOTEBOOK is False).")
-    print("Existing trained model weights are saved in: data/nlp/models/resqnet_distilbert/")
+    print("Notebook training skipped (RUN_TRAINING_NOW is False).")
+    print("To run from terminal or Colab bash cell, execute:")
+    print("!python data/nlp/src/train_colab.py --epochs 3 --batch_size 16 --lr 2e-5")
 """))
 
     # 8. Evaluation
-    cells.append(nbf.v4.new_markdown_cell("""## 8. Model Evaluation
+    cells.append(nbf.v4.new_markdown_cell("""## 8. Held-Out Test Evaluation & Performance Metrics
 
-We evaluate the saved model on the held-out test split using the reusable evaluation module `data/nlp/src/evaluate.py`.
+We evaluate the trained model on the held-out test split (`test.jsonl`, 15,160 samples) using `data/nlp/src/evaluate.py`.
 Metrics calculated:
-- Overall Accuracy
-- Macro Precision, Recall, and F1-Score (essential due to class imbalance)
-- Weighted F1-Score
-- Per-class metrics breakdown
-- Confusion Matrix
+- **Accuracy**
+- **Macro F1-Score, Precision, and Recall** (unweighted average across all 10 classes)
+- **Weighted F1-Score**
+- **Per-Class Breakdown** (precision, recall, F1, support)
+- **Confusion Matrix** heatmap
+- **Per-Class F1 comparison bar chart**
 """))
 
     cells.append(nbf.v4.new_code_cell("""from data.nlp.src.evaluate import evaluate_saved_model
 from IPython.display import Image, display
 
-model_dir = Path("data/nlp/models/resqnet_distilbert")
-assert model_dir.exists(), f"Model directory '{model_dir}' not found. Please train first."
+# Check for newly trained full model; fallback to prototype if not yet trained
+full_model_dir = Path("data/nlp/models/resqnet_distilbert_full")
+prototype_model_dir = Path("data/nlp/models/resqnet_distilbert")
 
-print(f"Running evaluation on test split using model at: {model_dir} ...")
-# Use sample_limit for quick notebook responsiveness; omit or set to None for all 15k test samples
+target_model_dir = full_model_dir if full_model_dir.exists() else prototype_model_dir
+print(f"Evaluating model at: {target_model_dir} ...")
+
 test_eval = evaluate_saved_model(
-    model_dir=model_dir,
+    model_dir=target_model_dir,
     split_name="test",
-    sample_limit=50
+    sample_limit=None if full_model_dir.exists() else 50,  # Full 15k test if full model trained
+    output_dir=target_model_dir / "evaluation",
 )
 
-print("\\n" + "=" * 60)
-print("TEST SPLIT PERFORMANCE METRICS")
-print("=" * 60)
+print("\\n" + "=" * 65)
+print(f"HELD-OUT TEST SPLIT PERFORMANCE ({target_model_dir.name.upper()})")
+print("=" * 65)
 print(f"Accuracy         : {test_eval['accuracy']:.4f}")
 print(f"Macro F1-Score   : {test_eval['macro_f1']:.4f}")
 print(f"Weighted F1-Score: {test_eval['weighted_f1']:.4f}")
-print("=" * 60)
+print("=" * 65)
 
-# Display per-class metrics
+# Display per-class metrics table
 df_per_class = pd.DataFrame.from_dict(test_eval["per_class"], orient="index")
 display(df_per_class)
 
 # Display confusion matrix heatmap
-cm_plot = Path("data/nlp/outputs/plots/test_confusion_matrix.png")
+eval_plots_dir = target_model_dir / "evaluation" / "plots"
+cm_plot = eval_plots_dir / "test_confusion_matrix.png"
 if cm_plot.exists():
+    print("\\nConfusion Matrix Heatmap:")
     display(Image(filename=str(cm_plot)))
+
+# Display per-class F1 bar chart
+f1_plot = eval_plots_dir / "test_per_class_f1.png"
+if f1_plot.exists():
+    print("\\nPer-Class F1-Score Comparison:")
+    display(Image(filename=str(f1_plot)))
 """))
 
     # 9. Sample predictions
@@ -385,7 +410,7 @@ Every prediction returns:
     cells.append(nbf.v4.new_code_cell("""from data.nlp.src.inference import ResqnetClassifier
 
 classifier = ResqnetClassifier(
-    model_dir="data/nlp/models/resqnet_distilbert",
+    model_dir=str(target_model_dir),
     device="auto"
 )
 
@@ -419,28 +444,26 @@ for msg in test_scenarios:
     print("-" * 75)
 """))
 
-    # 10. Conclusion and limitations
-    cells.append(nbf.v4.new_markdown_cell("""## 10. Conclusion and Operational Limitations
+    # 10. Model Promotion & Conclusion
+    cells.append(nbf.v4.new_markdown_cell("""## 10. Model Validation & Safe Promotion Guide
 
-### Summary of Accomplishments
-1. **End-to-End NLP Pipeline:** Built a modular disaster classification pipeline fine-tuning DistilBERT on 76,484 HumAID records.
-2. **Standardized Taxonomies:** Mapped and classified 10 distinct humanitarian operational categories.
-3. **Decoupled Architecture:** Inference (`ResqnetClassifier`) is fully isolated from training and ready for integration with the FastAPI backend.
-4. **Safety-First Design:** Clear disclaimers and validation protocols embedded into every prediction output.
+### Validation Criteria Before Replacing Prototype:
+Before copying weights from `data/nlp/models/resqnet_distilbert_full/` to `data/nlp/models/resqnet_distilbert/`:
+1. **Convergence Check:** Training loss decreased smoothly across all 3 epochs.
+2. **Held-out Test Macro F1:** Test macro F1 exceeds **0.80** (improving over the 0.22 baseline).
+3. **No Prediction Collapse:** Predictions are distributed across all 10 classes, with minority class recall (`missing_or_found_people`) verified in the confusion matrix.
 
-### Known Limitations & Future Roadmap
-| Capability | Current Status | Required Separate Component |
-|---|---|---|
-| **Category Classification** | Supported | Core DistilBERT multi-class classifier |
-| **Incident Authenticity** | Not Supported | Requires cross-source verification, author reputation, and anomaly detection |
-| **Geographic Coordinates** | Not Supported | Requires dedicated Named Entity Recognition (NER) & reverse-geocoding API |
-| **Victim Count Estimation** | Not Supported | Requires numerical relation extraction module |
-| **Duplicate Incident Deduplication**| Not Supported | Requires spatiotemporal clustering across incoming feeds |
-| **Dispatch Decision-Making** | Not Supported | **Strictly Human-in-the-Loop:** Dispatch decisions remain human coordinator responsibility |
+### How to Promote the Trained Model to Production:
+Once validation succeeds, run:
+```bash
+# 1. Back up existing prototype:
+cp -r data/nlp/models/resqnet_distilbert data/nlp/models/resqnet_distilbert_prototype_backup
 
-### Class Imbalance Considerations
-- The class `missing_or_found_people` accounts for only **0.47%** (250 train samples).
-- For production fine-tuning, consider class-weighted cross-entropy loss or focal loss to optimize minority class recall.
+# 2. Promote the full model:
+cp -r data/nlp/models/resqnet_distilbert_full/* data/nlp/models/resqnet_distilbert/
+
+# 3. Restart FastAPI backend to load the updated weights.
+```
 """))
 
     nb.cells = cells

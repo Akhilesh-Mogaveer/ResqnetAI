@@ -81,20 +81,20 @@ export default function Sidebar({ activeTab, setActiveTab, unverifiedCount, atte
         {/* Telemetry & Signal Queue */}
         <div className="px-4 pt-6 pb-2">
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-            Signal Feed
+            Signal Feed (Telemetry Simulation)
           </span>
         </div>
         <div className="px-3 space-y-2 text-xs">
-          <div className="p-2.5 rounded-lg bg-[#0c1424] border border-[#1a253e] flex items-center justify-between">
+          <div className="p-2.5 rounded-lg bg-[#0c1424] border border-[#1a253e] flex items-center justify-between" title="Simulated IoT telemetry heartbeat for interface demonstration">
             <div className="flex items-center space-x-2">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
               </span>
-              <span className="text-slate-300 text-[11px]">Live Sensor Stream</span>
+              <span className="text-slate-300 text-[11px]">Simulated Sensor Stream</span>
             </div>
             <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">
-              0.41s
+              SIMULATED
             </span>
           </div>
 

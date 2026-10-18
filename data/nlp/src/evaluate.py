@@ -222,6 +222,7 @@ def evaluate_saved_model(
     config_path: Optional[str] = None,
     split_name: str = "test",
     sample_limit: Optional[int] = None,
+    output_dir: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
     """
     Load a trained model checkpoint and evaluate it thoroughly on the test split.
@@ -311,8 +312,14 @@ def evaluate_saved_model(
     )
 
     # 6. Save results
-    metrics_dir = Path(config["evaluation"]["metrics_dir"])
-    plots_dir = Path(config["evaluation"]["plots_dir"])
+    if output_dir:
+        out_path = Path(output_dir)
+        metrics_dir = out_path / "metrics"
+        plots_dir = out_path / "plots"
+    else:
+        metrics_dir = Path(config["evaluation"]["metrics_dir"])
+        plots_dir = Path(config["evaluation"]["plots_dir"])
+
     metrics_dir.mkdir(parents=True, exist_ok=True)
     plots_dir.mkdir(parents=True, exist_ok=True)
 

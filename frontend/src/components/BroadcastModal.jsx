@@ -35,7 +35,7 @@ export default function BroadcastModal({ isOpen, onClose, selectedIncident, onSe
           <div className="flex items-center space-x-2">
             <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
             <h3 className="text-sm font-bold text-white tracking-wide">
-              Initiate Public Emergency Broadcast (EAS / CAP)
+              Public Emergency Broadcast (Simulated Prototype)
             </h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
@@ -43,14 +43,19 @@ export default function BroadcastModal({ isOpen, onClose, selectedIncident, onSe
           </button>
         </div>
 
+        <div className="bg-amber-950/40 border-b border-amber-800/40 px-5 py-2 text-[11px] text-amber-300/90 flex items-center space-x-2">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>Simulation Mode: No actual carrier, SMS, or EAS broadcast packets are transmitted. Emergency drill demonstration only.</span>
+        </div>
+
         {sentSuccess ? (
           <div className="p-8 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h4 className="text-sm font-bold text-white">Broadcast Dispatched</h4>
+            <h4 className="text-sm font-bold text-white">Simulated Broadcast Logged</h4>
             <p className="text-xs text-slate-400 font-mono">
-              Simulated EAS cell broadcast packets transmitted to {targetZone}.
+              Simulated EAS emergency drill message logged for {targetZone}. No actual telecommunications carrier transmission occurred.
             </p>
           </div>
         ) : (
@@ -120,7 +125,7 @@ export default function BroadcastModal({ isOpen, onClose, selectedIncident, onSe
                 className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition-all shadow-glow-cyan"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Simulate Broadcast Transmission</span>
+                <span>Log Simulated Broadcast</span>
               </button>
             </div>
           </form>

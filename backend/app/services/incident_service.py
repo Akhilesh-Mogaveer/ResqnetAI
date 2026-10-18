@@ -12,6 +12,7 @@ from sqlalchemy import desc
 from backend.app.models.incident import Incident, AuditLog, AttentionZone
 from backend.app.schemas.incident import IncidentCreate, IncidentUpdate
 from backend.app.services.nlp_service import enrich_incident_with_nlp
+from backend.app.services.geocoding_service import resolve_incident_coordinates
 
 logger = logging.getLogger("RESQNET.IncidentService")
 
@@ -66,13 +67,22 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         whyPrioritised=incident_in.whyPrioritised or "Newly reported emergency requiring coordinator triage.",
         report_text=report_text,
         original_report_text=report_text,
-        humaid_category=nlp_results.get("humaid_category"),
+        humaid_category=nlp_results.get("humaid_category") or incident_in.humaid_category,
         humaid_confidence=nlp_results.get("humaid_confidence"),
         nlp_status=nlp_results.get("nlp_status", "SKIPPED" if not report_text else "SUCCESS"),
         nlp_disclaimer=nlp_results.get("nlp_disclaimer", "RESQNET AI Automated NLP Prediction."),
     )
 
-    incident.coordinates = incident_in.coordinates
+    resolved_coords, is_synth, loc_source = resolve_incident_coordinates(
+        supplied_coords=incident_in.coordinates,
+        location_name=incident_in.locationName,
+        sector=incident_in.sector,
+        explicit_synthetic_flag=getattr(incident_in, "is_synthetic_location", False),
+    )
+    incident.coordinates = resolved_coords
+    incident.is_synthetic_location = is_synth
+    incident.location_source = loc_source
+
     incident.riskFactors = incident_in.riskFactors
     incident.notes = []
     if nlp_results.get("all_probabilities"):

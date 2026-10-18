@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Download, X, Copy, Check, FileText } from 'lucide-react';
 
 export default function ExportBriefModal({ isOpen, onClose, incidents, attentionZones }) {
-  if (!isOpen) return null;
-
   const [copied, setCopied] = useState(false);
+
+  if (!isOpen) return null;
 
   const activeIncidents = incidents.filter(i => i.responseStatus !== 'resolved');
   const critical = incidents.filter(i => i.severity === 'critical');

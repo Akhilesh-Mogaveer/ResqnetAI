@@ -134,28 +134,56 @@ def score_duplicate_pair(primary: Incident, candidate: Incident) -> Optional[Dup
     if primary.id == candidate.id:
         return None
 
-    # Skip if candidate was already merged as a duplicate or already dismissed
-    if candidate.is_duplicate or candidate.duplicate_of_id == primary.id:
+    # Skip if either incident was already merged as a duplicate
+    if primary.is_duplicate or candidate.is_duplicate:
         return None
-    if candidate.id in primary.dismissed_duplicates or primary.id in candidate.dismissed_duplicates:
+    if primary.duplicate_of_id or candidate.duplicate_of_id:
+        return None
+    if primary.responseStatus == "merged_duplicate" or candidate.responseStatus == "merged_duplicate":
+        return None
+
+    # Skip if already marked as duplicate of each other
+    if candidate.duplicate_of_id == primary.id or primary.duplicate_of_id == candidate.id:
+        return None
+
+    # Skip if candidate was already dismissed on either side
+    p_dismissed = primary.dismissed_duplicates or []
+    c_dismissed = candidate.dismissed_duplicates or []
+    if candidate.id in p_dismissed or primary.id in c_dismissed:
         return None
 
     # 1. Spatial Proximity
-    p_coords = primary.coordinates or [37.7749, -122.4194]
-    c_coords = candidate.coordinates or [37.7749, -122.4194]
-    distance_km = haversine_distance_km(p_coords[0], p_coords[1], c_coords[0], c_coords[1])
+    has_p_coords = primary.coordinates is not None and len(primary.coordinates) == 2
+    has_c_coords = candidate.coordinates is not None and len(candidate.coordinates) == 2
 
-    # Distance score: 1.0 (<0.25km) down to 0.0 (>10km)
-    if distance_km <= 0.25:
-        spatial_score = 1.0
-    elif distance_km <= 1.0:
-        spatial_score = 0.85 - ((distance_km - 0.25) / 0.75) * 0.20
-    elif distance_km <= 3.0:
-        spatial_score = 0.65 - ((distance_km - 1.0) / 2.0) * 0.35
-    elif distance_km <= 10.0:
-        spatial_score = 0.30 - ((distance_km - 3.0) / 7.0) * 0.25
+    if has_p_coords and has_c_coords:
+        p_coords = primary.coordinates
+        c_coords = candidate.coordinates
+        distance_km = haversine_distance_km(p_coords[0], p_coords[1], c_coords[0], c_coords[1])
+
+        # Distance score: 1.0 (<0.25km) down to 0.0 (>10km)
+        if distance_km <= 0.25:
+            spatial_score = 1.0
+        elif distance_km <= 1.0:
+            spatial_score = 0.85 - ((distance_km - 0.25) / 0.75) * 0.20
+        elif distance_km <= 3.0:
+            spatial_score = 0.65 - ((distance_km - 1.0) / 2.0) * 0.35
+        elif distance_km <= 10.0:
+            spatial_score = 0.30 - ((distance_km - 3.0) / 7.0) * 0.25
+        else:
+            spatial_score = 0.05
     else:
-        spatial_score = 0.05
+        # One or both have unknown coordinates; compare sectors/locations textually without assuming SF coords
+        distance_km = -1.0
+        if primary.sector and candidate.sector and primary.sector.lower() == candidate.sector.lower():
+            spatial_score = 0.70  # Same sector match
+        elif primary.locationName and candidate.locationName and (
+            primary.locationName.lower() in candidate.locationName.lower() or
+            candidate.locationName.lower() in primary.locationName.lower()
+        ):
+            spatial_score = 0.80  # Location name overlap
+        else:
+            spatial_score = 0.30  # Unknown coordinates
 
     # 2. Text Similarity
     p_text = f"{primary.title}. {primary.original_report_text or primary.report_text or ''} {primary.locationName} {primary.sector}"
@@ -206,7 +234,12 @@ def score_duplicate_pair(primary: Incident, candidate: Incident) -> Optional[Dup
     reasons: List[str] = []
 
     # Spatial reason
-    if distance_km < 0.3:
+    if distance_km < 0:
+        if primary.sector and candidate.sector and primary.sector.lower() == candidate.sector.lower():
+            reasons.append(f"Sector alignment: both reports cite {candidate.sector} (GPS coordinates unmapped).")
+        else:
+            reasons.append("Geographic distance unknown: reports lack mapped GPS coordinates.")
+    elif distance_km < 0.3:
         reasons.append(f"Immediate proximity: reports are only {int(distance_km * 1000)} meters apart.")
     elif distance_km < 1.0:
         reasons.append(f"Close proximity: located within {distance_km:.2f} km in the same operational sector ({candidate.sector}).")
@@ -238,7 +271,14 @@ def score_duplicate_pair(primary: Incident, candidate: Incident) -> Optional[Dup
         cat_name = candidate.humaid_category or candidate.type
         reasons.append(f"Matching HumAID situational category: '{cat_name}'.")
 
+    # Stable unique ID identifying this exact pair and direction
+    suggestion_id = f"dup-{primary.id}-{candidate.id}"
+
     return DuplicateSuggestion(
+        id=suggestion_id,
+        primary_incident_id=primary.id,
+        candidate_incident_id=candidate.id,
+        review_status="pending",
         candidate_id=candidate.id,
         candidate_title=candidate.title,
         candidate_sector=candidate.sector,
@@ -263,8 +303,18 @@ def find_duplicate_suggestions(db: Session, incident_id: str) -> List[DuplicateS
     if not primary:
         return []
 
-    # Query all other active incidents
-    candidates = db.query(Incident).filter(Incident.id != incident_id).all()
+    # If the incident itself is already a merged duplicate, it has no active duplicate suggestions
+    if primary.is_duplicate or primary.duplicate_of_id or primary.responseStatus == "merged_duplicate":
+        return []
+
+    # Query all other active incidents that are not already merged duplicates
+    candidates = (
+        db.query(Incident)
+        .filter(Incident.id != incident_id)
+        .filter(Incident.is_duplicate == False)
+        .filter(Incident.responseStatus != "merged_duplicate")
+        .all()
+    )
     suggestions: List[DuplicateSuggestion] = []
 
     for cand in candidates:
@@ -284,23 +334,33 @@ def merge_duplicate_incident(
     operator: str = "Coordinator Jordan Davis",
     reason: str = "Corroborating report merged after human review.",
     update_corroboration: bool = True,
-) -> Optional[Incident]:
+) -> Tuple[Optional[Incident], Optional[Incident], Optional[AuditLog]]:
     """
     Merge a duplicate report into a primary incident with human review.
-    Updates corroboration notes, increments duplicate_count, and creates audit records.
+    Updates corroboration notes, increments duplicate_count, preserves original texts,
+    and creates audit records for both incidents.
     """
+    if primary_id == duplicate_id:
+        return None, None, None
+
     primary = db.query(Incident).filter(Incident.id == primary_id).first()
     duplicate = db.query(Incident).filter(Incident.id == duplicate_id).first()
 
     if not primary or not duplicate:
-        return None
+        return None, None, None
+
+    # Verify neither is already merged as duplicate of another
+    if duplicate.is_duplicate and duplicate.duplicate_of_id and duplicate.duplicate_of_id != primary.id:
+        logger.warning(f"Candidate {duplicate.id} is already merged into {duplicate.duplicate_of_id}")
+        return None, None, None
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # 1. Update duplicate incident status
+    # 1. Update duplicate incident status while preserving original report text and provenance
     duplicate.is_duplicate = True
     duplicate.duplicate_of_id = primary.id
     duplicate.responseStatus = "merged_duplicate"
+    # Verification status is kept separate: preserve duplicate.verificationStatus
 
     dup_notes = list(duplicate.notes)
     dup_notes.append({
@@ -331,25 +391,37 @@ def merge_duplicate_incident(
     })
     primary.notes = primary_notes
 
-    # 3. Create immutable audit log records
-    audit_merge = AuditLog(
+    # 3. Create immutable audit log records for accountability on both records
+    audit_merge_primary = AuditLog(
         id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
         timestamp=now_iso,
         incidentId=primary.id,
         operator=operator,
         actionType="DUPLICATE_REPORT_MERGED",
         oldValue=f"Independent Report ({duplicate.id})",
-        newValue=f"Corroborated Signal (Merged {duplicate.id})",
-        reason=reason,
+        newValue=f"Primary: {primary.id} | Merged Duplicate: {duplicate.id}",
+        reason=f"{reason} (Selected Primary: {primary.id}, Merged: {duplicate.id})",
     )
-    db.add(audit_merge)
+    db.add(audit_merge_primary)
+
+    audit_merge_duplicate = AuditLog(
+        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}b",
+        timestamp=now_iso,
+        incidentId=duplicate.id,
+        operator=operator,
+        actionType="DUPLICATE_REPORT_MERGED",
+        oldValue=f"Independent Report ({duplicate.id})",
+        newValue=f"Merged into Primary ({primary.id})",
+        reason=f"{reason} (Selected Primary: {primary.id}, Merged: {duplicate.id})",
+    )
+    db.add(audit_merge_duplicate)
 
     db.commit()
     db.refresh(primary)
     db.refresh(duplicate)
 
     logger.info(f"Merged duplicate {duplicate.id} into primary {primary.id} by {operator}")
-    return primary
+    return primary, duplicate, audit_merge_primary
 
 
 def dismiss_duplicate_suggestion(
@@ -358,16 +430,20 @@ def dismiss_duplicate_suggestion(
     duplicate_id: str,
     operator: str = "Coordinator Jordan Davis",
     reason: str = "Confirmed by coordinator as separate distinct incident.",
-) -> Optional[Incident]:
+) -> Tuple[Optional[Incident], Optional[Incident], Optional[AuditLog]]:
     """
     Dismiss a candidate duplicate suggestion with coordinator audit justification.
-    Prevents the suggestion from recurring.
+    Persists dismissal reciprocally on both incidents and writes audit log.
+    Leaves both incident records intact and separate.
     """
+    if primary_id == duplicate_id:
+        return None, None, None
+
     primary = db.query(Incident).filter(Incident.id == primary_id).first()
     duplicate = db.query(Incident).filter(Incident.id == duplicate_id).first()
 
     if not primary or not duplicate:
-        return None
+        return None, None, None
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -382,8 +458,8 @@ def dismiss_duplicate_suggestion(
         d_dismissed.append(primary_id)
         duplicate.dismissed_duplicates = d_dismissed
 
-    # Audit log
-    audit_dismiss = AuditLog(
+    # Audit log on primary incident
+    audit_dismiss_primary = AuditLog(
         id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
         timestamp=now_iso,
         incidentId=primary.id,
@@ -391,11 +467,27 @@ def dismiss_duplicate_suggestion(
         actionType="DUPLICATE_SUGGESTION_DISMISSED",
         oldValue=f"Suggested duplicate candidate: {duplicate.id}",
         newValue="Dismissed as Distinct Incident",
-        reason=reason,
+        reason=f"{reason} (Dismissed candidate: {duplicate.id})",
     )
-    db.add(audit_dismiss)
+    db.add(audit_dismiss_primary)
+
+    # Audit log on candidate incident
+    audit_dismiss_duplicate = AuditLog(
+        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}b",
+        timestamp=now_iso,
+        incidentId=duplicate.id,
+        operator=operator,
+        actionType="DUPLICATE_SUGGESTION_DISMISSED",
+        oldValue=f"Suggested duplicate candidate: {primary.id}",
+        newValue="Dismissed as Distinct Incident",
+        reason=f"{reason} (Dismissed candidate for: {primary.id})",
+    )
+    db.add(audit_dismiss_duplicate)
 
     db.commit()
     db.refresh(primary)
+    db.refresh(duplicate)
+
     logger.info(f"Dismissed duplicate suggestion {duplicate.id} for incident {primary.id} by {operator}")
-    return primary
+    return primary, duplicate, audit_dismiss_primary
+

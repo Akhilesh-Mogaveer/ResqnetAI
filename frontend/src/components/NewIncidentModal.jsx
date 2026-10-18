@@ -19,6 +19,8 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
   const [priorityScore, setPriorityScore] = useState(75);
   const [peopleAffected, setPeopleAffected] = useState('10 - 25 people');
   const [reportText, setReportText] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   
   // NLP State
   const [isClassifying, setIsClassifying] = useState(false);
@@ -55,12 +57,21 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
     setIsSubmitting(true);
     try {
+      let userCoords = null;
+      if (latitude.trim() && longitude.trim()) {
+        const latF = parseFloat(latitude);
+        const lngF = parseFloat(longitude);
+        if (!isNaN(latF) && !isNaN(lngF)) {
+          userCoords = [latF, lngF];
+        }
+      }
+
       const payload = {
         title: title.trim(),
         type: nlpPrediction?.predicted_category ? nlpPrediction.predicted_category.replace(/_/g, ' ') : "Emergency Incident",
         sector,
         locationName: locationName.trim() || `${sector} Zone`,
-        coordinates: [37.7800 + (Math.random() - 0.5) * 0.04, -122.4100 + (Math.random() - 0.5) * 0.04],
+        coordinates: userCoords,
         severity,
         priorityScore: parseInt(priorityScore, 10),
         peopleAffected,
@@ -76,6 +87,8 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
       setTitle('');
       setLocationName('');
       setReportText('');
+      setLatitude('');
+      setLongitude('');
       setNlpPrediction(null);
     } catch (err) {
       console.error(err);
@@ -128,18 +141,57 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                 <option value="South Ridge Estate">South Ridge Estate</option>
                 <option value="Old Rail Corridor">Old Rail Corridor</option>
                 <option value="Lower Marina Basin">Lower Marina Basin</option>
+                <option value="Wayanad Relief Sector">Wayanad Relief Sector (Kerala)</option>
+                <option value="Chamoli Disaster Zone">Chamoli Disaster Zone (Uttarakhand)</option>
+                <option value="Mumbai Coastal Belt">Mumbai Coastal Belt (Maharashtra)</option>
+                <option value="Brahmaputra Valley">Brahmaputra Valley (Assam)</option>
+                <option value="Delhi NCR Command">Delhi NCR Command</option>
+                <option value="Custom Sector">Other / Custom Sector</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-slate-300 font-medium mb-1">Location Details</label>
+              <label className="block text-slate-300 font-medium mb-1">Location Details / Named Landmark</label>
               <input
                 type="text"
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                placeholder="e.g. Pier 14 Logistics Complex"
+                placeholder="e.g. Wayanad Relief Camp, Pier 14, or Andheri Metro"
                 className="w-full bg-[#080d1a] border border-[#1e293b] rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
               />
+            </div>
+          </div>
+
+          {/* Optional User GPS Coordinates */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2.5 rounded-lg bg-[#080f20]/60 border border-slate-800">
+            <div>
+              <label className="block text-slate-300 font-medium mb-1 text-[11px]">
+                Latitude (Optional GPS)
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="e.g. 11.6854"
+                className="w-full bg-[#080d1a] border border-[#1e293b] rounded-lg px-3 py-1.5 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 font-mono text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 font-medium mb-1 text-[11px]">
+                Longitude (Optional GPS)
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="e.g. 76.1320"
+                className="w-full bg-[#080d1a] border border-[#1e293b] rounded-lg px-3 py-1.5 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 font-mono text-xs"
+              />
+            </div>
+            <div className="sm:col-span-2 text-[10px] text-slate-400 font-mono">
+              ℹ️ Coordinates are optional. If left blank, RESQNET will geocode recognized Indian places (e.g. Wayanad, Joshimath, Mumbai, Delhi) or clearly preserve coordinates as unknown/unmapped.
             </div>
           </div>
 

@@ -170,10 +170,11 @@ export const api = {
   getIncidentDuplicates: (id) => request(`/incidents/${id}/duplicates`),
 
   mergeDuplicate: (id, payload) =>
-    request(`/incidents/${id}/merge-duplicate`, {
+    request(`/incidents/${payload.primaryIncidentId || id}/merge-duplicate`, {
       method: 'POST',
       body: JSON.stringify({
         duplicateIncidentId: payload.duplicateIncidentId,
+        primaryIncidentId: payload.primaryIncidentId || id,
         operator: payload.operator || 'Coordinator Jordan Davis',
         reason: payload.reason || 'Corroborating distress report merged into primary incident after human review.',
         updateCorroboration: payload.updateCorroboration !== false,

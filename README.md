@@ -5,7 +5,7 @@
 [![PyTorch](https://img.shields.io/badge/ML-PyTorch_2.6_+_DistilBERT-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org)
 [![Database](https://img.shields.io/badge/Database-SQLite_+_SQLAlchemy-003B57.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 
-**RESQNET AI** is an emergency-response operations dashboard and NLP situational triage system designed for disaster coordinators. It combines real-time incident mapping, priority queuing, underreported zone monitoring, and offline NLP message classification powered by a fine-tuned **HumAID DistilBERT** model (Macro F1: 87.8%).
+**RESQNET AI** is an emergency-response operations dashboard and NLP situational triage system designed for disaster coordinators. It combines real-time incident mapping, priority queuing, underreported zone monitoring, and offline NLP message classification powered by a prototype fine-tuned **HumAID DistilBERT** model (evaluated on local sample split; full HumAID benchmark target: ~88%).
 
 ---
 
@@ -160,7 +160,7 @@ Duplicate emergency reports often inundate emergency dispatch centers during dis
 
 ## 🧠 HumAID DistilBERT NLP Classifier
 
-- **Model Architecture**: Fine-tuned `distilbert-base-uncased` sequence classifier with 11 humanitarian categories (Macro F1: 87.8%).
+- **Model Architecture**: Prototype sequence classifier based on `distilbert-base-uncased` fine-tuned for 10 humanitarian categories. The current local checkpoint is an experimental prototype trained on a sample batch (held-out sample evaluation: 36% accuracy, 22% weighted F1 due to small batch class imbalance; full multi-thousand HumAID benchmark target is ~88% macro F1).
 - **Weights Location**: `data/nlp/models/resqnet_distilbert/` (includes `model.safetensors`, `config.json`, `tokenizer.json`, and `label_map.json`).
 - **Offline Inference**: `backend/app/services/nlp_service.py` connects directly to `data/nlp/src/inference.py`. It loads weights once into memory on startup and runs purely offline without external downloads.
 

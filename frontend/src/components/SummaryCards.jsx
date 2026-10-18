@@ -16,14 +16,16 @@ export default function SummaryCards({
   attentionZones, 
   onFilterClick 
 }) {
-  const activeCount = incidents.filter(i => i.responseStatus !== 'resolved').length;
-  const criticalCount = incidents.filter(i => i.severity === 'critical' && i.responseStatus !== 'resolved').length;
-  const unverifiedCount = incidents.filter(i => i.verificationStatus === 'unverified').length;
-  const underReviewCount = incidents.filter(i => i.verificationStatus === 'under_review').length;
+  // Prevent duplicate counting without deleting source reports
+  const independentIncidents = incidents.filter(i => !i.is_duplicate && i.responseStatus !== 'merged_duplicate');
+  const activeCount = independentIncidents.filter(i => i.responseStatus !== 'resolved').length;
+  const criticalCount = independentIncidents.filter(i => i.severity === 'critical' && i.responseStatus !== 'resolved').length;
+  const unverifiedCount = independentIncidents.filter(i => i.verificationStatus === 'unverified').length;
+  const underReviewCount = independentIncidents.filter(i => i.verificationStatus === 'under_review').length;
   const attentionZonesCount = attentionZones.length;
 
-  // Total affected estimate
-  const totalAffected = incidents.reduce((acc, curr) => acc + (curr.affectedCountNumeric || 15), 0);
+  // Total affected estimate (excluding duplicates to prevent double counting)
+  const totalAffected = independentIncidents.reduce((acc, curr) => acc + (curr.affectedCountNumeric || 15), 0);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

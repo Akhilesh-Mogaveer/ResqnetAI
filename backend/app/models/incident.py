@@ -17,7 +17,9 @@ class Incident(Base):
     type = Column(String(100), nullable=False, default="Emergency Incident")
     sector = Column(String(100), nullable=False, default="Sector Unspecified")
     locationName = Column(String(255), nullable=False, default="Location Unspecified")
-    coordinates_json = Column(Text, nullable=False, default="[37.7749, -122.4194]")  # [lat, lng]
+    coordinates_json = Column(Text, nullable=True, default=None)  # [lat, lng] or None if unmapped
+    is_synthetic_location = Column(Boolean, default=False, nullable=False)
+    location_source = Column(String(100), nullable=True, default="unknown")
     
     severity = Column(String(50), nullable=False, default="moderate")  # critical, high, moderate, low
     priorityScore = Column(Integer, nullable=False, default=50)  # 0-100
@@ -58,15 +60,21 @@ class Incident(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     @property
-    def coordinates(self) -> List[float]:
+    def coordinates(self) -> Optional[List[float]]:
         try:
-            return json.loads(self.coordinates_json) if self.coordinates_json else [37.7749, -122.4194]
+            if not self.coordinates_json or str(self.coordinates_json).strip() in ("", "null", "None"):
+                return None
+            parsed = json.loads(self.coordinates_json)
+            return parsed if isinstance(parsed, list) and len(parsed) == 2 else None
         except Exception:
-            return [37.7749, -122.4194]
+            return None
 
     @coordinates.setter
-    def coordinates(self, val: List[float]):
-        self.coordinates_json = json.dumps(val)
+    def coordinates(self, val: Optional[List[float]]):
+        if val is None or not isinstance(val, (list, tuple)) or len(val) != 2 or val[0] is None or val[1] is None:
+            self.coordinates_json = None
+        else:
+            self.coordinates_json = json.dumps([float(val[0]), float(val[1])])
 
     @property
     def riskFactors(self) -> List[str]:
@@ -151,6 +159,8 @@ class Incident(Base):
             "duplicate_of_id": self.duplicate_of_id,
             "duplicate_count": self.duplicate_count,
             "dismissed_duplicates": self.dismissed_duplicates,
+            "is_synthetic_location": self.is_synthetic_location,
+            "location_source": self.location_source,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

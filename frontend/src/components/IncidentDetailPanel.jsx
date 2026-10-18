@@ -29,7 +29,9 @@ export default function IncidentDetailPanel({
   onOpenOverrideModal,
   onAddNote,
   onDuplicateMerged,
+  onDuplicateDismissed,
   onShowToast,
+  onSelectIncident,
   responseTeams
 }) {
   const [copiedId, setCopiedId] = useState(false);
@@ -107,6 +109,26 @@ export default function IncidentDetailPanel({
             <span>·</span>
             <span className="font-mono">{incident.timeAgo}</span>
           </div>
+
+          <div className="flex items-center space-x-2 text-[10px] font-mono mt-1.5">
+            {!incident.coordinates || incident.coordinates.length < 2 ? (
+              <span className="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800/70 text-amber-300">
+                ⚠️ Coordinates Unknown (Unmatched Location)
+              </span>
+            ) : incident.is_synthetic_location ? (
+              <span className="px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/70 text-purple-300" title="Synthetic demo coordinates generated for simulation">
+                🧪 Demo / Synthetic Coords ({incident.coordinates[0].toFixed(3)}, {incident.coordinates[1].toFixed(3)})
+              </span>
+            ) : incident.location_source === 'user_input' ? (
+              <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/70 text-emerald-300">
+                📍 User GPS ({incident.coordinates[0].toFixed(3)}, {incident.coordinates[1].toFixed(3)})
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/70 text-cyan-300">
+                🗺️ Geocoded ({incident.coordinates[0].toFixed(3)}, {incident.coordinates[1].toFixed(3)})
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Override Button */}
@@ -164,11 +186,23 @@ export default function IncidentDetailPanel({
             <div className="text-[10px] font-mono uppercase text-slate-400 mb-1">
               Loc Confidence
             </div>
-            <div className="text-xl font-mono font-extrabold text-emerald-400">
-              {incident.locationConfidence}%
+            <div className={`text-xl font-mono font-extrabold ${
+              !incident.coordinates || incident.coordinates.length < 2
+                ? 'text-slate-400'
+                : incident.is_synthetic_location
+                ? 'text-purple-400'
+                : 'text-emerald-400'
+            }`}>
+              {!incident.coordinates || incident.coordinates.length < 2 ? 'N/A' : `${incident.locationConfidence}%`}
             </div>
             <div className="text-[10px] text-slate-400 mt-1 truncate">
-              GPS Triangulated
+              {!incident.coordinates || incident.coordinates.length < 2
+                ? 'Unmapped / Unknown'
+                : incident.is_synthetic_location
+                ? 'Simulated Demo'
+                : incident.location_source === 'user_input'
+                ? 'User GPS Input'
+                : 'Registry Geocoded'}
             </div>
           </div>
 
@@ -227,7 +261,9 @@ export default function IncidentDetailPanel({
         <DuplicateSuggestionsCard
           incident={incident}
           onDuplicateMerged={onDuplicateMerged}
+          onDuplicateDismissed={onDuplicateDismissed}
           onShowToast={onShowToast}
+          onSelectIncident={onSelectIncident}
         />
 
         {/* Signal Synthesis Box */}
@@ -319,7 +355,7 @@ export default function IncidentDetailPanel({
           {/* Control 3: Team Assignment */}
           <div>
             <label className="block text-[11px] text-slate-400 font-mono mb-1">
-              Assigned Response Team
+              Assigned Response Team (Demo Fleet Roster)
             </label>
             <select
               value={incident.assignedTeam || ''}
@@ -329,7 +365,7 @@ export default function IncidentDetailPanel({
               <option value="">-- No Team Assigned --</option>
               {responseTeams.map(team => (
                 <option key={team.id} value={team.name}>
-                  {team.name} ({team.type}) - {team.status}
+                  {team.name} ({team.type}) - {team.status} [Simulated]
                 </option>
               ))}
             </select>

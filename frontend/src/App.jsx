@@ -462,16 +462,61 @@ export default function App() {
   };
 
   // 9. Handle Human-Reviewed Duplicate Merged
-  const handleDuplicateMerged = (updatedPrimary) => {
+  const handleDuplicateMerged = ({ primaryId, duplicateId, updatedPrimary, updatedDuplicate }) => {
+    // Keep local incidents state in sync immediately
     setIncidents(prev => prev.map(inc => {
-      if (inc.id === updatedPrimary.id) return updatedPrimary;
+      if (updatedPrimary && inc.id === updatedPrimary.id) return { ...inc, ...updatedPrimary };
+      if (updatedDuplicate && inc.id === updatedDuplicate.id) return { ...inc, ...updatedDuplicate };
+      if (inc.id === duplicateId) {
+        return {
+          ...inc,
+          is_duplicate: true,
+          duplicate_of_id: primaryId,
+          responseStatus: 'merged_duplicate'
+        };
+      }
       return inc;
     }));
+
     if (backendConnected) {
-      api.getAuditLogs().then(setAuditLog).catch(() => {});
-      api.getIncidents().then(setIncidents).catch(() => {});
+      api.getAuditLogs().then(logs => {
+        if (Array.isArray(logs)) setAuditLog(logs);
+      }).catch(() => {});
+
+      api.getIncidents().then(apiIncidents => {
+        if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
+          setIncidents(apiIncidents);
+          // Keep selected incident stable: if it still exists in the list, keep it
+          setSelectedIncidentId(prevId => {
+            const exists = apiIncidents.some(i => i.id === prevId);
+            return exists ? prevId : primaryId;
+          });
+        }
+      }).catch(() => {});
     }
-    showToast(`Corroborating report merged into ${updatedPrimary.id}. Reliability updated.`, 'success');
+  };
+
+  // 10. Handle Human-Reviewed Duplicate Dismissed
+  const handleDuplicateDismissed = ({ primaryId, candidateId, updatedPrimary }) => {
+    if (updatedPrimary) {
+      setIncidents(prev => prev.map(inc => inc.id === updatedPrimary.id ? { ...inc, ...updatedPrimary } : inc));
+    }
+
+    if (backendConnected) {
+      api.getAuditLogs().then(logs => {
+        if (Array.isArray(logs)) setAuditLog(logs);
+      }).catch(() => {});
+
+      api.getIncidents().then(apiIncidents => {
+        if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
+          setIncidents(apiIncidents);
+          setSelectedIncidentId(prevId => {
+            const exists = apiIncidents.some(i => i.id === prevId);
+            return exists ? prevId : apiIncidents[0].id;
+          });
+        }
+      }).catch(() => {});
+    }
   };
 
   const handleSelectIncidentById = (id) => {
@@ -534,7 +579,7 @@ export default function App() {
                 </span>
                 <span className="text-slate-400">·</span>
                 <span className="text-slate-400">
-                  SQLite Persistent Database Active · HumAID DistilBERT (87.8% F1) Ready
+                  SQLite Persistent Database Active · HumAID DistilBERT (Prototype • Sample Batch Checkpoint) Ready
                 </span>
               </div>
               <span className="text-[10px] font-mono text-emerald-400/80 uppercase tracking-wider">
@@ -626,6 +671,8 @@ export default function App() {
                     onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
                     onAddNote={handleAddNote}
                     onDuplicateMerged={handleDuplicateMerged}
+                    onDuplicateDismissed={handleDuplicateDismissed}
+                    onSelectIncident={(id) => setSelectedIncidentId(id)}
                     onShowToast={showToast}
                     responseTeams={responseTeams}
                   />
@@ -663,6 +710,8 @@ export default function App() {
                     onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
                     onAddNote={handleAddNote}
                     onDuplicateMerged={handleDuplicateMerged}
+                    onDuplicateDismissed={handleDuplicateDismissed}
+                    onSelectIncident={(id) => setSelectedIncidentId(id)}
                     onShowToast={showToast}
                     responseTeams={responseTeams}
                   />
@@ -700,6 +749,8 @@ export default function App() {
                     onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
                     onAddNote={handleAddNote}
                     onDuplicateMerged={handleDuplicateMerged}
+                    onDuplicateDismissed={handleDuplicateDismissed}
+                    onSelectIncident={(id) => setSelectedIncidentId(id)}
                     onShowToast={showToast}
                     responseTeams={responseTeams}
                   />
@@ -780,7 +831,7 @@ export default function App() {
         onClose={() => setIsBroadcastOpen(false)}
         selectedIncident={selectedIncident}
         onSendBroadcast={(data) => {
-          showToast(`Emergency Broadcast dispatched to ${data.targetZone}!`, 'alert');
+          showToast(`[SIMULATED] Emergency broadcast alert logged for ${data.targetZone} (No live carrier transmission dispatched).`, 'info');
         }}
       />
 

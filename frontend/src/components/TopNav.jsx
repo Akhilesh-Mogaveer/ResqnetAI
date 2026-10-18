@@ -119,10 +119,11 @@ export default function TopNav({
         {/* Start Broadcast Button */}
         <button
           onClick={onOpenBroadcast}
+          title="Open simulated emergency broadcast drill modal"
           className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold transition-all shadow-[0_0_12px_rgba(6,182,212,0.4)] text-xs"
         >
           <Radio className="w-3.5 h-3.5" />
-          <span>Start broadcast</span>
+          <span>Simulate Broadcast</span>
         </button>
 
         {/* User Profile */}

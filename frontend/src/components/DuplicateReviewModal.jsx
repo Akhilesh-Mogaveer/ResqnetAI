@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   GitMerge, 
   X, 
@@ -8,7 +8,8 @@ import {
   FileText, 
   ShieldCheck, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function DuplicateReviewModal({ 
@@ -22,25 +23,44 @@ export default function DuplicateReviewModal({
   const [reason, setReason] = useState('Corroborated distress report merged into primary incident after human review.');
   const [updateCorroboration, setUpdateCorroboration] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [selectedPrimaryId, setSelectedPrimaryId] = useState(primaryIncident?.id);
+
+  useEffect(() => {
+    if (primaryIncident?.id) {
+      setSelectedPrimaryId(primaryIncident.id);
+    }
+  }, [primaryIncident?.id, candidateSuggestion?.id]);
 
   if (!isOpen || !primaryIncident || !candidateSuggestion) return null;
 
   const cand = candidateSuggestion;
   const candInc = cand.candidate_incident || {};
+  const candidateId = cand.candidate_incident_id || cand.candidate_id;
+
+  // Coordinator chooses which incident is the surviving primary record
+  const isCandidatePrimary = selectedPrimaryId === candidateId;
+  const activePrimaryId = isCandidatePrimary ? candidateId : primaryIncident.id;
+  const activeDuplicateId = isCandidatePrimary ? primaryIncident.id : candidateId;
 
   const handleMerge = async (e) => {
     e.preventDefault();
     if (!reason.trim()) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       await onConfirmMerge({
-        duplicateIncidentId: cand.candidate_id,
+        primaryIncidentId: activePrimaryId,
+        duplicateIncidentId: activeDuplicateId,
         operator,
         reason: reason.trim(),
         updateCorroboration,
+        suggestionId: cand.id,
       });
       onClose();
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to authorize merge.');
     } finally {
       setIsSubmitting(false);
     }
@@ -65,7 +85,7 @@ export default function DuplicateReviewModal({
           Review & Corroborate Candidate Report
         </h2>
         <p className="text-xs text-slate-400 mb-4">
-          Compare the primary incident with the candidate report. Merging updates the operational record, retains original message provenance, and documents coordinator authorization in the audit trail.
+          Compare reports side-by-side, confirm the primary incident, and authorize merge. Merging links duplicate records, retains original report narrative provenance in SQLite, and writes coordinator authorization to the audit trail.
         </p>
 
         {/* Explainability Signal Strip */}
@@ -120,26 +140,92 @@ export default function DuplicateReviewModal({
           )}
         </div>
 
+        {/* Primary Record Selection Step */}
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 mb-4">
+          <div className="text-xs font-mono text-slate-300 font-semibold mb-2 flex items-center justify-between">
+            <span>Select Primary Record (Remains Active & Retains Corroboration):</span>
+            <span className="text-[10px] text-cyan-400 font-mono">Coordinator Decision Step</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedPrimaryId(primaryIncident.id)}
+              className={`p-3 rounded-lg border text-left transition-all relative ${
+                selectedPrimaryId === primaryIncident.id
+                  ? 'bg-cyan-950/60 border-cyan-500 text-white shadow-lg shadow-cyan-950/50'
+                  : 'bg-[#080d1a] border-[#18233c] text-slate-400 hover:border-slate-600'
+              }`}
+            >
+              <div className="flex items-center justify-between font-mono text-[10px] mb-1">
+                <span className="font-bold text-cyan-400">{primaryIncident.id}</span>
+                {selectedPrimaryId === primaryIncident.id ? (
+                  <span className="px-2 py-0.5 rounded bg-cyan-900 text-cyan-200 border border-cyan-600 font-bold">
+                    PRIMARY RECORD
+                  </span>
+                ) : (
+                  <span className="text-slate-400 text-[9px]">Click to set Primary</span>
+                )}
+              </div>
+              <div className="font-bold text-slate-200 text-xs truncate">{primaryIncident.title}</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-1">
+                Sector: {primaryIncident.sector} · Priority: {primaryIncident.priorityScore}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedPrimaryId(candidateId)}
+              className={`p-3 rounded-lg border text-left transition-all relative ${
+                selectedPrimaryId === candidateId
+                  ? 'bg-cyan-950/60 border-cyan-500 text-white shadow-lg shadow-cyan-950/50'
+                  : 'bg-[#080d1a] border-[#18233c] text-slate-400 hover:border-slate-600'
+              }`}
+            >
+              <div className="flex items-center justify-between font-mono text-[10px] mb-1">
+                <span className="font-bold text-amber-400">{candidateId}</span>
+                {selectedPrimaryId === candidateId ? (
+                  <span className="px-2 py-0.5 rounded bg-cyan-900 text-cyan-200 border border-cyan-600 font-bold">
+                    PRIMARY RECORD
+                  </span>
+                ) : (
+                  <span className="text-slate-400 text-[9px]">Click to set Primary</span>
+                )}
+              </div>
+              <div className="font-bold text-slate-200 text-xs truncate">{cand.candidate_title}</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-1">
+                Sector: {cand.candidate_sector} · Priority: {candInc.priorityScore || 'N/A'}
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Side-by-Side Comparison */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-xs">
-          {/* Primary Incident */}
-          <div className="bg-[#080d1a] border border-cyan-900/50 rounded-lg p-3">
+          {/* Left Panel: PrimaryIncident */}
+          <div className={`rounded-lg p-3 border transition-colors ${
+            isCandidatePrimary 
+              ? 'bg-[#080d1a] border-amber-900/60' 
+              : 'bg-[#080d1a] border-cyan-900/80 shadow-sm'
+          }`}>
             <div className="flex items-center justify-between mb-1">
-              <span className="font-mono text-[10px] font-bold text-cyan-400">
-                [PRIMARY] {primaryIncident.id}
+              <span className={`font-mono text-[10px] font-bold ${
+                isCandidatePrimary ? 'text-amber-400' : 'text-cyan-400'
+              }`}>
+                {isCandidatePrimary ? `[MERGED CANDIDATE] ${primaryIncident.id}` : `[CONFIRMED PRIMARY] ${primaryIncident.id}`}
               </span>
-              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-800">
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700">
                 Score: {primaryIncident.priorityScore}
               </span>
             </div>
             <h4 className="font-bold text-white text-sm mb-1">{primaryIncident.title}</h4>
             <div className="text-[11px] text-slate-400 mb-2">
-              <MapPin className="w-3 h-3 inline text-cyan-400 mr-1" />
+              <MapPin className="w-3 h-3 inline text-slate-400 mr-1" />
               {primaryIncident.sector} · {primaryIncident.locationName}
             </div>
 
             <div className="bg-[#0c1424] p-2 rounded border border-[#18233c] text-[11px] text-slate-300 font-mono mb-2">
-              <span className="text-[9px] text-slate-400 block mb-0.5 uppercase">Primary Report Narrative:</span>
+              <span className="text-[9px] text-slate-400 block mb-0.5 uppercase">Report Narrative:</span>
               "{primaryIncident.report_text || primaryIncident.original_report_text || primaryIncident.signalSynthesis}"
             </div>
 
@@ -150,24 +236,30 @@ export default function DuplicateReviewModal({
             )}
           </div>
 
-          {/* Candidate Duplicate */}
-          <div className="bg-[#080d1a] border border-amber-900/50 rounded-lg p-3">
+          {/* Right Panel: CandidateIncident */}
+          <div className={`rounded-lg p-3 border transition-colors ${
+            isCandidatePrimary 
+              ? 'bg-[#080d1a] border-cyan-900/80 shadow-sm' 
+              : 'bg-[#080d1a] border-amber-900/60'
+          }`}>
             <div className="flex items-center justify-between mb-1">
-              <span className="font-mono text-[10px] font-bold text-amber-400">
-                [CANDIDATE DUPLICATE] {cand.candidate_id}
+              <span className={`font-mono text-[10px] font-bold ${
+                isCandidatePrimary ? 'text-cyan-400' : 'text-amber-400'
+              }`}>
+                {isCandidatePrimary ? `[CONFIRMED PRIMARY] ${candidateId}` : `[MERGED CANDIDATE] ${candidateId}`}
               </span>
-              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800">
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700">
                 {cand.candidate_severity}
               </span>
             </div>
             <h4 className="font-bold text-white text-sm mb-1">{cand.candidate_title}</h4>
             <div className="text-[11px] text-slate-400 mb-2">
-              <MapPin className="w-3 h-3 inline text-amber-400 mr-1" />
+              <MapPin className="w-3 h-3 inline text-slate-400 mr-1" />
               {cand.candidate_sector} · {candInc.locationName || 'Same Sector'}
             </div>
 
             <div className="bg-[#0c1424] p-2 rounded border border-[#18233c] text-[11px] text-slate-300 font-mono mb-2">
-              <span className="text-[9px] text-slate-400 block mb-0.5 uppercase">Candidate Report Narrative:</span>
+              <span className="text-[9px] text-slate-400 block mb-0.5 uppercase">Report Narrative:</span>
               "{candInc.report_text || candInc.original_report_text || candInc.signalSynthesis || 'Citizen distress dispatch'}"
             </div>
 
@@ -178,6 +270,24 @@ export default function DuplicateReviewModal({
             )}
           </div>
         </div>
+
+        {/* Explicit Confirmation Step Banner */}
+        <div className="p-3 rounded-lg bg-[#0c1424] border border-cyan-800/60 text-xs font-mono text-slate-200 mb-4 flex items-center space-x-2.5">
+          <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+          <div>
+            <span className="text-cyan-300 font-bold uppercase">Merge Confirmation:</span> Report{' '}
+            <strong className="text-amber-300">{activeDuplicateId}</strong> will be merged into primary record{' '}
+            <strong className="text-cyan-300">{activePrimaryId}</strong>. Original report narrative and provenance will remain preserved in SQLite.
+          </div>
+        </div>
+
+        {/* Error Banner */}
+        {submitError && (
+          <div className="p-3 rounded-lg bg-red-950/80 border border-red-700 text-red-200 text-xs font-mono mb-4 flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span>Error: {submitError}</span>
+          </div>
+        )}
 
         {/* Merge Authorization Form */}
         <form onSubmit={handleMerge} className="space-y-3 text-xs bg-[#080d1a] border border-[#18233c] rounded-lg p-3">
@@ -202,7 +312,7 @@ export default function DuplicateReviewModal({
                 className="rounded border-[#1e293b] text-cyan-500 focus:ring-0 bg-[#0c1424] w-4 h-4"
               />
               <label htmlFor="corroborateCheck" className="text-slate-300 text-xs select-none">
-                Boost Report Reliability (+5% multi-source corroboration)
+                Boost Primary Reliability (+5% multi-source corroboration)
               </label>
             </div>
           </div>
@@ -221,12 +331,13 @@ export default function DuplicateReviewModal({
 
           <div className="flex items-center justify-between pt-2 border-t border-[#18233c]">
             <span className="text-[10px] font-mono text-slate-400 italic">
-              * Action writes to immutable audit log and marks {cand.candidate_id} as merged.
+              * Writes to immutable audit trail and marks {activeDuplicateId} as merged under {activePrimaryId}.
             </span>
             <div className="flex items-center space-x-2">
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isSubmitting}
                 className="px-3 py-1.5 rounded-lg bg-[#0e172a] hover:bg-slate-800 text-slate-300 font-mono text-xs transition-colors"
               >
                 Cancel
@@ -234,10 +345,10 @@ export default function DuplicateReviewModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold font-mono text-xs transition-all shadow-md"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold font-mono text-xs transition-all shadow-md disabled:opacity-50"
               >
                 <GitMerge className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? 'Merging...' : 'Authorize Merge'}</span>
+                <span>{isSubmitting ? 'Authorizing Merge...' : 'Authorize Merge'}</span>
               </button>
             </div>
           </div>

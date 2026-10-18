@@ -129,24 +129,40 @@ def build_humaid_dataset(
     val_texts, val_labels = load_jsonl_records(val_path, text_col, label_col, limit=sample_limit)
     test_texts, test_labels = load_jsonl_records(test_path, text_col, label_col, limit=sample_limit)
 
-    # Initialize LabelMapper using all canonical classes across the full dataset
-    all_classes_set = set()
-    with open(train_path, "r", encoding="utf-8", errors="replace") as f:
-        for line in f:
-            if line.strip():
-                try:
-                    lbl = json.loads(line).get(label_col)
-                    if lbl:
-                        all_classes_set.add(str(lbl).strip())
-                except Exception:
-                    pass
-    label_mapper = LabelMapper(labels=sorted(list(all_classes_set)))
-    logger.info(f"Built label mapping with {len(label_mapper)} canonical classes: {label_mapper.labels}")
+    # Initialize LabelMapper using canonical file if available, or scan splits
+    label_map_file = config["model"].get("label_mapping_file")
+    if label_map_file and Path(label_map_file).exists():
+        logger.info(f"Loading canonical label mapping from: {label_map_file}")
+        label_mapper = LabelMapper.load(label_map_file)
+    else:
+        all_classes_set = set()
+        for p in [train_path, val_path]:
+            if p.exists():
+                with open(p, "r", encoding="utf-8", errors="replace") as f:
+                    for line in f:
+                        if line.strip():
+                            try:
+                                lbl = json.loads(line).get(label_col)
+                                if lbl:
+                                    all_classes_set.add(str(lbl).strip())
+                            except Exception:
+                                pass
+        label_mapper = LabelMapper(labels=sorted(list(all_classes_set)))
+    logger.info(f"Using label mapping with {len(label_mapper)} canonical classes: {label_mapper.labels}")
 
-    # Encode labels to integer IDs (filtering any invalid samples)
-    train_label_ids = [label_mapper.encode(lbl) for lbl in train_labels if lbl in label_mapper.label2id]
-    val_label_ids = [label_mapper.encode(lbl) for lbl in val_labels if lbl in label_mapper.label2id]
-    test_label_ids = [label_mapper.encode(lbl) for lbl in test_labels if lbl in label_mapper.label2id]
+    # Synchronously filter pairs to guarantee matching array lengths
+    def filter_and_encode(texts: List[str], labels: List[str]) -> Tuple[List[str], List[int]]:
+        filtered_texts = []
+        filtered_ids = []
+        for t, l in zip(texts, labels):
+            if l in label_mapper.label2id:
+                filtered_texts.append(t)
+                filtered_ids.append(label_mapper.encode(l))
+        return filtered_texts, filtered_ids
+
+    train_texts, train_label_ids = filter_and_encode(train_texts, train_labels)
+    val_texts, val_label_ids = filter_and_encode(val_texts, val_labels)
+    test_texts, test_label_ids = filter_and_encode(test_texts, test_labels)
 
     # Convert to Hugging Face Datasets
     raw_dict = DatasetDict({

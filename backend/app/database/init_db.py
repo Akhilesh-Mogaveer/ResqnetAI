@@ -438,6 +438,8 @@ def init_db(db: Session) -> None:
                 nlp_disclaimer="RESQNET AI Automated NLP Prediction. Not a verified emergency report.",
             )
             incident.coordinates = coords
+            incident.is_synthetic_location = True
+            incident.location_source = "synthetic_demo_sf_simulation"
             incident.riskFactors = risk_factors
             incident.notes = notes
             db.add(incident)
