@@ -13,6 +13,8 @@ from .incident_service import (
     update_incident_verification,
     update_incident_response_status,
     override_incident_priority,
+    override_incident_severity,
+    rescore_incident,
     get_audit_logs,
     get_attention_zones,
 )
@@ -27,6 +29,8 @@ __all__ = [
     "update_incident_verification",
     "update_incident_response_status",
     "override_incident_priority",
+    "override_incident_severity",
+    "rescore_incident",
     "get_audit_logs",
     "get_attention_zones",
 ]

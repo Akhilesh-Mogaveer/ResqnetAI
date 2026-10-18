@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.models.incident import Incident, AuditLog
 from backend.app.schemas.incident import DuplicateSuggestion
+from backend.app.services.incident_service import _generate_audit_log_id, rescore_incident
 
 logger = logging.getLogger("RESQNET.DuplicateService")
 
@@ -393,7 +394,7 @@ def merge_duplicate_incident(
 
     # 3. Create immutable audit log records for accountability on both records
     audit_merge_primary = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=primary.id,
         operator=operator,
@@ -405,7 +406,7 @@ def merge_duplicate_incident(
     db.add(audit_merge_primary)
 
     audit_merge_duplicate = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}b",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=duplicate.id,
         operator=operator,
@@ -416,12 +417,26 @@ def merge_duplicate_incident(
     )
     db.add(audit_merge_duplicate)
 
+    # 4. Recalculate priority and severity using updated affected-person count and merged evidence
+    rescore_incident(
+        db=db,
+        incident=primary,
+        reason=f"Duplicate report {duplicate.id} merged into primary incident {primary.id}.",
+        operator=operator,
+        merged_duplicate=duplicate,
+        commit=False,
+    )
+
     db.commit()
     db.refresh(primary)
     db.refresh(duplicate)
 
     logger.info(f"Merged duplicate {duplicate.id} into primary {primary.id} by {operator}")
     return primary, duplicate, audit_merge_primary
+
+
+# Alias for backward compatibility and test consistency
+merge_duplicate_reports = merge_duplicate_incident
 
 
 def dismiss_duplicate_suggestion(
@@ -445,22 +460,26 @@ def dismiss_duplicate_suggestion(
     if not primary or not duplicate:
         return None, None, None
 
+    # Check if already dismissed on both sides to avoid redundant duplicate audit entries
+    p_dismissed = list(primary.dismissed_duplicates)
+    d_dismissed = list(duplicate.dismissed_duplicates)
+    if duplicate_id in p_dismissed and primary_id in d_dismissed:
+        return primary, duplicate, None
+
     now_iso = datetime.now(timezone.utc).isoformat()
 
     # Add to dismissed lists on both sides
-    p_dismissed = list(primary.dismissed_duplicates)
     if duplicate_id not in p_dismissed:
         p_dismissed.append(duplicate_id)
         primary.dismissed_duplicates = p_dismissed
 
-    d_dismissed = list(duplicate.dismissed_duplicates)
     if primary_id not in d_dismissed:
         d_dismissed.append(primary_id)
         duplicate.dismissed_duplicates = d_dismissed
 
     # Audit log on primary incident
     audit_dismiss_primary = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=primary.id,
         operator=operator,
@@ -473,7 +492,7 @@ def dismiss_duplicate_suggestion(
 
     # Audit log on candidate incident
     audit_dismiss_duplicate = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}b",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=duplicate.id,
         operator=operator,

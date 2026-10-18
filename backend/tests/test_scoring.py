@@ -611,3 +611,316 @@ def test_missing_coordinates_on_disk_sqlite_with_not_null(tmp_path):
         fresh_session.close()
     finally:
         engine.dispose()
+
+
+# ============================================================================
+# Phase 2: Reliable Incident Rescoring Regression Tests
+# ============================================================================
+
+def test_duplicate_reports_increase_affected_count_and_rescore_priority(db_session):
+    """
+    Merging a duplicate report must:
+    1. Update primary affected-person count if duplicate reported more casualties.
+    2. Recalculate priority based on increased scale and corroboration.
+    3. Persist changes to the database.
+    4. Create an audit log for PRIORITY_RESCORING.
+    """
+    from backend.app.services.incident_service import create_incident, get_incident_by_id, get_audit_logs
+    from backend.app.services.duplicate_service import merge_duplicate_reports
+
+    primary_in = IncidentCreate(
+        id="RQN-P2-01",
+        title="East Wing Water Pipe Rupture",
+        type="Infrastructure",
+        sector="East Harbor",
+        locationName="Harbor Complex Wing A",
+        coordinates=[19.0760, 72.8777],
+        location_source="user_supplied",
+        report_text="Water line burst in corridor. 1 person slipped.",
+        people_affected="1 person injured",
+        affectedCountNumeric=1,
+        run_nlp_classification=False,
+    )
+    primary = create_incident(db_session, primary_in)
+    initial_priority = primary.priorityScore
+    assert primary.affectedCountNumeric == 1
+
+    dup_in = IncidentCreate(
+        id="RQN-P2-02",
+        title="Basement Inundation and Electrical Hazard",
+        type="Infrastructure",
+        sector="East Harbor",
+        locationName="Harbor Complex Basement",
+        coordinates=[19.0762, 72.8779],
+        location_source="user_supplied",
+        report_text="Flooding spreading to power room. 7 workers trapped behind security gate.",
+        people_affected="7 workers trapped",
+        affectedCountNumeric=7,
+        run_nlp_classification=False,
+    )
+    duplicate = create_incident(db_session, dup_in)
+
+    # Perform coordinator merge
+    merged_prim, merged_dup, merge_audit = merge_duplicate_reports(
+        db=db_session,
+        primary_id=primary.id,
+        duplicate_id=duplicate.id,
+        operator="Coordinator Alex Rivera",
+        reason="Corroborated ground reports of escalating structural flood.",
+        update_corroboration=True,
+    )
+
+    # Verify primary affected-person count increased to 7
+    assert merged_prim.affectedCountNumeric == 7
+    assert "7 workers" in merged_prim.peopleAffected or "7" in merged_prim.peopleAffected
+    assert merged_prim.duplicate_count == 1
+
+    # Verify priority score increased due to higher casualty scale and corroboration
+    assert merged_prim.priorityScore > initial_priority
+
+    # Verify database persistence after reloading record
+    reloaded = get_incident_by_id(db_session, primary.id)
+    assert reloaded.affectedCountNumeric == 7
+    assert reloaded.priorityScore == merged_prim.priorityScore
+    assert reloaded.duplicate_count == 1
+
+    # Verify audit logs
+    audits = get_audit_logs(db_session, incident_id=primary.id)
+    rescore_log = next((l for l in audits if l.actionType == "PRIORITY_RESCORING"), None)
+    assert rescore_log is not None
+    assert int(rescore_log.newValue) == merged_prim.priorityScore
+    assert rescore_log.oldValue == str(initial_priority)
+    assert "duplicate" in rescore_log.reason.lower()
+
+
+def test_verification_status_changes_affect_priority_and_persist(db_session):
+    """
+    Verification status transitions must automatically rescore priority and persist:
+    - Moving to 'verified' boosts verification sub-score.
+    - Moving to 'disputed' applies disputed penalty (capped at 25).
+    - Creates PRIORITY_RESCORING audit logs for meaningful changes.
+    """
+    from backend.app.services.incident_service import (
+        create_incident,
+        get_incident_by_id,
+        update_incident_verification,
+        get_audit_logs,
+    )
+
+    inc_in = IncidentCreate(
+        id="RQN-P2-03",
+        title="Chemical storage odor leak",
+        type="Hazardous Material",
+        sector="North Industrial",
+        locationName="Warehouse 4",
+        coordinates=[19.0760, 72.8777],
+        location_source="user_supplied",
+        report_text="Strong sulfur smell outside warehouse. 2 guards feeling dizzy.",
+        people_affected="2 guards",
+        affectedCountNumeric=2,
+        run_nlp_classification=False,
+    )
+    inc = create_incident(db_session, inc_in)
+    unverified_priority = inc.priorityScore
+
+    # Transition 1: unverified -> verified
+    updated_ver = update_incident_verification(
+        db=db_session,
+        incident_id=inc.id,
+        new_status="verified",
+        operator="Captain Morgan",
+        reason="Field inspection confirmed minor chemical leak.",
+    )
+    assert updated_ver.verificationStatus == "verified"
+    assert updated_ver.priorityScore > unverified_priority
+    verified_priority = updated_ver.priorityScore
+
+    # Transition 2: verified -> disputed
+    updated_disp = update_incident_verification(
+        db=db_session,
+        incident_id=inc.id,
+        new_status="disputed",
+        operator="Lead Hazmat Inspector",
+        reason="False alarm; odor was from certified municipal sewage clearing.",
+    )
+    assert updated_disp.verificationStatus == "disputed"
+    assert updated_disp.priorityScore <= 25
+    disputed_priority = updated_disp.priorityScore
+
+    # Verify persistence after reloading from DB
+    reloaded = get_incident_by_id(db_session, inc.id)
+    assert reloaded.verificationStatus == "disputed"
+    assert reloaded.priorityScore == disputed_priority
+
+    # Verify audit logs
+    audits = get_audit_logs(db_session, incident_id=inc.id)
+    rescore_logs = [l for l in audits if l.actionType == "PRIORITY_RESCORING"]
+    assert len(rescore_logs) >= 2
+    # One rescore for verified transition
+    assert any(l.oldValue == str(unverified_priority) and l.newValue == str(verified_priority) for l in rescore_logs)
+    # One rescore for disputed transition
+    assert any(l.oldValue == str(verified_priority) and l.newValue == str(disputed_priority) for l in rescore_logs)
+
+
+def test_manual_overrides_survive_automatic_rescoring(db_session):
+    """
+    Manual priority and severity overrides must NOT be overwritten by automatic rescoring,
+    whether triggered by verification changes or duplicate merges.
+    """
+    from backend.app.services.incident_service import (
+        create_incident,
+        get_incident_by_id,
+        update_incident_verification,
+        get_audit_logs,
+    )
+    from backend.app.services.duplicate_service import merge_duplicate_reports
+
+    inc_in = IncidentCreate(
+        id="RQN-P2-04",
+        title="School basement dampness",
+        type="Flood",
+        sector="South Suburbs",
+        locationName="Public School 12",
+        coordinates=[19.0760, 72.8777],
+        location_source="user_supplied",
+        report_text="Water seepage in basement storage room.",
+        people_affected="None",
+        affectedCountNumeric=0,
+        severity="low",
+        priorityScore=94,  # Coordinator manually overrides priority to 94 (e.g. VIP event)
+        is_priority_overridden=True,
+        is_severity_overridden=True,
+        run_nlp_classification=False,
+    )
+    primary = create_incident(db_session, inc_in)
+    assert primary.priorityScore == 94
+    assert primary.severity == "low"
+    assert primary.is_priority_overridden is True
+    assert primary.is_severity_overridden is True
+
+    # Action 1: Change verification status
+    updated = update_incident_verification(
+        db=db_session,
+        incident_id=primary.id,
+        new_status="verified",
+        operator="Coordinator Jordan",
+        reason="Field team confirmed dampness.",
+    )
+    # Priority and severity must NOT be overwritten!
+    assert updated.priorityScore == 94
+    assert updated.severity == "low"
+
+    # Action 2: Merge duplicate with higher casualty count
+    dup_in = IncidentCreate(
+        id="RQN-P2-05",
+        title="Basement pump short circuit",
+        type="Flood",
+        sector="South Suburbs",
+        locationName="Public School 12",
+        coordinates=[19.0760, 72.8777],
+        location_source="user_supplied",
+        report_text="Pump short-circuited. 4 staff members evacuated.",
+        people_affected="4 staff evacuated",
+        affectedCountNumeric=4,
+        severity="high",
+        run_nlp_classification=False,
+    )
+    duplicate = create_incident(db_session, dup_in)
+
+    merged_prim, _, _ = merge_duplicate_reports(
+        db=db_session,
+        primary_id=primary.id,
+        duplicate_id=duplicate.id,
+        operator="Coordinator Jordan",
+        reason="Merging pump incident into primary school incident.",
+    )
+    # Merged evidence updates affected count
+    assert merged_prim.affectedCountNumeric == 4
+    # But manual priority and severity overrides remain untouched!
+    assert merged_prim.priorityScore == 94
+    assert merged_prim.severity == "low"
+
+    # Verify reload from DB
+    reloaded = get_incident_by_id(db_session, primary.id)
+    assert reloaded.priorityScore == 94
+    assert reloaded.severity == "low"
+    assert reloaded.is_priority_overridden is True
+    assert reloaded.is_severity_overridden is True
+
+    # Overridden fields must not have PRIORITY_RESCORING or SEVERITY_RESCORING audit entries
+    audits = get_audit_logs(db_session, incident_id=primary.id)
+    assert not any(l.actionType in ("PRIORITY_RESCORING", "SEVERITY_RESCORING") for l in audits)
+
+
+def test_no_duplicate_audit_logs_when_nothing_changes(db_session):
+    """
+    Audit logs must only be created when meaningful changes occur.
+    Redundant status updates or rescorings that produce identical scores must avoid duplicate logs.
+    """
+    from backend.app.services.incident_service import (
+        create_incident,
+        update_incident_verification,
+        rescore_incident,
+        get_audit_logs,
+    )
+    from backend.app.services.duplicate_service import dismiss_duplicate_suggestion
+
+    inc_in = IncidentCreate(
+        id="RQN-P2-06",
+        title="Traffic signal blinking amber",
+        type="Infrastructure",
+        sector="Downtown",
+        locationName="5th and Broadway",
+        coordinates=[19.0760, 72.8777],
+        location_source="user_supplied",
+        report_text="Signal controller blinking amber. Traffic flowing slowly.",
+        people_affected="None",
+        affectedCountNumeric=0,
+        run_nlp_classification=False,
+    )
+    inc = create_incident(db_session, inc_in)
+    initial_audit_count = len(get_audit_logs(db_session, incident_id=inc.id))
+
+    # 1. Verification transition to the SAME status (unverified -> unverified)
+    update_incident_verification(
+        db=db_session,
+        incident_id=inc.id,
+        new_status="unverified",
+        operator="System",
+        reason="Redundant check",
+    )
+    assert len(get_audit_logs(db_session, incident_id=inc.id)) == initial_audit_count
+
+    # 2. Rescore incident with identical inputs
+    _, new_logs = rescore_incident(
+        db=db_session,
+        incident=inc,
+        reason="Routine health rescore",
+        commit=True,
+    )
+    assert len(new_logs) == 0
+    assert len(get_audit_logs(db_session, incident_id=inc.id)) == initial_audit_count
+
+    # 3. Dismissal idempotency
+    inc2_in = IncidentCreate(
+        id="RQN-P2-07",
+        title="Traffic light outage 5th Ave",
+        type="Infrastructure",
+        sector="Downtown",
+        locationName="5th and Broadway",
+        coordinates=[19.0761, 72.8778],
+        location_source="user_supplied",
+        report_text="Signal completely out at 5th and Broadway.",
+        run_nlp_classification=False,
+    )
+    inc2 = create_incident(db_session, inc2_in)
+
+    # First dismissal creates logs
+    dismiss_duplicate_suggestion(db_session, inc.id, inc2.id)
+    dismiss_audits_1 = len(get_audit_logs(db_session, incident_id=inc.id))
+
+    # Second dismissal of same pair produces NO new audit logs
+    dismiss_duplicate_suggestion(db_session, inc.id, inc2.id)
+    dismiss_audits_2 = len(get_audit_logs(db_session, incident_id=inc.id))
+    assert dismiss_audits_1 == dismiss_audits_2
+

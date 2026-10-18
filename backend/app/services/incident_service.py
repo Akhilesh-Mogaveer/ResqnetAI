@@ -6,7 +6,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -14,7 +14,15 @@ from backend.app.models.incident import Incident, AuditLog, AttentionZone
 from backend.app.schemas.incident import IncidentCreate, IncidentUpdate
 from backend.app.services.nlp_service import enrich_incident_with_nlp
 from backend.app.services.geocoding_service import resolve_incident_coordinates
-from backend.app.services.scoring_service import calculate_incident_scores
+from backend.app.services.scoring_service import (
+    calculate_incident_scores,
+    calculate_incident_severity,
+    calculate_priority_score,
+    calculate_report_reliability,
+    generate_why_prioritised,
+    parse_affected_count,
+    extract_risk_factors,
+)
 
 logger = logging.getLogger("RESQNET.IncidentService")
 
@@ -111,6 +119,12 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         else scoring_result.risk_factors
     )
 
+    resolved_people_affected = (
+        getattr(incident_in, "people_affected", None)
+        or (incident_in.peopleAffected if incident_in.peopleAffected != "Unknown count" else None)
+        or (f"{final_affected_numeric} individuals affected" if final_affected_numeric > 0 else incident_in.peopleAffected)
+    )
+
     incident = Incident(
         id=incident_id,
         title=incident_in.title,
@@ -121,7 +135,7 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         priorityScore=final_priority,
         reportReliability=final_reliability,
         locationConfidence=final_location_conf,
-        peopleAffected=incident_in.peopleAffected,
+        peopleAffected=resolved_people_affected,
         affectedCountNumeric=final_affected_numeric,
         timeAgo="Just now",
         timestamp=now_iso,
@@ -255,6 +269,166 @@ def get_incident_by_id(db: Session, incident_id: str) -> Optional[Incident]:
     return db.query(Incident).filter(Incident.id == incident_id).first()
 
 
+def rescore_incident(
+    db: Session,
+    incident: Incident,
+    reason: str,
+    operator: str = "RESQNET Scoring Engine",
+    merged_duplicate: Optional[Incident] = None,
+    commit: bool = True,
+) -> Tuple[Incident, List[AuditLog]]:
+    """
+    Recalculate deterministic incident priority and severity.
+    
+    Guarantees:
+    - Never overwrites coordinator manual priority or severity overrides.
+    - Updates affected-person count and merges risk factors when a duplicate is merged.
+    - Recalculates priority score based on new verification or merged evidence.
+    - Creates audit logs ONLY when priority or severity scores actually change (no duplicate logs).
+    - Persists changes to SQLite database when commit=True.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+    new_audit_logs: List[AuditLog] = []
+
+    # 1. Merge evidence if a duplicate incident report is provided
+    if merged_duplicate:
+        # Check if duplicate reports a higher casualty / affected count
+        old_affected = incident.affectedCountNumeric or 0
+        dup_people_desc = getattr(merged_duplicate, "people_affected", None) or merged_duplicate.peopleAffected
+        parsed_dup_affected = parse_affected_count(
+            people_affected=dup_people_desc,
+            text=f"{merged_duplicate.title or ''}. {merged_duplicate.report_text or ''}",
+        )
+        dup_affected = max(merged_duplicate.affectedCountNumeric or 0, parsed_dup_affected)
+        if (not dup_people_desc or dup_people_desc.strip().lower() in ("unknown", "unknown count")) and dup_affected > 0:
+            dup_people_desc = f"{dup_affected} individuals affected"
+
+        if dup_affected > old_affected:
+            incident.affectedCountNumeric = dup_affected
+            if dup_people_desc and (
+                not incident.peopleAffected or incident.peopleAffected.strip().lower() in ("none", "0", "0 casualties", "unknown", "unknown count")
+            ):
+                incident.peopleAffected = dup_people_desc
+            elif dup_people_desc and incident.peopleAffected and dup_people_desc not in incident.peopleAffected:
+                incident.peopleAffected = f"{incident.peopleAffected}; Merged {merged_duplicate.id}: {dup_people_desc}"
+
+        # Combine risk factors
+        current_risks = list(incident.riskFactors or [])
+        dup_risks = list(merged_duplicate.riskFactors or [])
+        dup_extra = extract_risk_factors(
+            report_text=f"{merged_duplicate.title or ''}. {merged_duplicate.report_text or ''}",
+            humaid_category=merged_duplicate.humaid_category,
+            affected_count=incident.affectedCountNumeric or 0,
+            coordinates=incident.coordinates,
+            verification_status=incident.verificationStatus,
+            duplicate_count=incident.duplicate_count or 0,
+        )
+        incident.riskFactors = list(dict.fromkeys(current_risks + dup_risks + dup_extra))
+
+        full_text = f"{incident.title or ''}. {incident.report_text or ''} [Merged {merged_duplicate.id}: {merged_duplicate.title or ''}. {merged_duplicate.report_text or ''}]".strip()
+    else:
+        full_text = f"{incident.title or ''}. {incident.report_text or ''}".strip()
+
+    # 2. Severity Evaluation (respecting coordinator override)
+    old_severity = incident.severity
+    if incident.is_severity_overridden:
+        new_severity = old_severity
+    else:
+        new_severity = calculate_incident_severity(
+            humaid_category=incident.humaid_category,
+            humaid_confidence=incident.humaid_confidence,
+            all_probabilities=incident.all_probabilities,
+            report_text=full_text,
+            affected_count=incident.affectedCountNumeric or 0,
+            risk_factors=incident.riskFactors or [],
+        )
+        if merged_duplicate:
+            # Merging duplicate should not downgrade severity if duplicate had higher severity tier
+            severity_tiers = {"critical": 4, "high": 3, "moderate": 2, "low": 1}
+            dup_sev = (merged_duplicate.severity or "low").lower()
+            if severity_tiers.get(dup_sev, 1) > severity_tiers.get(new_severity, 1):
+                new_severity = dup_sev
+
+    # 3. Priority Evaluation (respecting coordinator override)
+    old_priority = incident.priorityScore
+    if incident.is_priority_overridden:
+        new_priority = old_priority
+    else:
+        new_priority, breakdown = calculate_priority_score(
+            severity=new_severity,
+            humaid_category=incident.humaid_category,
+            humaid_confidence=incident.humaid_confidence,
+            all_probabilities=incident.all_probabilities,
+            affected_count=incident.affectedCountNumeric or 0,
+            verification_status=incident.verificationStatus,
+            location_confidence=incident.locationConfidence or 70,
+            duplicate_count=incident.duplicate_count or 0,
+            timestamp=incident.timestamp,
+            risk_factors=incident.riskFactors or [],
+        )
+
+    # 4. Update Report Reliability & Explainable Summary
+    if incident.reportReliability is None:
+        has_coords = (
+            incident.coordinates is not None
+            and len(incident.coordinates) == 2
+            and incident.coordinates[0] is not None
+        )
+        incident.reportReliability = calculate_report_reliability(
+            source_summary=incident.sourceSummary,
+            verification_status=incident.verificationStatus,
+            duplicate_count=incident.duplicate_count or 0,
+            has_coordinates=has_coords,
+        )
+    incident.whyPrioritised = generate_why_prioritised(
+        severity=new_severity,
+        priority_score=new_priority,
+        affected_count=incident.affectedCountNumeric or 0,
+        humaid_category=incident.humaid_category,
+        risk_factors=incident.riskFactors or [],
+        location_confidence=incident.locationConfidence or 70,
+        verification_status=incident.verificationStatus,
+        duplicate_count=incident.duplicate_count or 0,
+    )
+
+    # 5. Persist audit logs ONLY when scores actually change (no duplicate audit entries)
+    if new_severity != old_severity:
+        incident.severity = new_severity
+        audit_sev = AuditLog(
+            id=_generate_audit_log_id(),
+            timestamp=now_iso,
+            incidentId=incident.id,
+            operator=operator,
+            actionType="SEVERITY_RESCORING",
+            oldValue=str(old_severity),
+            newValue=str(new_severity),
+            reason=f"{reason} (Severity updated from '{old_severity}' to '{new_severity}')",
+        )
+        db.add(audit_sev)
+        new_audit_logs.append(audit_sev)
+
+    if new_priority != old_priority:
+        incident.priorityScore = new_priority
+        audit_prio = AuditLog(
+            id=_generate_audit_log_id(),
+            timestamp=now_iso,
+            incidentId=incident.id,
+            operator=operator,
+            actionType="PRIORITY_RESCORING",
+            oldValue=str(old_priority),
+            newValue=str(new_priority),
+            reason=f"{reason} (Priority score updated from {old_priority} to {new_priority})",
+        )
+        db.add(audit_prio)
+        new_audit_logs.append(audit_prio)
+
+    if commit:
+        db.commit()
+        db.refresh(incident)
+
+    return incident, new_audit_logs
+
+
 def update_incident_verification(
     db: Session,
     incident_id: str,
@@ -268,6 +442,10 @@ def update_incident_verification(
         return None
 
     old_status = incident.verificationStatus
+    if old_status == new_status:
+        # Avoid duplicate audit entries when nothing actually changes
+        return incident
+
     incident.verificationStatus = new_status
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -282,6 +460,16 @@ def update_incident_verification(
         reason=reason,
     )
     db.add(audit_entry)
+
+    # Recalculate priority based on the updated verification status
+    rescore_incident(
+        db=db,
+        incident=incident,
+        reason=f"Verification status transition from '{old_status}' to '{new_status}'.",
+        operator=operator,
+        commit=False,
+    )
+
     db.commit()
     db.refresh(incident)
     return incident
@@ -301,6 +489,10 @@ def update_incident_response_status(
         return None
 
     old_status = incident.responseStatus
+    if old_status == new_status and assigned_team == incident.assignedTeam:
+        # Avoid duplicate audit entries when nothing actually changes
+        return incident
+
     incident.responseStatus = new_status
     if assigned_team is not None:
         incident.assignedTeam = assigned_team
@@ -336,6 +528,7 @@ def override_incident_priority(
 
     old_priority = incident.priorityScore
     incident.priorityScore = new_priority
+    incident.is_priority_overridden = True
     now_iso = datetime.now(timezone.utc).isoformat()
 
     # Append note to incident notes
@@ -345,6 +538,8 @@ def override_incident_priority(
         "author": operator,
         "time": "Just now",
         "text": f"Priority manually overridden from {old_priority} to {new_priority}. Reason: {reason}",
+        "override_type": "priority",
+        "value": new_priority,
     })
     incident.notes = current_notes
 
@@ -359,6 +554,62 @@ def override_incident_priority(
         reason=reason,
     )
     db.add(audit_entry)
+    db.commit()
+    db.refresh(incident)
+    return incident
+
+
+def override_incident_severity(
+    db: Session,
+    incident_id: str,
+    new_severity: str,
+    operator: str,
+    reason: str,
+) -> Optional[Incident]:
+    """Apply manual coordinator severity override with audit log."""
+    incident = get_incident_by_id(db, incident_id)
+    if not incident:
+        return None
+
+    old_severity = incident.severity
+    new_sev_clean = new_severity.strip().lower()
+    incident.severity = new_sev_clean
+    incident.is_severity_overridden = True
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    current_notes = list(incident.notes)
+    current_notes.append({
+        "id": f"n-{len(current_notes) + 1}",
+        "author": operator,
+        "time": "Just now",
+        "text": f"Severity manually overridden from {old_severity} to {new_sev_clean}. Reason: {reason}",
+        "override_type": "severity",
+        "value": new_sev_clean,
+    })
+    incident.notes = current_notes
+
+    audit_entry = AuditLog(
+        id=_generate_audit_log_id(),
+        timestamp=now_iso,
+        incidentId=incident.id,
+        operator=operator,
+        actionType="SEVERITY_OVERRIDE",
+        oldValue=str(old_severity),
+        newValue=str(new_sev_clean),
+        reason=reason,
+    )
+    db.add(audit_entry)
+
+    # If priority is not manually overridden, recalculate priority reflecting the new severity
+    if not incident.is_priority_overridden:
+        rescore_incident(
+            db=db,
+            incident=incident,
+            reason=f"Severity manually overridden to '{new_sev_clean}'.",
+            operator=operator,
+            commit=False,
+        )
+
     db.commit()
     db.refresh(incident)
     return incident

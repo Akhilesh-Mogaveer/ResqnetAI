@@ -17,8 +17,9 @@ class IncidentBase(BaseModel):
     severity: str = Field(default="moderate", description="critical | high | moderate | low")
     priorityScore: int = Field(default=50, ge=0, le=100, description="Priority score 0-100.")
     reportReliability: int = Field(default=70, ge=0, le=100)
-    locationConfidence: int = Field(default=70, ge=0, le=100)
+    locationConfidence: int = Field(default=70, ge=0, le=100, description="Location confidence score 0-100.")
     peopleAffected: str = Field(default="Unknown count")
+    people_affected: Optional[str] = Field(default=None, description="Alias for peopleAffected.")
     affectedCountNumeric: int = Field(default=0)
     sourceSummary: str = Field(default="")
     signalSynthesis: str = Field(default="")
@@ -73,6 +74,12 @@ class PriorityOverrideRequest(BaseModel):
     newPriority: int = Field(ge=0, le=100, description="New priority score set by coordinator.")
     operator: str = Field(default="Coordinator", description="Name/title of authorizing coordinator.")
     reason: str = Field(description="Mandatory reason justifying manual priority override.")
+
+
+class SeverityOverrideRequest(BaseModel):
+    newSeverity: str = Field(description="New severity tier set by coordinator (critical, high, moderate, low).")
+    operator: str = Field(default="Coordinator", description="Name/title of authorizing coordinator.")
+    reason: str = Field(description="Mandatory reason justifying manual severity override.")
 
 
 class DuplicateMergeRequest(BaseModel):

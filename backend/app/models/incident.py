@@ -120,6 +120,36 @@ class Incident(Base):
     def dismissed_duplicates(self, val: List[str]):
         self.dismissed_duplicates_json = json.dumps(val)
 
+    @property
+    def is_priority_overridden(self) -> bool:
+        return getattr(self, "_is_priority_overridden", False) or any(
+            isinstance(n, dict) and (
+                n.get("override_type") == "priority"
+                or "priority manually overridden" in n.get("text", "").lower()
+                or ("priority" in n.get("text", "").lower() and "manually overridden" in n.get("text", "").lower())
+            )
+            for n in (self.notes or [])
+        )
+
+    @is_priority_overridden.setter
+    def is_priority_overridden(self, val: bool):
+        self._is_priority_overridden = bool(val)
+
+    @property
+    def is_severity_overridden(self) -> bool:
+        return getattr(self, "_is_severity_overridden", False) or any(
+            isinstance(n, dict) and (
+                n.get("override_type") == "severity"
+                or "severity manually overridden" in n.get("text", "").lower()
+                or ("severity" in n.get("text", "").lower() and "manually overridden" in n.get("text", "").lower())
+            )
+            for n in (self.notes or [])
+        )
+
+    @is_severity_overridden.setter
+    def is_severity_overridden(self, val: bool):
+        self._is_severity_overridden = bool(val)
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary matching frontend dashboard schema."""
         return {
@@ -161,22 +191,8 @@ class Incident(Base):
             "dismissed_duplicates": self.dismissed_duplicates,
             "is_synthetic_location": self.is_synthetic_location,
             "location_source": self.location_source,
-            "is_priority_overridden": getattr(self, "_is_priority_overridden", False) or any(
-                isinstance(n, dict) and (
-                    n.get("override_type") == "priority"
-                    or "priority manually overridden" in n.get("text", "").lower()
-                    or ("priority" in n.get("text", "").lower() and "manually overridden" in n.get("text", "").lower())
-                )
-                for n in (self.notes or [])
-            ),
-            "is_severity_overridden": getattr(self, "_is_severity_overridden", False) or any(
-                isinstance(n, dict) and (
-                    n.get("override_type") == "severity"
-                    or "severity manually overridden" in n.get("text", "").lower()
-                    or ("severity" in n.get("text", "").lower() and "manually overridden" in n.get("text", "").lower())
-                )
-                for n in (self.notes or [])
-            ),
+            "is_priority_overridden": self.is_priority_overridden,
+            "is_severity_overridden": self.is_severity_overridden,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

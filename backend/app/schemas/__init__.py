@@ -15,6 +15,7 @@ from .incident import (
     VerificationStatusUpdate,
     ResponseStatusUpdate,
     PriorityOverrideRequest,
+    SeverityOverrideRequest,
     AuditLogResponse,
     AttentionZoneResponse,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "VerificationStatusUpdate",
     "ResponseStatusUpdate",
     "PriorityOverrideRequest",
+    "SeverityOverrideRequest",
     "AuditLogResponse",
     "AttentionZoneResponse",
 ]

@@ -12,6 +12,7 @@ from backend.app.schemas.incident import (
     IncidentResponse,
     IncidentUpdate,
     PriorityOverrideRequest,
+    SeverityOverrideRequest,
     ResponseStatusUpdate,
     VerificationStatusUpdate,
     AuditLogResponse,
@@ -26,6 +27,7 @@ from backend.app.services.incident_service import (
     get_incident_by_id,
     get_incidents,
     override_incident_priority,
+    override_incident_severity,
     update_incident_response_status,
     update_incident_verification,
     get_audit_logs,
@@ -143,6 +145,28 @@ def override_priority_endpoint(
         db=db,
         incident_id=incident_id,
         new_priority=payload.newPriority,
+        operator=payload.operator,
+        reason=payload.reason,
+    )
+    if not incident:
+        raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
+    return incident.to_dict()
+
+
+@router.post("/{incident_id}/override-severity", response_model=IncidentResponse)
+def override_severity_endpoint(
+    incident_id: str,
+    payload: SeverityOverrideRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Apply manual coordinator severity tier override with mandatory justification.
+    Updates severity, recalculates priority if not overridden, and records event in audit trail.
+    """
+    incident = override_incident_severity(
+        db=db,
+        incident_id=incident_id,
+        new_severity=payload.newSeverity,
         operator=payload.operator,
         reason=payload.reason,
     )
