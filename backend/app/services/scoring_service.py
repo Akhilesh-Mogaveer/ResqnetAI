@@ -98,6 +98,7 @@ class ScoringResult:
 HUMAN_TOKENS = (
     r"(?:people|person|persons|civilians?|workers?|residents?|individuals?|"
     r"patients?|seniors?|children|child|kids?|passengers?|drivers?|"
+    r"travel(?:l)?ers?|tourists?|commuters?|occupants?|pedestrians?|stranded|"
     r"victims?|casualties|fatalities|fatal(?:ity)?|injured|dead|trapped)"
 )
 

@@ -33,9 +33,18 @@ def _generate_audit_log_id() -> str:
 
 
 def _generate_incident_id(db: Session) -> str:
-    """Generate sequential incident identifier (e.g. RQN-0435)."""
-    count = db.query(Incident).count()
-    return f"RQN-{430 + count:04d}"
+    """Generate sequential, collision-resistant incident identifier (e.g. RQN-0451)."""
+    all_ids = [row[0] for row in db.query(Incident.id).all() if row[0] and row[0].startswith("RQN-")]
+    max_num = 429
+    for inc_id in all_ids:
+        parts = inc_id.split("-")
+        if len(parts) >= 2 and parts[1].isdigit():
+            max_num = max(max_num, int(parts[1]))
+
+    candidate = max_num + 1
+    while db.query(Incident).filter(Incident.id == f"RQN-{candidate:04d}").first() is not None:
+        candidate += 1
+    return f"RQN-{candidate:04d}"
 
 
 def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
