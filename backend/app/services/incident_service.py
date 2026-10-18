@@ -4,6 +4,7 @@ RESQNET AI — Incident Management & Coordinator Audit Service
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
@@ -13,8 +14,14 @@ from backend.app.models.incident import Incident, AuditLog, AttentionZone
 from backend.app.schemas.incident import IncidentCreate, IncidentUpdate
 from backend.app.services.nlp_service import enrich_incident_with_nlp
 from backend.app.services.geocoding_service import resolve_incident_coordinates
+from backend.app.services.scoring_service import calculate_incident_scores
 
 logger = logging.getLogger("RESQNET.IncidentService")
+
+
+def _generate_audit_log_id() -> str:
+    """Generate a collision-resistant audit log ID."""
+    return f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}-{uuid.uuid4().hex[:6]}"
 
 
 def _generate_incident_id(db: Session) -> str:
@@ -26,7 +33,8 @@ def _generate_incident_id(db: Session) -> str:
 def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
     """
     Create a new incident report in SQLite.
-    Optionally runs HumAID DistilBERT text classification on the report text.
+    Runs HumAID DistilBERT text classification, coordinate resolution, and
+    deterministic severity & priority scoring.
     """
     incident_id = incident_in.id or _generate_incident_id(db)
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -45,18 +53,76 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
             "nlp_disclaimer": nlp_dict.get("nlp_disclaimer"),
         }
 
+    # 1. Resolve Geographic Coordinates
+    resolved_coords, is_synth, loc_source = resolve_incident_coordinates(
+        supplied_coords=incident_in.coordinates,
+        location_name=incident_in.locationName,
+        sector=incident_in.sector,
+        explicit_synthetic_flag=getattr(incident_in, "is_synthetic_location", False),
+    )
+
+    humaid_cat = nlp_results.get("humaid_category") or incident_in.humaid_category
+    humaid_conf = nlp_results.get("humaid_confidence")
+    all_probs = nlp_results.get("all_probabilities") or {}
+
+    # 2. Execute Deterministic Severity & Priority Scoring
+    scoring_result = calculate_incident_scores(
+        report_text=report_text,
+        title=incident_in.title,
+        humaid_category=humaid_cat,
+        humaid_confidence=humaid_conf,
+        all_probabilities=all_probs,
+        coordinates=resolved_coords,
+        location_source=loc_source,
+        location_name=incident_in.locationName,
+        sector=incident_in.sector,
+        people_affected=incident_in.peopleAffected,
+        verification_status="unverified",
+        duplicate_count=0,
+        timestamp=now_iso,
+        source_summary=incident_in.sourceSummary,
+    )
+
+    # 3. Check for deliberate manual coordinator overrides
+    is_prio_overridden = bool(getattr(incident_in, "is_priority_overridden", False))
+    is_sev_overridden = bool(getattr(incident_in, "is_severity_overridden", False))
+
+    final_severity = incident_in.severity if is_sev_overridden else scoring_result.severity
+    final_priority = incident_in.priorityScore if is_prio_overridden else scoring_result.priority_score
+    final_location_conf = scoring_result.location_confidence
+    final_reliability = (
+        incident_in.reportReliability
+        if "reportReliability" in incident_in.model_fields_set
+        else scoring_result.report_reliability
+    )
+    final_affected_numeric = (
+        incident_in.affectedCountNumeric
+        if ("affectedCountNumeric" in incident_in.model_fields_set and incident_in.affectedCountNumeric > 0)
+        else scoring_result.affected_count_numeric
+    )
+    final_why = (
+        incident_in.whyPrioritised
+        if ("whyPrioritised" in incident_in.model_fields_set and incident_in.whyPrioritised.strip())
+        else scoring_result.why_prioritised
+    )
+    final_risks = (
+        incident_in.riskFactors
+        if ("riskFactors" in incident_in.model_fields_set and incident_in.riskFactors)
+        else scoring_result.risk_factors
+    )
+
     incident = Incident(
         id=incident_id,
         title=incident_in.title,
         type=incident_in.type,
         sector=incident_in.sector,
         locationName=incident_in.locationName,
-        severity=incident_in.severity,
-        priorityScore=incident_in.priorityScore,
-        reportReliability=incident_in.reportReliability,
-        locationConfidence=incident_in.locationConfidence,
+        severity=final_severity,
+        priorityScore=final_priority,
+        reportReliability=final_reliability,
+        locationConfidence=final_location_conf,
         peopleAffected=incident_in.peopleAffected,
-        affectedCountNumeric=incident_in.affectedCountNumeric,
+        affectedCountNumeric=final_affected_numeric,
         timeAgo="Just now",
         timestamp=now_iso,
         verificationStatus="unverified",
@@ -64,48 +130,90 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         assignedTeam=None,
         sourceSummary=incident_in.sourceSummary or "Citizen / Dispatch incoming report",
         signalSynthesis=incident_in.signalSynthesis or "Automated sensor & transcript intake",
-        whyPrioritised=incident_in.whyPrioritised or "Newly reported emergency requiring coordinator triage.",
+        whyPrioritised=final_why,
         report_text=report_text,
         original_report_text=report_text,
-        humaid_category=nlp_results.get("humaid_category") or incident_in.humaid_category,
-        humaid_confidence=nlp_results.get("humaid_confidence"),
+        humaid_category=humaid_cat,
+        humaid_confidence=humaid_conf,
         nlp_status=nlp_results.get("nlp_status", "SKIPPED" if not report_text else "SUCCESS"),
         nlp_disclaimer=nlp_results.get("nlp_disclaimer", "RESQNET AI Automated NLP Prediction."),
     )
 
-    resolved_coords, is_synth, loc_source = resolve_incident_coordinates(
-        supplied_coords=incident_in.coordinates,
-        location_name=incident_in.locationName,
-        sector=incident_in.sector,
-        explicit_synthetic_flag=getattr(incident_in, "is_synthetic_location", False),
-    )
     incident.coordinates = resolved_coords
     incident.is_synthetic_location = is_synth
     incident.location_source = loc_source
+    incident.riskFactors = final_risks
 
-    incident.riskFactors = incident_in.riskFactors
-    incident.notes = []
-    if nlp_results.get("all_probabilities"):
-        incident.all_probabilities = nlp_results["all_probabilities"]
+    initial_notes = []
+    if is_prio_overridden:
+        initial_notes.append({
+            "id": f"n-prio-{incident.id}",
+            "author": "Coordinator Intake",
+            "time": "Just now",
+            "text": f"Priority manually overridden at intake to {final_priority}.",
+            "override_type": "priority",
+            "value": final_priority,
+        })
+    if is_sev_overridden:
+        initial_notes.append({
+            "id": f"n-sev-{incident.id}",
+            "author": "Coordinator Intake",
+            "time": "Just now",
+            "text": f"Severity manually overridden at intake to {final_severity}.",
+            "override_type": "severity",
+            "value": final_severity,
+        })
+
+    incident.notes = initial_notes
+    if all_probs:
+        incident.all_probabilities = all_probs
+    incident._is_priority_overridden = is_prio_overridden
+    incident._is_severity_overridden = is_sev_overridden
 
     db.add(incident)
 
     # Add audit log for creation
     audit_entry = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=incident.id,
         operator="System Intake",
         actionType="INCIDENT_CREATED",
         oldValue="None",
-        newValue=f"{incident.title} ({incident.severity.upper()})",
-        reason="Incident intake created via RESQNET backend service.",
+        newValue=f"{incident.title} ({incident.severity.upper()} - Priority {incident.priorityScore})",
+        reason="Incident intake created with automated severity & priority scoring.",
     )
     db.add(audit_entry)
 
+    if is_prio_overridden:
+        audit_prio = AuditLog(
+            id=_generate_audit_log_id(),
+            timestamp=now_iso,
+            incidentId=incident.id,
+            operator="Coordinator Intake",
+            actionType="PRIORITY_OVERRIDE",
+            oldValue=str(scoring_result.priority_score),
+            newValue=str(final_priority),
+            reason="Explicit manual priority override supplied at incident intake.",
+        )
+        db.add(audit_prio)
+
+    if is_sev_overridden:
+        audit_sev = AuditLog(
+            id=_generate_audit_log_id(),
+            timestamp=now_iso,
+            incidentId=incident.id,
+            operator="Coordinator Intake",
+            actionType="SEVERITY_OVERRIDE",
+            oldValue=str(scoring_result.severity),
+            newValue=str(final_severity),
+            reason="Explicit manual severity override supplied at incident intake.",
+        )
+        db.add(audit_sev)
+
     db.commit()
     db.refresh(incident)
-    logger.info(f"Created incident {incident.id}: {incident.title}")
+    logger.info(f"Created incident {incident.id}: {incident.title} (Severity: {incident.severity}, Priority: {incident.priorityScore})")
     return incident
 
 
@@ -164,7 +272,7 @@ def update_incident_verification(
     now_iso = datetime.now(timezone.utc).isoformat()
 
     audit_entry = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=incident.id,
         operator=operator,
@@ -199,7 +307,7 @@ def update_incident_response_status(
     now_iso = datetime.now(timezone.utc).isoformat()
 
     audit_entry = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=incident.id,
         operator=operator,
@@ -241,7 +349,7 @@ def override_incident_priority(
     incident.notes = current_notes
 
     audit_entry = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=incident.id,
         operator=operator,
@@ -281,7 +389,7 @@ def dispatch_zone_scout(
     zone.scoutStatus = "Recon In Progress"
     now_iso = datetime.now(timezone.utc).isoformat()
     audit_entry = AuditLog(
-        id=f"aud-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+        id=_generate_audit_log_id(),
         timestamp=now_iso,
         incidentId=zone.id,
         operator=operator,

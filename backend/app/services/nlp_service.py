@@ -35,34 +35,89 @@ except ImportError as e:
     classify_incident_report = None
 
 
+def validate_model_artifacts(path: Path) -> Dict[str, Any]:
+    """
+    Validate that all required artifacts for HumAID DistilBERT inference are present.
+    Inference code strictly requires:
+      - config.json (model architecture definition)
+      - label_mapping.json (label2id and id2label mappings)
+      - model.safetensors or pytorch_model.bin (trained weights)
+      - tokenizer.json or vocab.txt or tokenizer_config.json (tokenizer definition)
+    """
+    if not path.exists() or not path.is_dir():
+        return {
+            "valid": False,
+            "config_present": False,
+            "labels_present": False,
+            "weights_present": False,
+            "tokenizer_present": False,
+        }
+
+    config_ok = (path / "config.json").is_file()
+    labels_ok = (path / "label_mapping.json").is_file()
+    weights_ok = (path / "model.safetensors").is_file() or (path / "pytorch_model.bin").is_file()
+    tokenizer_ok = (
+        (path / "tokenizer.json").is_file()
+        or (path / "vocab.txt").is_file()
+        or (path / "tokenizer_config.json").is_file()
+    )
+
+    is_valid = config_ok and labels_ok and weights_ok and tokenizer_ok
+
+    return {
+        "valid": is_valid,
+        "config_present": config_ok,
+        "labels_present": labels_ok,
+        "weights_present": weights_ok,
+        "tokenizer_present": tokenizer_ok,
+    }
+
+
 def get_model_path() -> Path:
-    """Return verified path to local model weights."""
-    path = Path(settings.MODEL_DIR)
-    if not path.exists():
-        fallback = PROJECT_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert"
-        if fallback.exists():
+    """
+    Return the active model path.
+    Prefers the configured model when its required inference artifacts exist.
+    Falls back to the baseline model if configured is incomplete or invalid.
+    """
+    configured = Path(settings.MODEL_DIR).expanduser().resolve()
+    conf_status = validate_model_artifacts(configured)
+    if conf_status["valid"]:
+        return configured
+
+    fallback = (PROJECT_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert").resolve()
+    if fallback.resolve() != configured.resolve():
+        fallback_status = validate_model_artifacts(fallback)
+        if fallback_status["valid"]:
+            missing = [k.replace("_present", "") for k, v in conf_status.items() if k != "valid" and not v]
+            logger.warning(
+                "Configured model at '%s' is incomplete or missing artifacts (%s); "
+                "using fallback model at '%s'",
+                configured,
+                ", ".join(missing) if missing else "directory not found",
+                fallback,
+            )
             return fallback
-    return path
+
+    logger.warning("Configured model path '%s' does not contain valid model artifacts.", configured)
+    return configured
 
 
 def check_model_readiness() -> Dict[str, Any]:
     """
     Verify model artifacts exist locally and are ready for inference.
     Does NOT claim ready if required files are missing.
+    Reports the directory actually selected for classification.
     """
     model_path = get_model_path()
-    weights_exist = (model_path / "model.safetensors").exists() or (model_path / "pytorch_model.bin").exists()
-    labels_exist = (model_path / "label_mapping.json").exists()
-    config_exist = (model_path / "config.json").exists()
-
-    is_ready = model_path.exists() and weights_exist and labels_exist and config_exist
+    status = validate_model_artifacts(model_path)
 
     return {
-        "is_ready": is_ready,
+        "is_ready": status["valid"],
         "model_dir": str(model_path),
-        "weights_present": weights_exist,
-        "labels_present": labels_exist,
-        "config_present": config_exist,
+        "weights_present": status["weights_present"],
+        "labels_present": status["labels_present"],
+        "config_present": status["config_present"],
+        "tokenizer_present": status["tokenizer_present"],
     }
 
 

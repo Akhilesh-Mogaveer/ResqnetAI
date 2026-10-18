@@ -17,7 +17,7 @@ class Incident(Base):
     type = Column(String(100), nullable=False, default="Emergency Incident")
     sector = Column(String(100), nullable=False, default="Sector Unspecified")
     locationName = Column(String(255), nullable=False, default="Location Unspecified")
-    coordinates_json = Column(Text, nullable=True, default=None)  # [lat, lng] or None if unmapped
+    coordinates_json = Column(Text, nullable=False, default="null")  # [lat, lng] as JSON, or "null" if unmapped
     is_synthetic_location = Column(Boolean, default=False, nullable=False)
     location_source = Column(String(100), nullable=True, default="unknown")
     
@@ -72,7 +72,7 @@ class Incident(Base):
     @coordinates.setter
     def coordinates(self, val: Optional[List[float]]):
         if val is None or not isinstance(val, (list, tuple)) or len(val) != 2 or val[0] is None or val[1] is None:
-            self.coordinates_json = None
+            self.coordinates_json = "null"
         else:
             self.coordinates_json = json.dumps([float(val[0]), float(val[1])])
 
@@ -161,6 +161,22 @@ class Incident(Base):
             "dismissed_duplicates": self.dismissed_duplicates,
             "is_synthetic_location": self.is_synthetic_location,
             "location_source": self.location_source,
+            "is_priority_overridden": getattr(self, "_is_priority_overridden", False) or any(
+                isinstance(n, dict) and (
+                    n.get("override_type") == "priority"
+                    or "priority manually overridden" in n.get("text", "").lower()
+                    or ("priority" in n.get("text", "").lower() and "manually overridden" in n.get("text", "").lower())
+                )
+                for n in (self.notes or [])
+            ),
+            "is_severity_overridden": getattr(self, "_is_severity_overridden", False) or any(
+                isinstance(n, dict) and (
+                    n.get("override_type") == "severity"
+                    or "severity manually overridden" in n.get("text", "").lower()
+                    or ("severity" in n.get("text", "").lower() and "manually overridden" in n.get("text", "").lower())
+                )
+                for n in (self.notes or [])
+            ),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

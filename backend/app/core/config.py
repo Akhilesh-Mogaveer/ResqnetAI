@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{REPO_ROOT / 'backend' / 'resqnet.db'}"
 
     # Path to trained HumAID DistilBERT model
-    MODEL_DIR: str = str((REPO_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert").resolve())
+    MODEL_DIR: str = str((REPO_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert_full").resolve())
 
     @field_validator("DATABASE_URL", mode="after")
     def resolve_database_url(cls, v: str) -> str:
@@ -66,11 +66,30 @@ class Settings(BaseSettings):
 
     @field_validator("MODEL_DIR", mode="after")
     def resolve_model_dir(cls, v: str) -> str:
-        p = Path(v)
-        if not p.is_absolute() or not p.exists():
-            canonical = (REPO_ROOT / "data" / "nlp" / "models" / "resqnet_distilbert").resolve()
-            return str(canonical)
-        return str(p.resolve())
+        p = Path(v).expanduser()
+        if p.is_absolute():
+            return str(p.resolve())
+
+        # Resolve relative paths by checking candidate anchors:
+        # 1. Relative to REPO_ROOT (e.g., "data/nlp/models/..." or "./data/...")
+        candidate_repo = (REPO_ROOT / p).resolve()
+        if candidate_repo.exists():
+            return str(candidate_repo)
+
+        # 2. Relative to REPO_ROOT / "backend" (e.g., "../data/nlp/models/..." from backend/.env)
+        candidate_backend = (REPO_ROOT / "backend" / p).resolve()
+        if candidate_backend.exists():
+            return str(candidate_backend)
+
+        # 3. Relative to current working directory
+        candidate_cwd = (Path.cwd() / p).resolve()
+        if candidate_cwd.exists():
+            return str(candidate_cwd)
+
+        # If path does not exist on disk, anchor deterministically
+        if str(v).startswith(".."):
+            return str(candidate_backend)
+        return str(candidate_repo)
 
     model_config = SettingsConfigDict(
         env_file=(

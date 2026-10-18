@@ -33,6 +33,8 @@ class IncidentBase(BaseModel):
 class IncidentCreate(IncidentBase):
     id: Optional[str] = Field(default=None, description="Optional custom ID (e.g. RQN-0430); generated if omitted.")
     run_nlp_classification: bool = Field(default=True, description="Whether to run HumAID text classifier upon creation.")
+    is_priority_overridden: Optional[bool] = Field(default=None, description="Set True if priorityScore was deliberately overridden by a coordinator.")
+    is_severity_overridden: Optional[bool] = Field(default=None, description="Set True if severity was deliberately overridden by a coordinator.")
 
 
 class IncidentUpdate(BaseModel):
@@ -129,6 +131,10 @@ class IncidentResponse(IncidentBase):
     is_duplicate: bool = False
     duplicate_of_id: Optional[str] = None
     duplicate_count: int = 0
+    is_synthetic_location: bool = False
+    location_source: Optional[str] = None
+    is_priority_overridden: bool = False
+    is_severity_overridden: bool = False
     dismissed_duplicates: List[str] = Field(default_factory=list)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
