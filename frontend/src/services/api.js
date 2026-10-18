@@ -120,6 +120,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({
         newPriority: Number(newPriority),
+        responseStatus: payload.newStatus || payload.responseStatus || null,
         operator: payload.operator || 'Coordinator Jordan Davis (Override)',
         reason: payload.reason || 'Coordinator manual priority override.',
       }),

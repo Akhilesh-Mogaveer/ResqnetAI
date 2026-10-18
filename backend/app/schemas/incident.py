@@ -72,6 +72,7 @@ class ResponseStatusUpdate(BaseModel):
 
 class PriorityOverrideRequest(BaseModel):
     newPriority: int = Field(ge=0, le=100, description="New priority score set by coordinator.")
+    responseStatus: Optional[str] = Field(default=None, description="Optional new response status.")
     operator: str = Field(default="Coordinator", description="Name/title of authorizing coordinator.")
     reason: str = Field(description="Mandatory reason justifying manual priority override.")
 
@@ -153,6 +154,8 @@ class DuplicateMergeResponse(IncidentResponse):
     review_status: str = "merged"
     message: str
     merged_incident: Optional[Dict[str, Any]] = None
+    primary_incident: Optional[Dict[str, Any]] = None
+    duplicate_incident: Optional[Dict[str, Any]] = None
     audit_log_id: Optional[str] = None
 
 

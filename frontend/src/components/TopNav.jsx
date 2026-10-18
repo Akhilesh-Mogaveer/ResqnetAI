@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Share2, 
-  Radio, 
-  Bell, 
-  ShieldCheck, 
-  Zap, 
-  ChevronRight, 
-  Download, 
-  Info,
+import {
+  Radio,
+  Download,
+  Sparkles,
   Clock,
-  Sparkles
+  ChevronRight,
+  Menu,
+  Zap,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
-export default function TopNav({ 
-  activeTabName, 
-  onSimulateIncoming, 
-  onOpenExportBrief, 
+export default function TopNav({
+  activeTabName = 'Overview',
+  onSimulateIncoming,
+  onOpenExportBrief,
   onOpenBroadcast,
   backendConnected,
   onOpenNewIncidentModal,
+  onToggleMobileMenu
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -39,101 +39,102 @@ export default function TopNav({
     day: '2-digit',
     month: 'short',
     year: 'numeric'
-  }).toUpperCase();
+  });
 
   return (
-    <header className="border-b border-[#141d33] bg-[#070b16]/95 backdrop-blur sticky top-0 z-40 px-6 py-2.5 flex items-center justify-between text-xs">
-      {/* Left: Breadcrumbs & Clock */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-1.5 text-slate-400 font-mono text-[11px]">
-          <span className="hover:text-slate-200 cursor-pointer">Workspace</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-cyan-400 font-medium">{activeTabName}</span>
+    <header className="border-b border-slate-200 bg-white sticky top-0 z-30 px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs shadow-sm">
+      {/* Left: Mobile hamburger + Breadcrumbs + Clock */}
+      <div className="flex items-center space-x-3">
+        {onToggleMobileMenu && (
+          <button
+            onClick={onToggleMobileMenu}
+            className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        <div className="flex items-center space-x-1.5 text-slate-600 text-xs font-medium">
+          <span className="hidden sm:inline">Coordination</span>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
+          <span className="text-slate-900 font-semibold">{activeTabName}</span>
         </div>
 
-        <div className="hidden lg:flex items-center space-x-2 pl-4 border-l border-[#1a253e] text-slate-400 font-mono text-[11px]">
-          <Clock className="w-3.5 h-3.5 text-cyan-500" />
+        <div className="hidden md:flex items-center space-x-2 pl-3 border-l border-slate-200 text-slate-600 text-[11px] font-mono">
+          <Clock className="w-3.5 h-3.5 text-slate-600" />
           <span>{formattedDate}</span>
           <span className="text-slate-400">·</span>
-          <span className="text-white font-semibold">{formattedTime} LOCAL</span>
+          <span className="text-slate-900 font-semibold">{formattedTime} LOCAL</span>
         </div>
       </div>
 
-      {/* Center: Environment Indicator */}
-      <div className="flex items-center space-x-2">
-        <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full font-mono text-[11px] shadow-sm border ${
+      {/* Center: Backend status indicator pill */}
+      <div className="hidden sm:flex items-center space-x-2">
+        <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
           backendConnected === true
-            ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
             : backendConnected === false
-            ? 'bg-red-950/40 border-red-800/50 text-red-300'
-            : 'bg-cyan-950/40 border-cyan-800/50 text-cyan-300'
+            ? 'bg-rose-50 border-rose-200 text-rose-800'
+            : 'bg-slate-100 border-slate-200 text-slate-600'
         }`}>
           <span className={`w-2 h-2 rounded-full ${
             backendConnected === true
-              ? 'bg-emerald-400 animate-pulse'
+              ? 'bg-emerald-500'
               : backendConnected === false
-              ? 'bg-red-500'
-              : 'bg-amber-400 animate-ping'
-          }`}></span>
+              ? 'bg-rose-500'
+              : 'bg-amber-400 animate-pulse'
+          }`} />
           <span>
             {backendConnected === true
-              ? 'FastAPI Backend Online'
+              ? 'Backend Connected'
               : backendConnected === false
-              ? 'Backend Offline (Port 8000)'
-              : 'Checking API status...'}
+              ? 'Offline (Local Fallback)'
+              : 'Checking API...'}
           </span>
         </div>
       </div>
 
-      {/* Right: Actions & User */}
-      <div className="flex items-center space-x-2.5">
-        {/* New Report / NLP Intake Button */}
+      {/* Right: Quick Actions & Coordinator Profile */}
+      <div className="flex items-center space-x-2">
+        {/* + Submit Report (Primary Action) */}
         <button
           onClick={onOpenNewIncidentModal}
-          title="Submit a new incident report and classify with HumAID DistilBERT"
-          className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 transition-all font-mono text-[11px] font-semibold"
+          title="Submit a new emergency report for NLP classification"
+          className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs shadow-sm transition-colors"
         >
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>+ Submit Report</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span className="hidden xs:inline">+ New Report</span>
         </button>
 
-        {/* Simulate New Report Button */}
+        {/* Simulate Alert Button */}
         <button
           onClick={onSimulateIncoming}
-          title="Simulate a new incoming distress signal and persist to backend"
-          className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-[#0e172a] hover:bg-cyan-950/60 text-slate-300 hover:text-cyan-300 border border-[#1e293b] hover:border-cyan-500/40 transition-all font-mono text-[11px]"
+          title="Inject a simulated incident report for testing"
+          className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs border border-slate-200 transition-colors"
         >
-          <Zap className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden sm:inline">Simulate Alert</span>
+          <Zap className="w-3.5 h-3.5 text-amber-600" />
+          <span>Simulate Alert</span>
         </button>
 
         {/* Export Brief Button */}
         <button
           onClick={onOpenExportBrief}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-slate-200 border border-[#1e293b] hover:border-slate-600 transition-all font-medium text-xs"
+          title="Export emergency situation summary report"
+          className="hidden lg:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs border border-slate-200 transition-colors"
         >
-          <Download className="w-3.5 h-3.5 text-slate-400" />
-          <span>Export brief</span>
+          <Download className="w-3.5 h-3.5 text-slate-600" />
+          <span>Export SITREP</span>
         </button>
 
-        {/* Start Broadcast Button */}
-        <button
-          onClick={onOpenBroadcast}
-          title="Open simulated emergency broadcast drill modal"
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold transition-all shadow-[0_0_12px_rgba(6,182,212,0.4)] text-xs"
-        >
-          <Radio className="w-3.5 h-3.5" />
-          <span>Simulate Broadcast</span>
-        </button>
-
-        {/* User Profile */}
-        <div className="pl-2 border-l border-[#1a253e] flex items-center space-x-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-slate-950 font-bold text-xs ring-1 ring-cyan-300/40">
+        {/* User Badge */}
+        <div className="pl-2 border-l border-slate-200 flex items-center space-x-2">
+          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-xs">
             JD
           </div>
           <div className="hidden xl:block text-left leading-tight">
-            <div className="text-slate-200 font-medium text-xs">Jordan Davis</div>
-            <div className="text-[10px] text-cyan-400/90 font-mono">Lead Coordinator</div>
+            <div className="text-slate-900 font-medium text-xs">Jordan Davis</div>
+            <div className="text-[10px] text-slate-600">Lead Coordinator</div>
           </div>
         </div>
       </div>

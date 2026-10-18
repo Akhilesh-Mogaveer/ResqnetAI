@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, X, Copy, Check, FileText } from 'lucide-react';
 
-export default function ExportBriefModal({ isOpen, onClose, incidents, attentionZones }) {
+export default function ExportBriefModal({ isOpen, onClose, incidents = [], attentionZones = [] }) {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -32,7 +32,7 @@ ${critical.map((c, idx) => `### [${c.id}] ${c.title}
 ${attentionZones.map(z => `- **${z.name}** (${z.id}): ${z.signalDeviation} signal deviation | ${z.confidence} | Est. Barrier: ${z.estimatedBarriers}`).join('\n')}
 
 ---
-*Notice: Initial data generated for hackathon coordination simulation.*
+*Notice: Operational data synthesized for coordination simulation.*
 `;
 
   const handleCopy = () => {
@@ -53,39 +53,39 @@ ${attentionZones.map(z => `- **${z.name}** (${z.id}): ${z.signalDeviation} signa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0b1220] border border-[#1b263d] rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-        <div className="px-5 py-4 border-b border-[#162035] bg-[#080d1a] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+      <div className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-sm font-bold text-white tracking-wide">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
               Export Operational Situation Brief (SITREP)
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200/60 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto flex-1 font-mono text-xs bg-[#070b16] text-slate-300">
+        <div className="p-5 overflow-y-auto flex-1 font-mono text-xs bg-slate-50 text-slate-800 border-b border-slate-200">
           <pre className="whitespace-pre-wrap leading-relaxed">{briefText}</pre>
         </div>
 
-        <div className="p-4 border-t border-[#162035] bg-[#080d1a] flex items-center justify-between">
-          <span className="text-[11px] font-mono text-slate-400">
-            Markdown format with markdown headers & tables
+        <div className="p-4 bg-white flex items-center justify-between">
+          <span className="text-[11px] font-mono text-slate-500">
+            Markdown format with operational headers
           </span>
           <div className="flex items-center space-x-2">
             <button
               onClick={handleCopy}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#0e172a] hover:bg-[#1e293b] text-slate-200 border border-[#1e293b] text-xs font-mono transition-colors"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-cyan-400" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
               <span>{copied ? 'Copied' : 'Copy Text'}</span>
             </button>
             <button
               onClick={handleDownload}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors shadow-glow-cyan"
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download .MD Brief</span>

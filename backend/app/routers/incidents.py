@@ -147,6 +147,7 @@ def override_priority_endpoint(
         new_priority=payload.newPriority,
         operator=payload.operator,
         reason=payload.reason,
+        response_status=payload.responseStatus,
     )
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
@@ -230,6 +231,8 @@ def merge_duplicate_endpoint(
     res["review_status"] = "merged"
     res["message"] = f"Merged {duplicate.id} into primary record {primary.id}."
     res["merged_incident"] = duplicate.to_dict()
+    res["primary_incident"] = primary.to_dict()
+    res["duplicate_incident"] = duplicate.to_dict()
     res["audit_log_id"] = audit_log.id if audit_log else None
     return res
 

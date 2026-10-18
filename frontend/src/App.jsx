@@ -1,41 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
-import SummaryCards from './components/SummaryCards';
-import IncidentMap from './components/IncidentMap';
-import PriorityQueue from './components/PriorityQueue';
-import IncidentDetailPanel from './components/IncidentDetailPanel';
-import UnderreportedZones from './components/UnderreportedZones';
 import CoordinatorOverrideModal from './components/CoordinatorOverrideModal';
-import AuditLogView from './components/AuditLogView';
 import ExportBriefModal from './components/ExportBriefModal';
 import BroadcastModal from './components/BroadcastModal';
 import NewIncidentModal from './components/NewIncidentModal';
 
+// 7 Dedicated Page Components
+import OverviewPage from './pages/OverviewPage';
+import IncidentsPage from './pages/IncidentsPage';
+import LiveMapPage from './pages/LiveMapPage';
+import PriorityQueuePage from './pages/PriorityQueuePage';
+import VerificationCenterPage from './pages/VerificationCenterPage';
+import ResponseCommPage from './pages/ResponseCommPage';
+import ActivityHealthPage from './pages/ActivityHealthPage';
+
 import api from './services/api';
 
-import { 
-  INITIAL_INCIDENTS, 
-  ATTENTION_NEEDED_ZONES, 
-  INITIAL_AUDIT_LOG, 
-  RESPONSE_TEAMS 
+import {
+  INITIAL_INCIDENTS,
+  ATTENTION_NEEDED_ZONES,
+  INITIAL_AUDIT_LOG,
+  RESPONSE_TEAMS
 } from './data/mockData';
 
-import { 
-  AlertTriangle, 
-  Info, 
-  CheckCircle, 
-  Radio, 
-  Bell, 
-  ShieldCheck,
-  Zap,
-  ListOrdered,
+import {
+  AlertTriangle,
+  CheckCircle,
   RefreshCw,
-  Server
+  Sparkles
 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [incidents, setIncidents] = useState(INITIAL_INCIDENTS);
   const [selectedIncidentId, setSelectedIncidentId] = useState(INITIAL_INCIDENTS[0].id);
   const [attentionZones, setAttentionZones] = useState(ATTENTION_NEEDED_ZONES);
@@ -108,11 +106,16 @@ export default function App() {
 
   // Tab Title mapping
   const tabTitles = {
-    overview: 'Operations overview',
+    overview: 'Operations Overview',
     incidents: 'Incident Management',
+    map: 'Live Operations Map',
+    priority: 'Priority Queue',
     priority_queue: 'Priority Queue',
-    zones: 'Attention Needed Zones',
-    audit_log: 'Audit & Accountability Log'
+    verification: 'Verification Center',
+    response: 'Response & Communication',
+    health: 'Activity & System Health',
+    audit_log: 'Activity & System Health',
+    zones: 'Operations Overview'
   };
 
   // 1. Change Verification Status (Kept strictly separate from response status!)
@@ -463,7 +466,6 @@ export default function App() {
 
   // 9. Handle Human-Reviewed Duplicate Merged
   const handleDuplicateMerged = ({ primaryId, duplicateId, updatedPrimary, updatedDuplicate }) => {
-    // Keep local incidents state in sync immediately
     setIncidents(prev => prev.map(inc => {
       if (updatedPrimary && inc.id === updatedPrimary.id) return { ...inc, ...updatedPrimary };
       if (updatedDuplicate && inc.id === updatedDuplicate.id) return { ...inc, ...updatedDuplicate };
@@ -486,7 +488,6 @@ export default function App() {
       api.getIncidents().then(apiIncidents => {
         if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
           setIncidents(apiIncidents);
-          // Keep selected incident stable: if it still exists in the list, keep it
           setSelectedIncidentId(prevId => {
             const exists = apiIncidents.some(i => i.id === prevId);
             return exists ? prevId : primaryId;
@@ -521,48 +522,57 @@ export default function App() {
 
   const handleSelectIncidentById = (id) => {
     setSelectedIncidentId(id);
-    setActiveTab('overview');
+    setActiveTab('incidents');
   };
 
+  // Current normalized tab
+  const currentTab =
+    activeTab === 'priority_queue' ? 'priority' :
+    activeTab === 'zones' ? 'overview' :
+    activeTab === 'audit_log' ? 'health' : activeTab;
+
   return (
-    <div className="flex h-screen w-screen bg-[#070a13] text-slate-100 font-sans overflow-hidden">
-      {/* 1. Left Sidebar */}
+    <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-900 font-sans overflow-hidden">
+      {/* 1. Left Sidebar Navigation */}
       <Sidebar
-        activeTab={activeTab}
+        activeTab={currentTab}
         setActiveTab={setActiveTab}
-        unverifiedCount={incidents.filter(i => i.verificationStatus === 'unverified').length}
+        unverifiedCount={incidents.filter(i => i.verificationStatus === 'unverified' && !i.is_duplicate).length}
         attentionZonesCount={attentionZones.length}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* 2. Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Navigation */}
         <TopNav
-          activeTabName={tabTitles[activeTab]}
+          activeTabName={tabTitles[currentTab] || 'Coordination'}
           onSimulateIncoming={handleSimulateIncoming}
           onOpenExportBrief={() => setIsExportBriefOpen(true)}
           onOpenBroadcast={() => setIsBroadcastOpen(true)}
           backendConnected={backendConnected}
           onOpenNewIncidentModal={() => setIsNewIncidentModalOpen(true)}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
         {/* Dynamic Main Body Content */}
-        <main className="flex-1 p-6 space-y-6 max-w-[1700px] w-full mx-auto">
-          {/* Backend Connectivity / Environment Status Banner */}
+        <main className="flex-1 p-4 sm:p-6 space-y-5 max-w-[1700px] w-full mx-auto">
+          {/* Backend Offline Fallback Banner */}
           {backendConnected === false && (
-            <div className="bg-amber-950/40 border border-amber-600/50 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3 shadow-sm">
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3 shadow-xs">
               <div className="flex items-center space-x-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <div className="text-amber-200">
-                  <span className="font-semibold text-amber-300 font-mono">BACKEND OFFLINE:</span>{' '}
-                  Cannot connect to FastAPI at <code className="bg-amber-900/60 px-1 py-0.5 rounded text-amber-200 font-mono">{api.getBaseUrl()}</code>.
-                  Running in local mock mode. Start the backend with <code className="bg-amber-900/60 px-1 py-0.5 rounded font-mono">uvicorn app.main:app</code>.
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <div className="text-amber-900">
+                  <span className="font-semibold text-amber-950 font-mono">BACKEND OFFLINE:</span>{' '}
+                  Cannot connect to FastAPI at <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-950 font-mono">{api.getBaseUrl()}</code>.
+                  Running with reliable local data. Start backend with <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">uvicorn backend.app.main:app</code>.
                 </div>
               </div>
               <button
                 onClick={() => loadDashboardData(true)}
                 disabled={isLoading}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-800/60 hover:bg-amber-700/60 text-amber-100 border border-amber-500/50 transition-all font-mono text-[11px] self-start sm:self-auto flex-shrink-0"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-mono text-[11px] self-start sm:self-auto flex-shrink-0 transition-colors shadow-2xs"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                 <span>{isLoading ? 'Connecting...' : 'Retry Connection'}</span>
@@ -570,241 +580,109 @@ export default function App() {
             </div>
           )}
 
-          {backendConnected === true && (
-            <div className="bg-emerald-950/30 border border-emerald-600/40 rounded-xl p-2.5 px-4 flex items-center justify-between text-xs gap-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-emerald-300 font-medium">
-                  FastAPI Backend Online
-                </span>
-                <span className="text-slate-400">·</span>
-                <span className="text-slate-400">
-                  SQLite Persistent Database Active · HumAID DistilBERT (Prototype • Sample Batch Checkpoint) Ready
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400/80 uppercase tracking-wider">
-                api: {api.getBaseUrl()}
-              </span>
-            </div>
+          {/* PAGE 1: OVERVIEW */}
+          {currentTab === 'overview' && (
+            <OverviewPage
+              incidents={incidents}
+              attentionZones={attentionZones}
+              selectedIncident={selectedIncident}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onDispatchScout={handleDispatchScout}
+              onVerifyStatusChange={handleVerifyStatusChange}
+              onResponseStatusChange={handleResponseStatusChange}
+              backendConnected={backendConnected}
+            />
           )}
 
-          {/* Transparent Simulation Environment Disclaimer Banner */}
-          <div className="bg-[#0c1424] border border-cyan-900/50 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2 shadow-sm">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
-              <div className="text-slate-300 leading-snug">
-                <span className="font-semibold text-cyan-300 font-mono">HUMAID TRIAGE NOTICE:</span>{' '}
-                HumAID DistilBERT classifications are predictive decision-support suggestions for situational triage. 
-                <span className="text-amber-300 font-medium ml-1">Verification status and operational dispatch remain strictly human-in-the-loop.</span>
-              </div>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider whitespace-nowrap self-start sm:self-auto">
-              RESQNET AI Engine v0.84
-            </span>
-          </div>
-
-          {/* VIEW: OPERATIONS OVERVIEW (Matches Reference Screenshot Layout!) */}
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {/* Header Titles matching Screenshot */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-                <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">
-                    Operations overview
-                  </h1>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Prioritised situational awareness for the coordination team.
-                  </p>
-                </div>
-
-                <div className="text-[11px] font-mono text-slate-400 flex items-center space-x-3">
-                  <span>Median response: <strong className="text-slate-200">11m</strong></span>
-                  <span>·</span>
-                  <span>Estimated affected: <strong className="text-slate-200">1,284</strong></span>
-                </div>
-              </div>
-
-              {/* 4 Summary Cards (Active, Critical, Unverified, Attention Zones) */}
-              <SummaryCards
-                incidents={incidents}
-                attentionZones={attentionZones}
-                onFilterClick={(filterType) => {
-                  if (filterType === 'zones') setActiveTab('zones');
-                  else setActiveTab('overview');
-                }}
-              />
-
-              {/* Middle Row: Left Map (Incident landscape) + Right (Underreported zones) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-8">
-                  <IncidentMap
-                    incidents={incidents}
-                    selectedIncident={selectedIncident}
-                    onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
-                    attentionZones={attentionZones}
-                  />
-                </div>
-                <div className="lg:col-span-4">
-                  <UnderreportedZones
-                    zones={attentionZones}
-                    onSelectZone={(z) => showToast(`Focused on sector: ${z.name}`)}
-                    onDispatchScout={handleDispatchScout}
-                  />
-                </div>
-              </div>
-
-              {/* Bottom Row: Left (Priority Queue) + Right (Incident Detail Panel) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-7">
-                  <PriorityQueue
-                    incidents={incidents}
-                    selectedIncident={selectedIncident}
-                    onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
-                  />
-                </div>
-                <div className="lg:col-span-5">
-                  <IncidentDetailPanel
-                    incident={selectedIncident}
-                    onVerifyStatusChange={handleVerifyStatusChange}
-                    onResponseStatusChange={handleResponseStatusChange}
-                    onAssignTeam={handleAssignTeam}
-                    onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
-                    onAddNote={handleAddNote}
-                    onDuplicateMerged={handleDuplicateMerged}
-                    onDuplicateDismissed={handleDuplicateDismissed}
-                    onSelectIncident={(id) => setSelectedIncidentId(id)}
-                    onShowToast={showToast}
-                    responseTeams={responseTeams}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* PAGE 2: INCIDENTS */}
+          {currentTab === 'incidents' && (
+            <IncidentsPage
+              incidents={incidents}
+              selectedIncident={selectedIncident}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onVerifyStatusChange={handleVerifyStatusChange}
+              onResponseStatusChange={handleResponseStatusChange}
+              onAssignTeam={handleAssignTeam}
+              onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
+              onAddNote={handleAddNote}
+              onDuplicateMerged={handleDuplicateMerged}
+              onDuplicateDismissed={handleDuplicateDismissed}
+              onShowToast={showToast}
+              responseTeams={responseTeams}
+              onOpenNewIncidentModal={() => setIsNewIncidentModalOpen(true)}
+            />
           )}
 
-          {/* VIEW: INCIDENT MANAGEMENT */}
-          {activeTab === 'incidents' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">
-                  Incident Management & Tactical Triage
-                </h1>
-                <p className="text-xs text-slate-400">
-                  Full list of emergency incidents with verification controls and squad dispatch.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-7">
-                  <PriorityQueue
-                    incidents={incidents}
-                    selectedIncident={selectedIncident}
-                    onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
-                  />
-                </div>
-                <div className="lg:col-span-5">
-                  <IncidentDetailPanel
-                    incident={selectedIncident}
-                    onVerifyStatusChange={handleVerifyStatusChange}
-                    onResponseStatusChange={handleResponseStatusChange}
-                    onAssignTeam={handleAssignTeam}
-                    onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
-                    onAddNote={handleAddNote}
-                    onDuplicateMerged={handleDuplicateMerged}
-                    onDuplicateDismissed={handleDuplicateDismissed}
-                    onSelectIncident={(id) => setSelectedIncidentId(id)}
-                    onShowToast={showToast}
-                    responseTeams={responseTeams}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* PAGE 3: LIVE MAP */}
+          {currentTab === 'map' && (
+            <LiveMapPage
+              incidents={incidents}
+              attentionZones={attentionZones}
+              selectedIncident={selectedIncident}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
           )}
 
-          {/* VIEW: PRIORITY QUEUE FOCUSED */}
-          {activeTab === 'priority_queue' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">
-                  Priority Queue Deep-Dive
-                </h1>
-                <p className="text-xs text-slate-400">
-                  Multi-signal algorithmic ranking with transparent weighting of life safety, corroboration, and density.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-8">
-                  <PriorityQueue
-                    incidents={incidents}
-                    selectedIncident={selectedIncident}
-                    onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
-                  />
-                </div>
-                <div className="lg:col-span-4">
-                  <IncidentDetailPanel
-                    incident={selectedIncident}
-                    onVerifyStatusChange={handleVerifyStatusChange}
-                    onResponseStatusChange={handleResponseStatusChange}
-                    onAssignTeam={handleAssignTeam}
-                    onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
-                    onAddNote={handleAddNote}
-                    onDuplicateMerged={handleDuplicateMerged}
-                    onDuplicateDismissed={handleDuplicateDismissed}
-                    onSelectIncident={(id) => setSelectedIncidentId(id)}
-                    onShowToast={showToast}
-                    responseTeams={responseTeams}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* PAGE 4: PRIORITY QUEUE */}
+          {currentTab === 'priority' && (
+            <PriorityQueuePage
+              incidents={incidents}
+              selectedIncident={selectedIncident}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
           )}
 
-          {/* VIEW: ATTENTION NEEDED ZONES */}
-          {activeTab === 'zones' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">
-                  Attention Needed Zones (Underreported Sectors)
-                </h1>
-                <p className="text-xs text-slate-400">
-                  Signal dropoffs and reporting voids requiring proactive field scouts.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-6">
-                  <UnderreportedZones
-                    zones={attentionZones}
-                    onSelectZone={(z) => showToast(`Focused on sector: ${z.name}`)}
-                    onDispatchScout={handleDispatchScout}
-                  />
-                </div>
-                <div className="lg:col-span-6">
-                  <IncidentMap
-                    incidents={incidents}
-                    selectedIncident={selectedIncident}
-                    onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
-                    attentionZones={attentionZones}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: AUDIT LOG */}
-          {activeTab === 'audit_log' && (
-            <AuditLogView
+          {/* PAGE 5: VERIFICATION CENTER */}
+          {currentTab === 'verification' && (
+            <VerificationCenterPage
+              incidents={incidents}
+              selectedIncident={selectedIncident}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onVerifyStatusChange={handleVerifyStatusChange}
+              onDuplicateMerged={handleDuplicateMerged}
+              onDuplicateDismissed={handleDuplicateDismissed}
+              onShowToast={showToast}
               auditLog={auditLog}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+          )}
+
+          {/* PAGE 6: RESPONSE & COMMUNICATION */}
+          {currentTab === 'response' && (
+            <ResponseCommPage
+              responseTeams={responseTeams}
+              incidents={incidents}
+              onOpenBroadcast={() => setIsBroadcastOpen(true)}
+              onOpenExportBrief={() => setIsExportBriefOpen(true)}
+              onSimulateIncoming={handleSimulateIncoming}
+              onAssignTeam={handleAssignTeam}
+              selectedIncident={selectedIncident}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* PAGE 7: ACTIVITY & SYSTEM HEALTH */}
+          {currentTab === 'health' && (
+            <ActivityHealthPage
+              auditLog={auditLog}
+              backendConnected={backendConnected}
+              backendError={backendError}
+              onRetryConnection={() => loadDashboardData(true)}
+              isLoading={isLoading}
               onSelectIncidentById={handleSelectIncidentById}
             />
           )}
         </main>
       </div>
 
-      {/* 3. Toast Notifications */}
+      {/* 3. Notification Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg bg-[#0e182e] border border-cyan-500/50 shadow-2xl text-xs text-white animate-bounce-subtle">
-          <CheckCircle className="w-4 h-4 text-cyan-400" />
+        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 shadow-2xl text-xs text-white animate-bounce-subtle">
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage.msg}</span>
         </div>
       )}
@@ -840,6 +718,7 @@ export default function App() {
         isOpen={isNewIncidentModalOpen}
         onClose={() => setIsNewIncidentModalOpen(false)}
         onIncidentCreated={handleIncidentCreated}
+        onShowToast={showToast}
       />
     </div>
   );

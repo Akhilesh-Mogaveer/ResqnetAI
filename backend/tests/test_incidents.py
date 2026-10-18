@@ -192,3 +192,141 @@ def test_database_persistence_across_sessions(db_session_factory):
     assert retrieved.coordinates == [37.77, -122.42]
     assert retrieved.original_report_text == "Water rising at Pier 8."
     session2.close()
+
+
+def test_end_to_end_incident_lifecycle_workflow(client):
+    """
+    Phase 3 End-to-End Integration Test:
+    Intake -> Classify -> Dynamic Score -> Duplicate Scan -> Merge Duplicates ->
+    Automatic Rescore -> Verification Transition -> Coordinator Override Protection ->
+    Audit Log Verification & Idempotency.
+    """
+    # 1. Intake primary incident with Indian location text
+    primary_payload = {
+        "title": "Trapped residents in flooded apartment complex",
+        "type": "Emergency Incident",
+        "sector": "Mumbai Coastal Belt",
+        "locationName": "Marine Drive, Mumbai",
+        "report_text": "Heavy floodwaters entered ground-floor apartments on Marine Drive. 3 non-ambulatory elderly people stranded.",
+        "peopleAffected": "3 elderly people stranded",
+        "run_nlp_classification": True,
+    }
+    resp1 = client.post("/api/v1/incidents", json=primary_payload)
+    assert resp1.status_code == 201
+    primary = resp1.json()
+    primary_id = primary["id"]
+
+    assert primary["verificationStatus"] == "unverified"
+    assert primary["severity"] in ("high", "critical")
+    assert primary["priorityScore"] >= 65
+    assert primary["affectedCountNumeric"] == 3
+    # Geocoded for Marine Drive, Mumbai
+    assert primary["coordinates"] is not None
+    assert primary["coordinates"][0] > 18.0  # Mumbai latitude
+    initial_priority = primary["priorityScore"]
+
+    # 2. Intake second related report in the same sector with higher casualty scale
+    duplicate_payload = {
+        "title": "Flooding entering ground level residences on Marine Drive",
+        "type": "Emergency Incident",
+        "sector": "Mumbai Coastal Belt",
+        "locationName": "Marine Drive promenade",
+        "report_text": "Flooding entering ground level residences on Marine Drive. 12 residents trapped in building.",
+        "peopleAffected": "12 residents trapped",
+        "run_nlp_classification": True,
+    }
+    resp2 = client.post("/api/v1/incidents", json=duplicate_payload)
+    assert resp2.status_code == 201
+    duplicate = resp2.json()
+    dup_id = duplicate["id"]
+    assert duplicate["affectedCountNumeric"] == 12
+
+    # 3. Retrieve duplicates for primary
+    dup_resp = client.get(f"/api/v1/incidents/{primary_id}/duplicates")
+    assert dup_resp.status_code == 200
+    suggestions = dup_resp.json()
+    assert any(s["candidate_incident_id"] == dup_id for s in suggestions)
+
+    # 4. Coordinator Merges Duplicate Report
+    merge_payload = {
+        "primaryIncidentId": primary_id,
+        "duplicateIncidentId": dup_id,
+        "operator": "Coordinator Jordan Davis",
+        "reason": "Corroborated distress report of expanding flood with 12 trapped individuals.",
+        "updateCorroboration": True,
+    }
+    merge_resp = client.post(f"/api/v1/incidents/{primary_id}/merge-duplicate", json=merge_payload)
+    assert merge_resp.status_code == 200
+    merged = merge_resp.json()
+
+    # Priority and affected count should increase from merged evidence
+    assert merged["affectedCountNumeric"] == 12
+    assert merged["priorityScore"] >= initial_priority
+    assert merged["duplicate_count"] >= 1
+    post_merge_priority = merged["priorityScore"]
+
+    # Duplicate should now be marked merged
+    dup_check = client.get(f"/api/v1/incidents/{dup_id}")
+    assert dup_check.status_code == 200
+    assert dup_check.json()["is_duplicate"] is True
+    assert dup_check.json()["duplicate_of_id"] == primary_id
+    assert dup_check.json()["responseStatus"] == "merged_duplicate"
+
+    # 5. Coordinator verifies incident
+    ver_payload = {
+        "verificationStatus": "verified",
+        "operator": "Coordinator Jordan Davis",
+        "reason": "Ground search and rescue team confirmed 12 trapped residents.",
+    }
+    ver_resp = client.patch(f"/api/v1/incidents/{primary_id}/verification", json=ver_payload)
+    assert ver_resp.status_code == 200
+    verified = ver_resp.json()
+    assert verified["verificationStatus"] == "verified"
+    # Verification boosts priority score
+    assert verified["priorityScore"] >= post_merge_priority
+    verified_priority = verified["priorityScore"]
+
+    # 6. Manual Priority and Status Override
+    override_payload = {
+        "newPriority": 96,
+        "responseStatus": "dispatched",
+        "operator": "Lead Coordinator Alex",
+        "reason": "Emergency VIP coordination directive for rapid air evacuation.",
+    }
+    over_resp = client.post(f"/api/v1/incidents/{primary_id}/override", json=override_payload)
+    assert over_resp.status_code == 200
+    overridden = over_resp.json()
+    assert overridden["priorityScore"] == 96
+    assert overridden["responseStatus"] == "dispatched"
+    assert overridden["is_priority_overridden"] is True
+
+    # 7. Verification transition to 'disputed' does NOT overwrite coordinator's manual priority 96!
+    disp_payload = {
+        "verificationStatus": "disputed",
+        "operator": "Inspector Thorne",
+        "reason": "Temporary misidentification of building number.",
+    }
+    disp_resp = client.patch(f"/api/v1/incidents/{primary_id}/verification", json=disp_payload)
+    assert disp_resp.status_code == 200
+    disp_data = disp_resp.json()
+    assert disp_data["verificationStatus"] == "disputed"
+    assert disp_data["priorityScore"] == 96  # Manual override strictly preserved!
+
+    # 8. Audit trail completeness and idempotency
+    audit_resp = client.get(f"/api/v1/incidents/{primary_id}/audit-log")
+    assert audit_resp.status_code == 200
+    audit_logs = audit_resp.json()
+    action_types = [l["actionType"] for l in audit_logs]
+
+    assert "INCIDENT_CREATED" in action_types
+    assert "DUPLICATE_REPORT_MERGED" in action_types
+    assert "PRIORITY_RESCORING" in action_types
+    assert "VERIFICATION_STATUS_CHANGE" in action_types
+    assert "PRIORITY_OVERRIDE" in action_types
+    assert "RESPONSE_STATUS_CHANGE" in action_types
+
+    # Redundant update to disputed does not add extra audit log
+    initial_log_count = len(audit_logs)
+    client.patch(f"/api/v1/incidents/{primary_id}/verification", json=disp_payload)
+    audit_resp_after = client.get(f"/api/v1/incidents/{primary_id}/audit-log")
+    assert len(audit_resp_after.json()) == initial_log_count

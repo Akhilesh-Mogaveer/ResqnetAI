@@ -520,6 +520,7 @@ def override_incident_priority(
     new_priority: int,
     operator: str,
     reason: str,
+    response_status: Optional[str] = None,
 ) -> Optional[Incident]:
     """Apply manual coordinator priority override with audit log."""
     incident = get_incident_by_id(db, incident_id)
@@ -530,6 +531,23 @@ def override_incident_priority(
     incident.priorityScore = new_priority
     incident.is_priority_overridden = True
     now_iso = datetime.now(timezone.utc).isoformat()
+
+    # If response status was also updated in coordinator override
+    if response_status and response_status != incident.responseStatus:
+        old_resp = incident.responseStatus
+        incident.responseStatus = response_status
+        db.add(
+            AuditLog(
+                id=_generate_audit_log_id(),
+                timestamp=now_iso,
+                incidentId=incident.id,
+                operator=operator,
+                actionType="RESPONSE_STATUS_CHANGE",
+                oldValue=str(old_resp).upper(),
+                newValue=str(response_status).upper(),
+                reason=f"Status adjusted during priority override: {reason}",
+            )
+        )
 
     # Append note to incident notes
     current_notes = list(incident.notes)
