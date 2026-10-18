@@ -27,7 +27,7 @@ from backend.app.services.report_structuring_service import (
     extract_structured_incident_report,
 )
 
-client = TestClient(app)
+# Using the `client` fixture from conftest.py so each test gets an isolated in-memory DB
 
 
 # ============================================================================
@@ -95,7 +95,7 @@ def test_structure_messy_report_empty_text():
     assert "casualty_or_people_affected" in result.uncertain_or_missing_fields
 
 
-def test_structure_report_api_endpoint():
+def test_structure_report_api_endpoint(client):
     """Test POST /api/v1/incidents/structure-report endpoint."""
     resp = client.post(
         "/api/v1/incidents/structure-report",
@@ -153,7 +153,7 @@ def test_validate_coordinates_invalid_bounds():
     assert valid is False
 
 
-def test_create_incident_rejects_invalid_coordinates():
+def test_create_incident_rejects_invalid_coordinates(client):
     """Creating an incident with invalid GPS coordinates must return 422 Unprocessable Entity."""
     resp = client.post(
         "/api/v1/incidents",
@@ -204,7 +204,7 @@ def test_geocoding_provider_failure_graceful_degradation():
         assert "NETWORK_TIMEOUT" in res["provider_status"]
 
 
-def test_geocoding_api_search_endpoint():
+def test_geocoding_api_search_endpoint(client):
     """Test GET /api/v1/geocoding/search endpoint."""
     resp = client.get("/api/v1/geocoding/search?query=Joshimath&limit=3")
     assert resp.status_code == 200
@@ -218,7 +218,7 @@ def test_geocoding_api_search_endpoint():
 # 4. Officer Location Confirmation & Correction Tests
 # ============================================================================
 
-def test_officer_confirm_and_correct_location():
+def test_officer_confirm_and_correct_location(client):
     """Officer confirms candidate or enters corrected location via PATCH /incidents/{id}/location."""
     # 1. Create incident without coordinates
     create_resp = client.post(
@@ -263,7 +263,7 @@ def test_officer_confirm_and_correct_location():
     assert any(log["actionType"] == "LOCATION_CONFIRMED" for log in logs)
 
 
-def test_officer_location_update_rejects_invalid_coords():
+def test_officer_location_update_rejects_invalid_coords(client):
     """Updating incident location with invalid coordinates returns 422 error."""
     # Create an incident
     create_resp = client.post(
@@ -292,7 +292,7 @@ def test_officer_location_update_rejects_invalid_coords():
 # 5. Persisting Coordinates and Unresolved Coordinates Non-Plotting Tests
 # ============================================================================
 
-def test_incident_creation_persists_explicit_coordinates():
+def test_incident_creation_persists_explicit_coordinates(client):
     """Explicitly provided coordinates persist to database and return in API response."""
     resp = client.post(
         "/api/v1/incidents",
@@ -316,7 +316,7 @@ def test_incident_creation_persists_explicit_coordinates():
     assert get_resp.json()["coordinates"] == [12.9716, 77.5946]
 
 
-def test_unresolved_locations_do_not_receive_fake_coordinates():
+def test_unresolved_locations_do_not_receive_fake_coordinates(client):
     """When a location cannot be resolved, coordinates stay None; never assigned fake demo coords."""
     resp = client.post(
         "/api/v1/incidents",
@@ -339,7 +339,7 @@ def test_unresolved_locations_do_not_receive_fake_coordinates():
 # 6. Duplicate Merges Do Not Double-Count on Map
 # ============================================================================
 
-def test_duplicate_merge_marks_duplicate_status_for_map_filtering():
+def test_duplicate_merge_marks_duplicate_status_for_map_filtering(client):
     """Merged duplicates receive responseStatus='merged_duplicate' and is_duplicate=True."""
     # 1. Create primary incident
     p_resp = client.post(
@@ -389,7 +389,7 @@ def test_duplicate_merge_marks_duplicate_status_for_map_filtering():
 # 7. Report Source Provenance & Manual Override Intake Tests
 # ============================================================================
 
-def test_report_source_channels_and_provenance():
+def test_report_source_channels_and_provenance(client):
     """Each source channel type and reference ID is recorded in incident provenance."""
     sources = [
         ("Officer/Phone Call", "CAD-9921"),
@@ -420,12 +420,14 @@ def test_report_source_channels_and_provenance():
         assert data["verificationStatus"] == "unverified"
 
 
-def test_authorized_priority_override_at_intake_records_audit_trail():
+def test_authorized_priority_override_at_intake_records_audit_trail(client):
     """Manual priority override at intake sets is_priority_overridden and persists audit trail with justification."""
     resp = client.post(
         "/api/v1/incidents",
         json={
             "title": "Hospital Flooding Override",
+            "coordinates": [19.0760, 72.8777],
+            "locationName": "City General Hospital",
             "report_text": "Generator room threatened by flood.",
             "severity": "critical",
             "priorityScore": 99,

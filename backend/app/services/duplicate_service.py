@@ -335,103 +335,150 @@ def merge_duplicate_incident(
     operator: str = "Coordinator Jordan Davis",
     reason: str = "Corroborating report merged after human review.",
     update_corroboration: bool = True,
-) -> Tuple[Optional[Incident], Optional[Incident], Optional[AuditLog]]:
+) -> Tuple[Incident, Incident, AuditLog]:
     """
     Merge a duplicate report into a primary incident with human review.
-    Updates corroboration notes, increments duplicate_count, preserves original texts,
-    and creates audit records for both incidents.
+    
+    Guarantees:
+    - Atomicity: executed within a database transaction; rolls back on failure.
+    - Prevents self-merge and repeated merges.
+    - Preserves primary incident as the surviving canonical record.
+    - Merges casualty/affected counts, risk factors, and coordinates if unmapped.
+    - Never overwrites verified primary status incorrectly.
+    - Marks duplicate as is_duplicate=True and responseStatus='merged_duplicate'.
+    - Writes immutable audit trail entries to both incident records.
+    - Deterministically rescores primary incident priority.
     """
     if primary_id == duplicate_id:
-        return None, None, None
+        raise ValueError("Cannot merge an incident into itself.")
 
     primary = db.query(Incident).filter(Incident.id == primary_id).first()
+    if not primary:
+        raise ValueError(f"Primary incident '{primary_id}' not found.")
+
     duplicate = db.query(Incident).filter(Incident.id == duplicate_id).first()
+    if not duplicate:
+        raise ValueError(f"Duplicate incident '{duplicate_id}' not found.")
 
-    if not primary or not duplicate:
-        return None, None, None
+    # Guard against merging into a record that is already a merged duplicate
+    if primary.is_duplicate or primary.responseStatus == "merged_duplicate":
+        raise ValueError(
+            f"Primary incident '{primary.id}' is already a merged duplicate (merged into '{primary.duplicate_of_id}'). "
+            "Cannot merge other reports into a merged duplicate."
+        )
 
-    # Verify neither is already merged as duplicate of another
-    if duplicate.is_duplicate and duplicate.duplicate_of_id and duplicate.duplicate_of_id != primary.id:
-        logger.warning(f"Candidate {duplicate.id} is already merged into {duplicate.duplicate_of_id}")
-        return None, None, None
+    # Guard against merging an incident that is already merged
+    if duplicate.is_duplicate or duplicate.responseStatus == "merged_duplicate":
+        raise ValueError(
+            f"Incident '{duplicate.id}' has already been merged into '{duplicate.duplicate_of_id}'. "
+            "Cannot merge an already-merged duplicate."
+        )
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # 1. Update duplicate incident status while preserving original report text and provenance
-    duplicate.is_duplicate = True
-    duplicate.duplicate_of_id = primary.id
-    duplicate.responseStatus = "merged_duplicate"
-    # Verification status is kept separate: preserve duplicate.verificationStatus
+    try:
+        with db.begin_nested():
+            # 1. Update duplicate incident status while preserving original narrative & provenance
+            duplicate.is_duplicate = True
+            duplicate.duplicate_of_id = primary.id
+            duplicate.responseStatus = "merged_duplicate"
 
-    dup_notes = list(duplicate.notes)
-    dup_notes.append({
-        "id": f"n-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
-        "author": operator,
-        "time": "Just now",
-        "text": f"Merged as duplicate into primary incident {primary.id}. Reason: {reason}",
-    })
-    duplicate.notes = dup_notes
+            dup_notes = list(duplicate.notes or [])
+            dup_notes.append({
+                "id": f"n-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+                "author": operator,
+                "time": "Just now",
+                "text": f"Merged as duplicate into canonical primary incident {primary.id}. Reason: {reason}",
+            })
+            duplicate.notes = dup_notes
 
-    # 2. Update primary incident
-    primary.duplicate_count = (primary.duplicate_count or 0) + 1
-    if update_corroboration:
-        # Safely increment reliability due to multi-source corroboration
-        primary.reportReliability = min(98, (primary.reportReliability or 70) + 5)
+            # 2. Merge evidence into primary incident
+            primary.duplicate_count = (primary.duplicate_count or 0) + 1
+            if update_corroboration:
+                primary.reportReliability = min(98, (primary.reportReliability or 70) + 5)
 
-    primary_notes = list(primary.notes)
-    corroboration_text = (
-        f"Corroborating Report Merged ({duplicate.id}): '{duplicate.title}' from sector {duplicate.sector}. "
-        f"Original message: '{duplicate.original_report_text or duplicate.report_text or 'N/A'}'. "
-        f"Authorized by {operator}. Rationale: {reason}"
-    )
-    primary_notes.append({
-        "id": f"n-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
-        "author": f"{operator} (Merge Authorization)",
-        "time": "Just now",
-        "text": corroboration_text,
-    })
-    primary.notes = primary_notes
+            # 2a. Merge risk factors (union without duplicate strings)
+            p_risks = list(primary.riskFactors or [])
+            d_risks = list(duplicate.riskFactors or [])
+            merged_risks = list(dict.fromkeys(p_risks + d_risks))
+            primary.riskFactors = merged_risks
 
-    # 3. Create immutable audit log records for accountability on both records
-    audit_merge_primary = AuditLog(
-        id=_generate_audit_log_id(),
-        timestamp=now_iso,
-        incidentId=primary.id,
-        operator=operator,
-        actionType="DUPLICATE_REPORT_MERGED",
-        oldValue=f"Independent Report ({duplicate.id})",
-        newValue=f"Primary: {primary.id} | Merged Duplicate: {duplicate.id}",
-        reason=f"{reason} (Selected Primary: {primary.id}, Merged: {duplicate.id})",
-    )
-    db.add(audit_merge_primary)
+            # 2b. Inherit coordinates if primary lacks confirmed coordinates but duplicate has them
+            if (primary.coordinates is None or len(primary.coordinates) != 2) and (
+                duplicate.coordinates is not None and len(duplicate.coordinates) == 2
+            ):
+                primary.coordinates = duplicate.coordinates
+                if primary.location_source in ("unknown", "unresolved_ambiguous", None):
+                    primary.location_source = duplicate.location_source or "corroborated_duplicate"
+                    primary.is_synthetic_location = getattr(duplicate, "is_synthetic_location", False)
 
-    audit_merge_duplicate = AuditLog(
-        id=_generate_audit_log_id(),
-        timestamp=now_iso,
-        incidentId=duplicate.id,
-        operator=operator,
-        actionType="DUPLICATE_REPORT_MERGED",
-        oldValue=f"Independent Report ({duplicate.id})",
-        newValue=f"Merged into Primary ({primary.id})",
-        reason=f"{reason} (Selected Primary: {primary.id}, Merged: {duplicate.id})",
-    )
-    db.add(audit_merge_duplicate)
+            # 2c. Inherit assigned team if primary is unassigned
+            if not primary.assignedTeam and duplicate.assignedTeam:
+                primary.assignedTeam = duplicate.assignedTeam
 
-    # 4. Recalculate priority and severity using updated affected-person count and merged evidence
-    rescore_incident(
-        db=db,
-        incident=primary,
-        reason=f"Duplicate report {duplicate.id} merged into primary incident {primary.id}.",
-        operator=operator,
-        merged_duplicate=duplicate,
-        commit=False,
-    )
+            # 2d. Verification status protection: Never downgrade verified primary
+            if primary.verificationStatus != "verified" and duplicate.verificationStatus == "verified":
+                primary.verificationStatus = "verified"
 
-    db.commit()
-    db.refresh(primary)
-    db.refresh(duplicate)
+            # 2e. Record corroboration note on primary
+            primary_notes = list(primary.notes or [])
+            corroboration_text = (
+                f"Corroborating Report Merged ({duplicate.id}): '{duplicate.title}' from sector {duplicate.sector}. "
+                f"Original message: '{duplicate.original_report_text or duplicate.report_text or 'N/A'}'. "
+                f"Authorized by {operator}. Rationale: {reason}"
+            )
+            primary_notes.append({
+                "id": f"n-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}",
+                "author": f"{operator} (Merge Authorization)",
+                "time": "Just now",
+                "text": corroboration_text,
+            })
+            primary.notes = primary_notes
 
-    logger.info(f"Merged duplicate {duplicate.id} into primary {primary.id} by {operator}")
+            # 3. Create immutable audit log records for accountability on both records
+            audit_merge_primary = AuditLog(
+                id=_generate_audit_log_id(),
+                timestamp=now_iso,
+                incidentId=primary.id,
+                operator=operator,
+                actionType="DUPLICATE_REPORT_MERGED",
+                oldValue=f"Independent Report ({duplicate.id})",
+                newValue=f"Primary: {primary.id} | Merged Duplicate: {duplicate.id}",
+                reason=f"{reason} (Selected Primary: {primary.id}, Merged: {duplicate.id})",
+            )
+            db.add(audit_merge_primary)
+
+            audit_merge_duplicate = AuditLog(
+                id=_generate_audit_log_id(),
+                timestamp=now_iso,
+                incidentId=duplicate.id,
+                operator=operator,
+                actionType="DUPLICATE_REPORT_MERGED",
+                oldValue=f"Independent Report ({duplicate.id})",
+                newValue=f"Merged into Primary ({primary.id})",
+                reason=f"{reason} (Selected Primary: {primary.id}, Merged: {duplicate.id})",
+            )
+            db.add(audit_merge_duplicate)
+
+            # 4. Recalculate priority and severity using updated affected count and merged evidence
+            rescore_incident(
+                db=db,
+                incident=primary,
+                reason=f"Duplicate report {duplicate.id} merged into primary incident {primary.id}.",
+                operator=operator,
+                merged_duplicate=duplicate,
+                commit=False,
+            )
+
+        db.commit()
+        db.refresh(primary)
+        db.refresh(duplicate)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to merge duplicate {duplicate_id} into {primary_id}: {e}", exc_info=True)
+        raise
+
+    logger.info(f"Successfully merged duplicate {duplicate.id} into canonical primary {primary.id} by {operator}")
     return primary, duplicate, audit_merge_primary
 
 

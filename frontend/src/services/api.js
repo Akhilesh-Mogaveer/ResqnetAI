@@ -96,6 +96,13 @@ export const api = {
     return request(`/incidents${qs ? `?${qs}` : ''}`);
   },
 
+  getPriorityQueue: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.limit) query.append('limit', params.limit);
+    const qs = query.toString();
+    return request(`/incidents/priority-queue${qs ? `?${qs}` : ''}`);
+  },
+
   getIncidentById: (id) => request(`/incidents/${id}`),
 
   createIncident: (incidentData) =>

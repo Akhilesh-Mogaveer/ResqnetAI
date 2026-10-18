@@ -55,27 +55,27 @@ export default function Sidebar({
 
       <aside className={`
         fixed lg:static top-0 bottom-0 left-0 z-50
-        w-64 flex-shrink-0 bg-white border-r border-slate-200
+        w-64 flex-shrink-0 bg-[#091629] border-r border-[#203550]
         flex flex-col justify-between select-none
         transition-transform duration-200 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div>
           {/* Brand Header */}
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="p-4 border-b border-[#203550] flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-600 text-white font-bold shadow-sm">
-                <span className="text-base tracking-wider">R</span>
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-black shadow-md shadow-blue-500/20">
+                <span className="text-base tracking-wider font-mono">R</span>
               </div>
               <div>
                 <div className="flex items-center space-x-1.5">
-                  <span className="font-bold text-slate-900 tracking-tight text-base">RESQNET</span>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="font-extrabold text-white tracking-tight text-base">RESQNET</span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-cyan-400 border border-cyan-500/30">
                     AI
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-600 uppercase tracking-wider font-medium">
-                  Emergency Platform
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">
+                  Mission Control
                 </p>
               </div>
             </div>
@@ -83,7 +83,7 @@ export default function Sidebar({
             {/* Mobile close button */}
             <button
               onClick={onCloseMobile}
-              className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#132238]"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -92,7 +92,7 @@ export default function Sidebar({
 
           {/* Navigation Section */}
           <div className="px-3 pt-4 pb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 px-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 font-mono">
               Command Navigation
             </span>
           </div>
@@ -110,19 +110,23 @@ export default function Sidebar({
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`
-                    w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-colors
+                    w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all
                     ${isActive
-                      ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                      ? 'bg-[#132238] text-white font-semibold border-l-4 border-blue-500 shadow-sm shadow-blue-950/50'
+                      : 'text-slate-300 hover:text-white hover:bg-[#132238]/60'
                     }
                   `}
                 >
                   <div className="flex items-center space-x-2.5 truncate">
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-600'}`} />
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
                     <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-mono font-bold ${item.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-mono font-bold ${
+                      isActive 
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    }`}>
                       {item.badge}
                     </span>
                   )}
@@ -133,37 +137,37 @@ export default function Sidebar({
 
           {/* Telemetry & Sensor Stream (Preserves exact strings for Priority 4 Audits test!) */}
           <div className="px-3 pt-5 pb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 px-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 font-mono">
               Signal Feed (Telemetry Simulation)
             </span>
           </div>
           <div className="px-3 space-y-2 text-xs">
             <div
               onClick={() => handleNavClick('health')}
-              className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-colors"
+              className="p-2.5 rounded-lg bg-[#0D1B2D] border border-[#203550] flex items-center justify-between cursor-pointer hover:border-cyan-500/50 hover:bg-[#132238] transition-all shadow-xs"
               title="Simulated IoT telemetry heartbeat for interface demonstration"
             >
               <div className="flex items-center space-x-2 truncate">
                 <span className="relative flex h-2 w-2 flex-shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
-                <span className="text-slate-700 text-[11px] font-medium truncate">Simulated Sensor Stream</span>
+                <span className="text-slate-200 text-[11px] font-medium truncate">Simulated Sensor Stream</span>
               </div>
-              <span className="text-[9px] font-mono font-bold text-slate-600 bg-slate-200/80 px-1.5 py-0.5 rounded border border-slate-300">
+              <span className="text-[9px] font-mono font-bold text-cyan-300 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-700/50">
                 SIMULATED
               </span>
             </div>
 
             <div
               onClick={() => handleNavClick('verification')}
-              className="p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 flex items-center justify-between cursor-pointer hover:bg-amber-100/60 transition-colors"
+              className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/30 flex items-center justify-between cursor-pointer hover:bg-amber-950/30 hover:border-amber-500/50 transition-all shadow-xs"
             >
               <div className="flex items-center space-x-2 truncate">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                <span className="text-amber-900 text-[11px] font-medium truncate">Awaiting Verification</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                <span className="text-amber-200 text-[11px] font-medium truncate">Awaiting Verification</span>
               </div>
-              <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+              <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-700/60">
                 {unverifiedCount}
               </span>
             </div>
@@ -171,17 +175,17 @@ export default function Sidebar({
         </div>
 
         {/* System Status Footer */}
-        <div className="p-3 border-t border-slate-200 bg-slate-50/80 text-[11px] space-y-1.5">
-          <div className="flex items-center justify-between text-slate-600">
+        <div className="p-3 border-t border-[#203550] bg-[#07111F]/90 text-[11px] space-y-1.5">
+          <div className="flex items-center justify-between text-slate-300">
             <div className="flex items-center space-x-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-slate-700 font-medium text-[11px]">Core systems online</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+              <span className="text-slate-200 font-medium text-[11px]">Core systems online</span>
             </div>
-            <span className="font-mono text-[10px] text-slate-600">v1.0.0</span>
+            <span className="font-mono text-[10px] text-slate-400">v1.0.0</span>
           </div>
-          <div className="text-[10px] text-slate-600 flex items-center justify-between">
+          <div className="text-[10px] text-slate-400 flex items-center justify-between">
             <span>HumAID DistilBERT</span>
-            <span className="text-blue-600 font-medium">Ready</span>
+            <span className="text-cyan-400 font-medium font-mono">Ready</span>
           </div>
         </div>
       </aside>

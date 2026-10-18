@@ -17,8 +17,7 @@ def test_list_incidents(client):
     assert "title" in first
     assert "severity" in first
     assert "priorityScore" in first
-    assert "coordinates" in first
-    assert isinstance(first["coordinates"], list)
+    assert isinstance(first["coordinates"], list) or first["coordinates"] is None
 
 
 def test_filter_incidents_by_severity(client):

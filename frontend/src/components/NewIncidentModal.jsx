@@ -420,37 +420,37 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
   const hasValidCoordinates = latitude && longitude && !isNaN(parseFloat(latitude)) && !isNaN(parseFloat(longitude));
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#07111F]/80 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-[#0D1B2D] border border-[#203550] rounded-xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#132238] transition-colors"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center space-x-2 text-blue-700 font-mono text-xs uppercase tracking-wider mb-1 font-bold">
-          <Brain className="w-4 h-4 text-blue-600" />
+        <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs uppercase tracking-wider mb-1 font-bold">
+          <Brain className="w-4 h-4 text-cyan-400" />
           <span>Incident Intake & AI Structuring</span>
         </div>
-        <h2 className="text-lg font-bold text-slate-900 mb-4">Submit Emergency Incident Report</h2>
+        <h2 className="text-lg font-bold text-white mb-4">Submit Emergency Incident Report</h2>
 
         <form noValidate onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
           {/* Section 1: Report Source Channel & Provenance */}
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+          <div className="p-3 rounded-lg bg-[#091629] border border-[#203550] space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="report-source-channel" className="block text-slate-700 font-medium mb-1 flex items-center space-x-1.5">
-                  <Radio className="w-3.5 h-3.5 text-blue-600" />
+                <label htmlFor="report-source-channel" className="block text-slate-300 font-medium mb-1 flex items-center space-x-1.5">
+                  <Radio className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Report Source Channel *</span>
                 </label>
                 <select
                   id="report-source-channel"
                   value={reportSource}
                   onChange={(e) => setReportSource(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 font-sans"
+                  className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-sans"
                 >
                   <option value="Officer/Phone Call">Officer/Phone Call</option>
                   <option value="SMS">SMS</option>
@@ -462,7 +462,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
               </div>
 
               <div>
-                <label className="block text-slate-700 font-medium mb-1">
+                <label className="block text-slate-300 font-medium mb-1">
                   Source Reference / Identification (Optional)
                 </label>
                 <input
@@ -470,13 +470,13 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   value={sourceReference}
                   onChange={(e) => setSourceReference(e.target.value)}
                   placeholder="e.g. CAD #5892, Radio Bravo-4, Rain Gauge #12, or Post ID"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-mono text-xs"
+                  className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono text-xs"
                 />
               </div>
             </div>
 
-            <div className="text-[10px] text-slate-500 font-mono flex items-center space-x-1.5 pt-1 border-t border-slate-200/60">
-              <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+            <div className="text-[10px] text-slate-400 font-mono flex items-center space-x-1.5 pt-1 border-t border-[#203550]/60">
+              <Info className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
               <span>
                 Manual Intake Mode: Recording incoming reports received via {reportSource}. Automated SMS, social-media, or telecom carrier integrations are not currently active.
               </span>
@@ -485,7 +485,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
           {/* Incident Headline / Title */}
           <div>
-            <label className="block text-slate-700 font-medium mb-1">
+            <label className="block text-slate-300 font-medium mb-1">
               Incident Title / Headline *
             </label>
             <input
@@ -496,7 +496,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                 if (errorMsg) setErrorMsg(null);
               }}
               placeholder="e.g. Flash flooding trapped civilian vehicles under arch"
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+              className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-[#0D1B2D]"
               required
             />
           </div>
@@ -504,11 +504,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           {/* Hazard Category, Sector, & Landmark Location */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Hazard Category *</label>
+              <label className="block text-slate-300 font-medium mb-1">Hazard Category *</label>
               <select
                 value={hazardCategory}
                 onChange={(e) => setHazardCategory(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 font-sans"
+                className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-sans"
               >
                 <option value="Flood / Inundation">Flood / Inundation</option>
                 <option value="Landslide / Mudslide">Landslide / Mudslide</option>
@@ -525,11 +525,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
             </div>
 
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Operational Sector *</label>
+              <label className="block text-slate-300 font-medium mb-1">Operational Sector *</label>
               <select
                 value={sector}
                 onChange={(e) => setSector(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 font-mono"
+                className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-mono"
               >
                 <option value="East Harbor District">East Harbor District</option>
                 <option value="Northgate Expressway">Northgate Expressway</option>
@@ -548,18 +548,18 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-slate-700 font-medium">Named Landmark / Spot</label>
+                <label className="block text-slate-300 font-medium">Named Landmark / Spot</label>
                 <button
                   type="button"
                   onClick={() => handleResolveLocation()}
                   disabled={isResolvingLocation || (!locationName.trim() && !title.trim())}
-                  className="flex items-center space-x-1 text-[11px] text-blue-600 hover:text-blue-800 disabled:opacity-40 font-mono font-semibold"
+                  className="flex items-center space-x-1 text-[11px] text-cyan-400 hover:text-cyan-300 disabled:opacity-40 font-mono font-semibold"
                   title="Search coordinates in Indian Gazetteer & OSM Geocoder"
                 >
                   {isResolvingLocation ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                    <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
                   ) : (
-                    <Search className="w-3 h-3 text-blue-600" />
+                    <Search className="w-3 h-3 text-cyan-400" />
                   )}
                   <span>Resolve</span>
                 </button>
@@ -569,60 +569,60 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
                 placeholder="e.g. Wayanad Relief Camp or Andheri Metro"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+                className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-[#0D1B2D]"
               />
             </div>
           </div>
 
           {/* Section 2: Location Candidates & Map Preview Drawer */}
           {locationCandidates.length > 1 && (
-            <div className="bg-blue-50/80 border border-blue-200 rounded-lg p-3 space-y-2">
+            <div className="bg-[#132238] border border-cyan-500/30 rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono font-bold text-xs text-blue-900 flex items-center space-x-1">
-                  <Compass className="w-3.5 h-3.5 text-blue-700" />
+                <span className="font-mono font-bold text-xs text-cyan-300 flex items-center space-x-1">
+                  <Compass className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Multiple Candidates Found — Confirm Location</span>
                 </span>
-                <span className="text-[10px] text-blue-700 font-mono">
+                <span className="text-[10px] text-cyan-400 font-mono">
                   {locationCandidates.length} options
                 </span>
               </div>
-              <p className="text-[11px] text-blue-900/80">
+              <p className="text-[11px] text-slate-300">
                 Multiple places matched this description. Select the correct landmark or click its pin on the preview map:
               </p>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {locationCandidates.map((cand, idx) => (
                   <div
                     key={idx}
-                    className="p-2 bg-white rounded border border-blue-200 flex items-center justify-between text-[11px]"
+                    className="p-2 bg-[#091629] rounded border border-[#203550] flex items-center justify-between text-[11px]"
                   >
                     <div>
-                      <div className="font-semibold text-slate-900">{cand.display_name}</div>
-                      <div className="text-[10px] font-mono text-slate-500">
+                      <div className="font-semibold text-white">{cand.display_name}</div>
+                      <div className="text-[10px] font-mono text-slate-400">
                         [{cand.latitude.toFixed(4)}, {cand.longitude.toFixed(4)}] · Provider: {cand.provider} ({(cand.confidence * 100).toFixed(0)}%)
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleSelectCandidate(cand)}
-                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] transition-colors"
+                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] transition-colors"
                     >
                       Select
                     </button>
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-blue-200/60">
+              <div className="flex items-center justify-between pt-1 border-t border-[#203550]">
                 <button
                   type="button"
                   onClick={handleLeaveLocationUnresolved}
-                  className="text-[10px] text-blue-700 hover:text-blue-900 underline font-mono"
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-mono"
                 >
                   Leave Location Unresolved (Save Without Coordinates)
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowMapPicker(!showMapPicker)}
-                  className="text-[10px] text-blue-700 font-mono font-semibold"
+                  className="text-[10px] text-cyan-400 font-mono font-semibold"
                 >
                   {showMapPicker ? 'Hide Map Preview' : 'Show Map Preview'}
                 </button>
@@ -632,13 +632,13 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
           {/* Interactive Map Preview (Rendered on candidate search or user toggle) */}
           {(showMapPicker || locationCandidates.length > 0 || hasValidCoordinates) && (
-            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-              <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between text-[11px] font-mono text-slate-700">
+            <div className="rounded-lg overflow-hidden border border-[#203550] bg-[#091629]">
+              <div className="bg-[#091629] px-3 py-1.5 border-b border-[#203550] flex items-center justify-between text-[11px] font-mono text-slate-300">
                 <span className="flex items-center space-x-1.5 font-semibold">
-                  <MapIcon className="w-3.5 h-3.5 text-blue-600" />
+                  <MapIcon className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Interactive Map Preview & Candidate Selection</span>
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-[10px] text-slate-400">
                   Click map to pin coordinates
                 </span>
               </div>
@@ -650,8 +650,9 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   className="h-full w-full"
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, GIS User Community"
+                    maxZoom={19}
                   />
                   <MapCenterController center={mapCenter} zoom={mapZoom} />
                   <MapPreviewClickPicker onPickLocation={handleMapPinSelected} />
@@ -702,12 +703,12 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   )}
                 </MapContainer>
               </div>
-              <div className="px-3 py-1 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-500 font-mono flex items-center justify-between">
+              <div className="px-3 py-1 bg-[#091629] border-t border-[#203550] text-[10px] text-slate-400 font-mono flex items-center justify-between">
                 <span>Geocoding: OpenStreetMap Nominatim & Local Disaster Gazetteer (Rate limited to 1 req/s, cached).</span>
                 <button
                   type="button"
                   onClick={() => setShowMapPicker(!showMapPicker)}
-                  className="text-slate-600 hover:text-slate-800 underline ml-2"
+                  className="text-cyan-400 hover:text-cyan-300 underline ml-2"
                 >
                   {showMapPicker ? 'Collapse' : 'Expand'}
                 </button>
@@ -717,15 +718,15 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
           {/* Location Resolution Status Tag / Warning */}
           {locationResolutionTag && (
-            <div className="flex items-center justify-between p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px]">
+            <div className="flex items-center justify-between p-2 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px]">
               <div className="flex items-center space-x-1.5 truncate">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                 <span className="truncate font-mono">{locationResolutionTag}</span>
               </div>
               <button
                 type="button"
                 onClick={handleClearCoordinates}
-                className="text-[10px] text-emerald-700 underline hover:text-emerald-900 ml-2 whitespace-nowrap"
+                className="text-[10px] text-emerald-300 underline hover:text-emerald-100 ml-2 whitespace-nowrap"
               >
                 Clear
               </button>
@@ -733,23 +734,23 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           )}
 
           {locationWarning && (
-            <div className="p-2.5 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-1.5">
+            <div className="p-2.5 rounded bg-[#132238] border border-amber-500/30 text-amber-300 text-[11px] space-y-1.5">
               <div className="flex items-center space-x-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                 <span>{locationWarning}</span>
               </div>
               <div className="flex items-center space-x-3 text-[10px] font-mono pl-5">
                 <button
                   type="button"
                   onClick={handleLeaveLocationUnresolved}
-                  className="text-amber-800 font-bold underline hover:text-amber-950"
+                  className="text-amber-300 font-bold underline hover:text-amber-100"
                 >
                   Confirm as Unresolved Location
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowMapPicker(true)}
-                  className="text-blue-700 underline hover:text-blue-900"
+                  className="text-cyan-400 underline hover:text-cyan-300"
                 >
                   Open Map Preview to Pin Point
                 </button>
@@ -758,9 +759,9 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           )}
 
           {/* Optional User GPS Coordinates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-[#091629] border border-[#203550]">
             <div>
-              <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+              <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                 Latitude (Optional GPS: -90 to 90)
               </label>
               <input
@@ -772,11 +773,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   if (errorMsg) setErrorMsg(null);
                 }}
                 placeholder="e.g. 11.6854"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-mono text-xs"
+                className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-1.5 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+              <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                 Longitude (Optional GPS: -180 to 180)
               </label>
               <input
@@ -788,10 +789,10 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   if (errorMsg) setErrorMsg(null);
                 }}
                 placeholder="e.g. 76.1320"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-mono text-xs"
+                className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-1.5 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono text-xs"
               />
             </div>
-            <div className="sm:col-span-2 text-[10px] text-slate-500 font-mono flex items-center justify-between">
+            <div className="sm:col-span-2 text-[10px] text-slate-400 font-mono flex items-center justify-between">
               <span>
                 ℹ️ Coordinates are optional. If left blank, RESQNET preserves report as Unresolved Location without inventing fake coordinates.
               </span>
@@ -800,7 +801,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   <button
                     type="button"
                     onClick={() => setShowMapPicker(true)}
-                    className="text-blue-600 hover:text-blue-800 underline ml-2 whitespace-nowrap"
+                    className="text-cyan-400 hover:text-cyan-300 underline ml-2 whitespace-nowrap"
                   >
                     Map Picker
                   </button>
@@ -809,7 +810,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   <button
                     type="button"
                     onClick={handleClearCoordinates}
-                    className="text-slate-500 hover:text-slate-800 underline ml-2 whitespace-nowrap"
+                    className="text-slate-400 hover:text-slate-200 underline ml-2 whitespace-nowrap"
                   >
                     Clear Coords
                   </button>
@@ -821,11 +822,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           {/* Severity & Casualties / Affected People */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Severity Tier</label>
+              <label className="block text-slate-300 font-medium mb-1">Severity Tier</label>
               <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 font-mono"
+                className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-mono"
               >
                 <option value="critical">Critical (Red)</option>
                 <option value="high">High (Amber)</option>
@@ -835,46 +836,46 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
             </div>
 
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Casualties & Affected People</label>
+              <label className="block text-slate-300 font-medium mb-1">Casualties & Affected People</label>
               <input
                 type="text"
                 value={peopleAffected}
                 onChange={(e) => setPeopleAffected(e.target.value)}
                 placeholder="e.g. 5 injured, 20 trapped, or 10-25 people"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
               />
             </div>
           </div>
 
           {/* Section 3: Verification Status & Priority Scoring Controls */}
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
+          <div className="p-3 rounded-lg bg-[#091629] border border-[#203550] space-y-3">
             {/* Unverified Default Status Banner */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded bg-[#132238] border border-amber-500/30 text-slate-300 text-[11px]">
               <div className="flex items-center space-x-2">
-                <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <ShieldAlert className="w-4 h-4 text-amber-400 flex-shrink-0" />
                 <div>
-                  <span className="font-bold uppercase tracking-wider font-mono text-[10px] text-amber-800">
+                  <span className="font-bold uppercase tracking-wider font-mono text-[10px] text-amber-300">
                     Verification Status: UNVERIFIED (Default)
                   </span>
-                  <div className="text-[10px] text-amber-800/90">
+                  <div className="text-[10px] text-slate-300">
                     All incoming reports default to unverified until evidence is corroborated by the Lead Operations Coordinator.
                   </div>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-mono font-bold text-[10px]">
+              <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] border border-amber-500/30">
                 Pending Evidence
               </span>
             </div>
 
             {/* Manual Priority Override Checkbox */}
             <div className="space-y-2">
-              <label htmlFor="manual-priority-override" className="flex items-center space-x-2 cursor-pointer text-slate-800 font-medium">
+              <label htmlFor="manual-priority-override" className="flex items-center space-x-2 cursor-pointer text-slate-200 font-medium">
                 <input
                   type="checkbox"
                   id="manual-priority-override"
                   checked={isManualOverride}
                   onChange={(e) => setIsManualOverride(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4 bg-[#0D1B2D] border-[#203550]"
                 />
                 <span className="text-xs">
                   Manual Priority / Severity Override (Lead Coordinator Authorization Required)
@@ -882,21 +883,21 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
               </label>
 
               {!isManualOverride ? (
-                <div className="text-[11px] text-slate-500 font-mono bg-white p-2 rounded border border-slate-200 flex items-center justify-between">
+                <div className="text-[11px] text-slate-400 font-mono bg-[#0D1B2D] p-2 rounded border border-[#203550] flex items-center justify-between">
                   <span>
                     ⚡ Automated Priority: Priority score will be calculated dynamically by the RESQNET scoring engine upon submission.
                   </span>
-                  <span className="text-blue-600 font-bold">Auto-Score Active</span>
+                  <span className="text-cyan-400 font-bold">Auto-Score Active</span>
                 </div>
               ) : (
-                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg space-y-2 text-xs">
-                  <div className="flex items-center space-x-1.5 text-amber-900 font-bold text-[11px]">
-                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                <div className="p-3 bg-[#132238] border border-amber-500/30 rounded-lg space-y-2 text-xs">
+                  <div className="flex items-center space-x-1.5 text-amber-300 font-bold text-[11px]">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
                     <span>Authorized Coordinator Override</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                      <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                         Override Priority (0-100) *
                       </label>
                       <input
@@ -905,11 +906,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                         max="100"
                         value={priorityScore}
                         onChange={(e) => setPriorityScore(e.target.value)}
-                        className="w-full bg-white border border-amber-300 rounded px-2.5 py-1.5 text-slate-800 font-mono text-xs focus:outline-none focus:border-amber-500"
+                        className="w-full bg-[#091629] border border-amber-500/40 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                      <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                         Authorizing Coordinator *
                       </label>
                       <input
@@ -917,11 +918,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                         value={overrideOperator}
                         onChange={(e) => setOverrideOperator(e.target.value)}
                         placeholder="e.g. Coordinator Jordan Davis"
-                        className="w-full bg-white border border-amber-300 rounded px-2.5 py-1.5 text-slate-800 text-xs focus:outline-none focus:border-amber-500"
+                        className="w-full bg-[#091629] border border-amber-500/40 rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                      <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                         Mandatory Justification *
                       </label>
                       <input
@@ -929,11 +930,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                         value={overrideReason}
                         onChange={(e) => setOverrideReason(e.target.value)}
                         placeholder="e.g. Direct phone dispatch confirmed trapped families"
-                        className="w-full bg-white border border-amber-300 rounded px-2.5 py-1.5 text-slate-800 text-xs focus:outline-none focus:border-amber-500"
+                        className="w-full bg-[#091629] border border-amber-500/40 rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-400"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-amber-800 italic">
+                  <p className="text-[10px] text-amber-300 italic">
                     * This override bypasses automated priority calculation and records an immutable audit log entry.
                   </p>
                 </div>
@@ -944,7 +945,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
           {/* Section 4: Incident Description / Narrative with AI Structuring Tools */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-              <label className="block text-slate-700 font-medium">
+              <label className="block text-slate-300 font-medium">
                 Incident Description / Distress Message *
               </label>
               <div className="flex items-center space-x-1.5">
@@ -952,7 +953,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   type="button"
                   onClick={handleStructureReport}
                   disabled={isStructuring || !reportText.trim()}
-                  className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-mono text-[11px] disabled:opacity-40 transition-colors font-bold"
+                  className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] disabled:opacity-40 transition-colors font-bold"
                   title="Extract reported facts vs model-inferred fields from messy text"
                 >
                   {isStructuring ? (
@@ -962,7 +963,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-3 h-3 text-indigo-600" />
+                      <Sparkles className="w-3 h-3 text-indigo-400" />
                       <span>Structure Messy Report</span>
                     </>
                   )}
@@ -971,7 +972,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   type="button"
                   onClick={handleClassify}
                   disabled={isClassifying || !reportText.trim()}
-                  className="flex items-center space-x-1.5 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-mono text-[11px] disabled:opacity-40 transition-colors"
+                  className="flex items-center space-x-1.5 px-2 py-1 rounded bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 font-mono text-[11px] disabled:opacity-40 transition-colors"
                 >
                   {isClassifying ? (
                     <>
@@ -980,7 +981,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                     </>
                   ) : (
                     <>
-                      <Brain className="w-3 h-3 text-blue-600" />
+                      <Brain className="w-3 h-3 text-blue-400" />
                       <span>HumAID Classify</span>
                     </>
                   )}
@@ -995,17 +996,17 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                 if (errorMsg) setErrorMsg(null);
               }}
               placeholder="e.g. Rising floodwater at the expressway underpass, 6 passenger vehicles trapped under bridge, water at window height, occupants waving for assistance."
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-mono leading-relaxed"
+              className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono leading-relaxed"
               required
             />
           </div>
 
           {/* Section 5: Structured Report Breakdown Preview Card */}
           {structuredData && (
-            <div className="bg-slate-50 border border-indigo-200 rounded-lg p-3 space-y-2.5">
-              <div className="flex items-center justify-between pb-1.5 border-b border-indigo-100">
-                <span className="font-mono font-bold text-xs text-indigo-900 flex items-center space-x-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <div className="bg-[#091629] border border-indigo-500/30 rounded-lg p-3 space-y-2.5">
+              <div className="flex items-center justify-between pb-1.5 border-b border-[#203550]">
+                <span className="font-mono font-bold text-xs text-indigo-300 flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Report Structuring Breakdown</span>
                 </span>
                 <div className="flex items-center space-x-2">
@@ -1024,11 +1025,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                       }
                       onShowToast?.('All extracted suggestions applied to report!', 'success');
                     }}
-                    className="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[10px] font-bold transition-colors"
+                    className="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[10px] font-bold transition-colors"
                   >
                     Apply All Suggestions
                   </button>
-                  <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
                     HumAID DistilBERT + NLP Extraction
                   </span>
                 </div>
@@ -1037,25 +1038,25 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
               {/* Distinction: Explicit Facts vs Model Inferences */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                 {/* 1. Explicitly Reported Facts */}
-                <div className="p-2 rounded bg-emerald-50/70 border border-emerald-200 space-y-1">
-                  <span className="font-bold text-emerald-900 flex items-center space-x-1 text-[10px] uppercase font-mono">
-                    <CheckCircle className="w-3 h-3 text-emerald-600" />
+                <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                  <span className="font-bold text-emerald-300 flex items-center space-x-1 text-[10px] uppercase font-mono">
+                    <CheckCircle className="w-3 h-3 text-emerald-400" />
                     <span>Explicit Reported Facts</span>
                   </span>
-                  <div className="text-slate-800 flex items-center justify-between">
-                    <span>Casualties/People: <strong className="font-mono">{structuredData.reported_facts?.people_affected_estimate || 'Unknown'}</strong></span>
+                  <div className="text-slate-200 flex items-center justify-between">
+                    <span>Casualties/People: <strong className="font-mono text-white">{structuredData.reported_facts?.people_affected_estimate || 'Unknown'}</strong></span>
                     {structuredData.reported_facts?.people_affected_estimate && structuredData.reported_facts.people_affected_estimate !== 'unknown' && (
                       <button
                         type="button"
                         onClick={() => setPeopleAffected(structuredData.reported_facts.people_affected_estimate)}
-                        className="text-[10px] text-emerald-700 underline font-mono"
+                        className="text-[10px] text-emerald-300 underline font-mono"
                       >
                         Apply
                       </button>
                     )}
                   </div>
-                  <div className="text-slate-800 flex items-center justify-between">
-                    <span>Location Clues: <strong className="font-mono">{structuredData.reported_facts?.location_clues || 'None explicitly mentioned'}</strong></span>
+                  <div className="text-slate-200 flex items-center justify-between">
+                    <span>Location Clues: <strong className="font-mono text-white">{structuredData.reported_facts?.location_clues || 'None explicitly mentioned'}</strong></span>
                     {structuredData.reported_facts?.location_clues && (
                       <button
                         type="button"
@@ -1063,40 +1064,40 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                           setLocationName(structuredData.reported_facts.location_clues);
                           handleResolveLocation(structuredData.reported_facts.location_clues);
                         }}
-                        className="text-[10px] text-emerald-700 underline font-mono"
+                        className="text-[10px] text-emerald-300 underline font-mono"
                       >
                         Apply & Resolve
                       </button>
                     )}
                   </div>
-                  <div className="text-slate-800">
-                    Time Reference: <strong className="font-mono">{structuredData.reported_facts?.time_references || 'None specified'}</strong>
+                  <div className="text-slate-200">
+                    Time Reference: <strong className="font-mono text-white">{structuredData.reported_facts?.time_references || 'None specified'}</strong>
                   </div>
                 </div>
 
                 {/* 2. Model Inferred Fields */}
-                <div className="p-2 rounded bg-indigo-50/70 border border-indigo-200 space-y-1">
-                  <span className="font-bold text-indigo-900 flex items-center space-x-1 text-[10px] uppercase font-mono">
-                    <Brain className="w-3 h-3 text-indigo-600" />
+                <div className="p-2 rounded bg-indigo-500/10 border border-indigo-500/30 space-y-1">
+                  <span className="font-bold text-indigo-300 flex items-center space-x-1 text-[10px] uppercase font-mono">
+                    <Brain className="w-3 h-3 text-indigo-400" />
                     <span>Model Inferred Fields</span>
                   </span>
-                  <div className="text-slate-800 flex items-center justify-between">
-                    <span>Category: <strong className="font-mono">{structuredData.inferred_fields?.hazard_category?.replace(/_/g, ' ') || 'Unknown'}</strong></span>
+                  <div className="text-slate-200 flex items-center justify-between">
+                    <span>Category: <strong className="font-mono text-white">{structuredData.inferred_fields?.hazard_category?.replace(/_/g, ' ') || 'Unknown'}</strong></span>
                     {structuredData.inferred_fields?.hazard_category && (
                       <button
                         type="button"
                         onClick={() => setHazardCategory(mapHumaidCategory(structuredData.inferred_fields.hazard_category))}
-                        className="text-[10px] text-indigo-700 underline font-mono"
+                        className="text-[10px] text-indigo-300 underline font-mono"
                       >
                         Apply
                       </button>
                     )}
                   </div>
-                  <div className="text-slate-800">
-                    NLP Confidence: <strong className="font-mono">{((structuredData.inferred_fields?.nlp_confidence || 0) * 100).toFixed(1)}%</strong>
+                  <div className="text-slate-200">
+                    NLP Confidence: <strong className="font-mono text-white">{((structuredData.inferred_fields?.nlp_confidence || 0) * 100).toFixed(1)}%</strong>
                   </div>
-                  <div className="text-slate-800">
-                    Urgent Indicators: <strong className="font-mono">
+                  <div className="text-slate-200">
+                    Urgent Indicators: <strong className="font-mono text-white">
                       {structuredData.inferred_fields?.urgent_indicators?.length > 0
                         ? structuredData.inferred_fields.urgent_indicators.join(', ')
                         : 'None detected'}
@@ -1107,15 +1108,15 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
               {/* Uncertain or Missing Fields */}
               {structuredData.missing_or_uncertain_fields?.length > 0 && (
-                <div className="text-[10px] text-amber-800 bg-amber-50 p-1.5 rounded border border-amber-200 flex items-start space-x-1">
-                  <HelpCircle className="w-3 h-3 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="text-[10px] text-amber-300 bg-amber-500/10 p-1.5 rounded border border-amber-500/30 flex items-start space-x-1">
+                  <HelpCircle className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
                   <span>
                     <strong>Uncertain/Missing: </strong> {structuredData.missing_or_uncertain_fields.join(' · ')}
                   </span>
                 </div>
               )}
 
-              <p className="text-[10px] text-slate-500 italic">
+              <p className="text-[10px] text-slate-400 italic">
                 * Note: NLP confidence indicates model categorization certainty and must not be confused with field report reliability or ground-truth verification.
               </p>
             </div>
@@ -1123,20 +1124,20 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
           {/* Simple NLP Live Prediction Card (if classified without full structuring) */}
           {!structuredData && nlpPrediction && (
-            <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-center justify-between text-[11px] font-mono text-blue-800 mb-1">
+            <div className="bg-[#132238] border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center justify-between text-[11px] font-mono text-blue-300 mb-1">
                 <span className="font-bold flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                   <span>HumAID Prediction</span>
                 </span>
-                <span className="text-emerald-700 font-semibold">
+                <span className="text-emerald-400 font-semibold">
                   {(nlpPrediction.confidence * 100).toFixed(1)}% Confidence
                 </span>
               </div>
-              <div className="text-slate-900 font-mono font-bold text-xs uppercase tracking-wide">
+              <div className="text-white font-mono font-bold text-xs uppercase tracking-wide">
                 Category: {nlpPrediction.predicted_category.replace(/_/g, ' ')}
               </div>
-              <p className="text-[10px] text-slate-500 mt-1 italic">
+              <p className="text-[10px] text-slate-400 mt-1 italic">
                 * Suggested situational categorization. Coordinator authorization required before dispatching rescue units.
               </p>
             </div>
@@ -1144,26 +1145,26 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
           {/* Inline Validation / Backend Error Alert */}
           {errorMsg && (
-            <div className="flex items-center space-x-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
-              <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            <div className="flex items-center space-x-2 p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
+              <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Modal Action Buttons */}
-          <div className="pt-2 border-t border-slate-200 flex items-center justify-end space-x-3">
+          <div className="pt-2 border-t border-[#203550] flex items-center justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors font-medium disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-[#091629] hover:bg-[#132238] text-slate-300 border border-[#203550] transition-colors font-medium disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold transition-all shadow-xs disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold transition-all shadow-xs disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

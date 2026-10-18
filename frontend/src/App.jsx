@@ -500,6 +500,7 @@ export default function App() {
         if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
           setIncidents(apiIncidents);
           setSelectedIncidentId(prevId => {
+            if (prevId === duplicateId) return primaryId;
             const exists = apiIncidents.some(i => i.id === prevId);
             return exists ? prevId : primaryId;
           });
@@ -543,7 +544,7 @@ export default function App() {
     activeTab === 'audit_log' ? 'health' : activeTab;
 
   return (
-    <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-900 font-sans overflow-hidden">
+    <div className="flex h-screen w-screen bg-[#07111F] text-slate-100 font-sans overflow-hidden">
       {/* 1. Left Sidebar Navigation */}
       <Sidebar
         activeTab={currentTab}
@@ -555,8 +556,8 @@ export default function App() {
       />
 
       {/* 2. Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Top Navigation */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#07111F]">
+        {/* Top Command Bar */}
         <TopNav
           activeTabName={tabTitles[currentTab] || 'Coordination'}
           onSimulateIncoming={handleSimulateIncoming}
@@ -572,19 +573,19 @@ export default function App() {
         <main className="flex-1 p-4 sm:p-6 space-y-5 max-w-[1700px] w-full mx-auto">
           {/* Backend Offline Fallback Banner */}
           {backendConnected === false && (
-            <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3 shadow-xs">
+            <div className="bg-amber-950/40 border border-amber-500/40 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3 shadow-lg backdrop-blur-xs">
               <div className="flex items-center space-x-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                <div className="text-amber-900">
-                  <span className="font-semibold text-amber-950 font-mono">BACKEND OFFLINE:</span>{' '}
-                  Cannot connect to FastAPI at <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-950 font-mono">{api.getBaseUrl()}</code>.
-                  Running with reliable local data. Start backend with <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">uvicorn backend.app.main:app</code>.
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <div className="text-amber-200">
+                  <span className="font-semibold text-amber-300 font-mono">BACKEND OFFLINE:</span>{' '}
+                  Cannot connect to FastAPI at <code className="bg-amber-900/60 px-1 py-0.5 rounded text-amber-100 font-mono border border-amber-700/50">{api.getBaseUrl()}</code>.
+                  Running with reliable local data. Start backend with <code className="bg-amber-900/60 px-1 py-0.5 rounded font-mono border border-amber-700/50">uvicorn backend.app.main:app</code>.
                 </div>
               </div>
               <button
                 onClick={() => loadDashboardData(true)}
                 disabled={isLoading}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-mono text-[11px] self-start sm:self-auto flex-shrink-0 transition-colors shadow-2xs"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-mono text-[11px] self-start sm:self-auto flex-shrink-0 transition-colors shadow-sm"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                 <span>{isLoading ? 'Connecting...' : 'Retry Connection'}</span>

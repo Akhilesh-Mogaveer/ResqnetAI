@@ -277,9 +277,17 @@ def get_incidents(
     sector: Optional[str] = None,
     category: Optional[str] = None,
     search: Optional[str] = None,
+    include_duplicates: bool = False,
 ) -> List[Incident]:
-    """Retrieve incidents with optional filtering, ordered by priority score descending."""
+    """
+    Retrieve incidents with optional filtering, ordered by priority score descending.
+    By default (include_duplicates=False), merged duplicate records are strictly excluded
+    so operational views display only authoritative canonical records.
+    """
     query = db.query(Incident)
+
+    if not include_duplicates and responseStatus != "merged_duplicate":
+        query = query.filter(Incident.is_duplicate == False).filter(Incident.responseStatus != "merged_duplicate")
 
     if severity:
         query = query.filter(Incident.severity == severity.lower())
@@ -300,6 +308,27 @@ def get_incidents(
         )
 
     return query.order_by(desc(Incident.priorityScore)).all()
+
+
+def get_priority_queue(
+    db: Session,
+    limit: Optional[int] = None,
+) -> List[Incident]:
+    """
+    Retrieve active canonical incidents for the Operational Priority Queue.
+    Strictly excludes merged duplicate records and resolved incidents.
+    Ordered by priority score descending.
+    """
+    query = (
+        db.query(Incident)
+        .filter(Incident.is_duplicate == False)
+        .filter(Incident.responseStatus != "merged_duplicate")
+        .filter(Incident.responseStatus != "resolved")
+        .order_by(desc(Incident.priorityScore))
+    )
+    if limit and limit > 0:
+        query = query.limit(limit)
+    return query.all()
 
 
 def get_incident_by_id(db: Session, incident_id: str) -> Optional[Incident]:

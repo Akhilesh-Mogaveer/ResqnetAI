@@ -148,17 +148,17 @@ export default function LiveMapPage({
   return (
     <div className="space-y-4 flex flex-col h-[calc(100vh-140px)] min-h-[650px]">
       {/* Top Header & Map Controls */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
+      <div className="bg-[#0D1B2D] p-4 rounded-xl border border-[#203550] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-white tracking-tight">
               Live Geospatial Operations Map
             </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-              OpenStreetMap · Leaflet
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#091629] text-[#21D4FD] border border-[#203550] shadow-xs">
+              Tactical Geospatial · Leaflet
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             Real-time geospatial distribution of active incident clusters and reporting void perimeters.
           </p>
         </div>
@@ -166,8 +166,8 @@ export default function LiveMapPage({
         {/* Filters and Layer Toggles */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Severity filter */}
-          <div className="flex items-center bg-slate-50 rounded-lg border border-slate-200 p-0.5">
-            <span className="px-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center bg-[#091629] rounded-lg border border-[#203550] p-0.5">
+            <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
               Severity:
             </span>
             {['all', 'critical', 'high'].map(s => (
@@ -177,7 +177,7 @@ export default function LiveMapPage({
                 className={`px-2 py-1 rounded text-xs font-medium capitalize transition-colors ${
                   filterSeverity === s
                     ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {s}
@@ -186,8 +186,8 @@ export default function LiveMapPage({
           </div>
 
           {/* Verification filter */}
-          <div className="flex items-center bg-slate-50 rounded-lg border border-slate-200 p-0.5">
-            <span className="px-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center bg-[#091629] rounded-lg border border-[#203550] p-0.5">
+            <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
               Verification:
             </span>
             {['all', 'verified', 'unverified'].map(v => (
@@ -196,8 +196,8 @@ export default function LiveMapPage({
                 onClick={() => setFilterVerification(v)}
                 className={`px-2 py-1 rounded text-xs font-medium capitalize transition-colors ${
                   filterVerification === v
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-cyan-500 text-slate-950 font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {v}
@@ -210,11 +210,11 @@ export default function LiveMapPage({
             onClick={() => setShowZonesLayer(!showZonesLayer)}
             className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition-colors ${
               showZonesLayer
-                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                : 'bg-slate-50 text-slate-600 border-slate-200'
+                ? 'bg-amber-950/60 text-amber-300 border-amber-500/40'
+                : 'bg-[#091629] text-slate-400 border border-[#203550] hover:text-slate-200'
             }`}
           >
-            <Compass className="w-3.5 h-3.5" />
+            <Compass className="w-3.5 h-3.5 text-amber-400" />
             <span>Underreported Zones Layer ({attentionZones.length})</span>
           </button>
         </div>
@@ -223,29 +223,30 @@ export default function LiveMapPage({
       {/* Main Map Workspace (Map on Left + Selected Incident Sidebar on Right) */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
         {/* Large Leaflet Map Container */}
-        <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm p-2 flex flex-col h-full min-h-[450px]">
-          <div className="flex-1 rounded-lg overflow-hidden border border-slate-200 relative">
+        <div className="lg:col-span-8 bg-[#0D1B2D] rounded-xl border border-[#203550] shadow-sm p-2 flex flex-col h-full min-h-[450px]">
+          <div className="flex-1 rounded-lg overflow-hidden border border-[#203550] relative">
             <IncidentMap
               incidents={filteredIncidents}
               selectedIncident={selectedIncident}
               onSelectIncident={(inc) => onSelectIncident(inc)}
               attentionZones={showZonesLayer ? attentionZones : []}
+              className="w-full h-full min-h-[460px]"
             />
           </div>
 
           {/* Location Provenance Banner */}
-          <div className="mt-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-600 gap-2">
+          <div className="mt-2 px-3 py-2 bg-[#091629] rounded-lg border border-[#203550] flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-300 gap-2">
             <div className="flex items-center space-x-3 font-mono">
-              <span>Mapped: <strong className="text-slate-900">{mappedCount}</strong></span>
+              <span>Mapped: <strong className="text-white">{mappedCount}</strong></span>
               <span>·</span>
-              <span>Geocoded: <strong className="text-slate-900">{geocodedCount}</strong></span>
+              <span>Geocoded: <strong className="text-cyan-300">{geocodedCount}</strong></span>
               <span>·</span>
-              <span>Synthetic/Demo: <strong className="text-slate-900">{syntheticCount}</strong></span>
+              <span>Synthetic/Demo: <strong className="text-slate-300">{syntheticCount}</strong></span>
               <span>·</span>
-              <span className="text-amber-700">Unmapped / Unknown: <strong>{unmappedIncidents.length}</strong></span>
+              <span className="text-amber-400">Unmapped / Unknown: <strong>{unmappedIncidents.length}</strong></span>
             </div>
 
-            <div className="text-slate-500 italic text-[10px]">
+            <div className="text-slate-400 italic text-[10px]">
               Unknown coordinates are not arbitrarily plotted. Locations remain unmapped until confirmed.
             </div>
           </div>
@@ -254,15 +255,15 @@ export default function LiveMapPage({
         {/* Right Drawer: Selected Incident Context & Unmapped Reports Notice */}
         <div className="lg:col-span-4 flex flex-col gap-4 overflow-y-auto pr-1">
           {/* Selected Incident Drawer Card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 mb-3">
-              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
+          <div className="bg-[#0D1B2D] rounded-xl border border-[#203550] shadow-sm p-4 flex flex-col">
+            <div className="flex items-center justify-between pb-2.5 border-b border-[#203550] mb-3">
+              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
                 Selected Incident Focus
               </span>
               {selectedIncident && (
                 <button
                   onClick={() => onNavigateTab('incidents')}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                  className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center space-x-1"
                 >
                   <span>Full Management View</span>
                   <ExternalLink className="w-3 h-3" />
@@ -274,50 +275,50 @@ export default function LiveMapPage({
               <div className="space-y-3 text-xs">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-mono font-bold text-slate-800 text-sm">
+                    <span className="font-mono font-bold text-white text-sm">
                       {selectedIncident.id}
                     </span>
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.2 rounded border ${
                       selectedIncident.severity === 'critical'
-                        ? 'bg-red-50 text-red-700 border-red-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                        ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                        : 'bg-amber-950/60 text-amber-300 border-amber-500/40'
                     }`}>
                       {selectedIncident.severity}
                     </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.2 rounded border bg-slate-100 text-slate-700 border-slate-200">
+                    <span className="text-[10px] font-semibold px-2 py-0.2 rounded border bg-[#091629] text-cyan-300 border-[#203550]">
                       Score: {selectedIncident.priorityScore}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-slate-900 text-sm mt-1">
+                  <h3 className="font-semibold text-white text-sm mt-1">
                     {selectedIncident.title}
                   </h3>
                 </div>
 
                 {/* Location Provenance */}
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
-                  <div className="flex items-center space-x-1.5 text-slate-700 font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                <div className="p-2.5 rounded-xl bg-[#091629] border border-[#203550] space-y-1">
+                  <div className="flex items-center space-x-1.5 text-slate-200 font-medium">
+                    <MapPin className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
                     <span>{selectedIncident.locationName || 'Unspecified Location'}</span>
                   </div>
-                  <div className="text-[11px] text-slate-500 font-mono">
-                    Sector: <strong className="text-slate-800">{selectedIncident.sector}</strong>
+                  <div className="text-[11px] text-slate-400 font-mono">
+                    Sector: <strong className="text-slate-200">{selectedIncident.sector}</strong>
                   </div>
                   {selectedIncident.coordinates ? (
-                    <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="text-[10px] text-slate-400 font-mono">
                       Coordinates: [{selectedIncident.coordinates[0].toFixed(4)}, {selectedIncident.coordinates[1].toFixed(4)}]
                       {selectedIncident.is_synthetic_location && (
-                        <span className="ml-1 text-slate-400 italic">(Simulated Demo)</span>
+                        <span className="ml-1 text-slate-500 italic">(Simulated Demo)</span>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-1.5 pt-1">
-                      <div className="text-[10px] text-amber-700 font-semibold font-mono">
+                      <div className="text-[10px] text-amber-400 font-semibold font-mono">
                         ⚠️ Coordinates Unknown — Location Unmatched
                       </div>
                       <button
                         type="button"
                         onClick={() => handleOpenResolver(selectedIncident)}
-                        className="w-full py-1.5 px-2 rounded bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1"
+                        className="w-full py-1.5 px-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1"
                       >
                         <Compass className="w-3.5 h-3.5" />
                         <span>Resolve & Plot Coordinates</span>
@@ -331,26 +332,26 @@ export default function LiveMapPage({
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Coordinator Rationale
                   </span>
-                  <p className="text-slate-700 mt-0.5 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px]">
+                  <p className="text-slate-300 mt-0.5 leading-relaxed bg-[#091629] p-2.5 rounded-xl border border-[#203550] text-[11px]">
                     {selectedIncident.whyPrioritised || selectedIncident.signalSynthesis || "No automated rationale logged."}
                   </p>
                 </div>
 
                 {/* Assignment & Verification status */}
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                  <div className="p-2 rounded-lg bg-[#091629] border border-[#203550]">
                     <span className="text-slate-400 block text-[9px] uppercase font-mono">Verification</span>
-                    <strong className="text-slate-800 capitalize">{selectedIncident.verificationStatus}</strong>
+                    <strong className="text-slate-200 capitalize">{selectedIncident.verificationStatus}</strong>
                   </div>
-                  <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                  <div className="p-2 rounded-lg bg-[#091629] border border-[#203550]">
                     <span className="text-slate-400 block text-[9px] uppercase font-mono">Response Squad</span>
-                    <strong className="text-slate-800">{selectedIncident.assignedTeam || 'Unassigned'}</strong>
+                    <strong className="text-slate-200">{selectedIncident.assignedTeam || 'Unassigned'}</strong>
                   </div>
                 </div>
 
                 <button
                   onClick={() => onNavigateTab('incidents')}
-                  className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center justify-center space-x-1"
+                  className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center space-x-1"
                 >
                   <span>Open in Incident Management</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -358,7 +359,7 @@ export default function LiveMapPage({
               </div>
             ) : (
               <div className="py-12 text-center text-slate-400 text-xs">
-                <MapPin className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <MapPin className="w-8 h-8 text-slate-500 mx-auto mb-2" />
                 <p>Click any map marker or incident to view details</p>
               </div>
             )}
@@ -366,14 +367,14 @@ export default function LiveMapPage({
 
           {/* Unmapped Incidents Callout Panel */}
           {unmappedIncidents.length > 0 && (
-            <div className="bg-amber-50/70 rounded-xl border border-amber-200 p-4 shadow-sm">
-              <div className="flex items-center space-x-2 text-amber-800 mb-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <div className="bg-amber-950/20 rounded-xl border border-amber-500/30 p-4 shadow-sm text-amber-200">
+              <div className="flex items-center space-x-2 text-amber-300 mb-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                 <h4 className="font-bold text-xs">
                   {unmappedIncidents.length} Incidents with Unknown Coordinates
                 </h4>
               </div>
-              <p className="text-[11px] text-amber-900/80 mb-3">
+              <p className="text-[11px] text-amber-200/80 mb-3">
                 These emergencies cannot be plotted on the map because coordinates could not be safely resolved. They remain tracked in the priority queue.
               </p>
 
@@ -381,17 +382,17 @@ export default function LiveMapPage({
                 {unmappedIncidents.map(inc => (
                   <div
                     key={inc.id}
-                    className="p-2 rounded bg-white border border-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:border-amber-400 transition-colors"
+                    className="p-2 rounded-lg bg-[#091629] border border-amber-500/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:border-amber-400 transition-colors"
                   >
                     <div
                       onClick={() => onSelectIncident(inc)}
                       className="truncate cursor-pointer flex-1"
                     >
-                      <span className="font-mono font-bold text-slate-800">{inc.id}</span>
-                      <span className="text-slate-600 ml-1.5 truncate">{inc.title}</span>
+                      <span className="font-mono font-bold text-white">{inc.id}</span>
+                      <span className="text-slate-300 ml-1.5 truncate">{inc.title}</span>
                     </div>
                     <div className="flex items-center space-x-1.5 flex-shrink-0">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/40 font-bold">
                         Score {inc.priorityScore}
                       </span>
                       <button
@@ -400,7 +401,7 @@ export default function LiveMapPage({
                           e.stopPropagation();
                           handleOpenResolver(inc);
                         }}
-                        className="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-medium text-[10px] transition-colors"
+                        className="px-2 py-0.5 rounded bg-blue-950/60 hover:bg-blue-900/80 text-cyan-300 border border-blue-500/40 font-medium text-[10px] transition-colors"
                       >
                         Resolve
                       </button>
@@ -415,31 +416,31 @@ export default function LiveMapPage({
 
       {/* Quick Location Resolution Modal for Unmapped Incidents */}
       {resolvingIncident && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full p-5 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-[#07111F]/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#0D1B2D] border border-[#203550] rounded-xl max-w-lg w-full p-5 shadow-2xl relative text-slate-200">
             <button
               type="button"
               onClick={() => setResolvingIncident(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
               aria-label="Close resolver modal"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center space-x-2 text-blue-700 font-mono text-xs uppercase tracking-wider mb-1 font-bold">
-              <Compass className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs uppercase tracking-wider mb-1 font-bold">
+              <Compass className="w-4 h-4 text-cyan-400" />
               <span>Geospatial Location Resolver</span>
             </div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">
+            <h3 className="text-base font-bold text-white mb-1">
               Resolve Coordinates for {resolvingIncident.id}
             </h3>
-            <p className="text-xs text-slate-500 mb-3 truncate">
+            <p className="text-xs text-slate-400 mb-3 truncate">
               {resolvingIncident.title}
             </p>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 font-medium mb-1">
+                <label className="block text-slate-300 font-medium mb-1">
                   Search Landmark / City / Facility
                 </label>
                 <div className="flex space-x-2">
@@ -448,13 +449,13 @@ export default function LiveMapPage({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="e.g. Wayanad Relief Camp or Andheri West"
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-sans"
+                    className="flex-1 bg-[#091629] border border-[#203550] rounded-lg px-3 py-1.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
                   />
                   <button
                     type="button"
                     onClick={handleSearchCandidates}
                     disabled={isSearching}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center space-x-1 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium flex items-center space-x-1 disabled:opacity-50 transition-colors"
                   >
                     {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                     <span>Search</span>
@@ -464,8 +465,8 @@ export default function LiveMapPage({
 
               {/* Candidates selection */}
               {candidates.length > 0 && (
-                <div className="space-y-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
-                  <div className="text-[10px] font-mono text-slate-500 px-1 font-semibold uppercase">
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto p-1 bg-[#091629] rounded-lg border border-[#203550]">
+                  <div className="text-[10px] font-mono text-slate-400 px-1 font-semibold uppercase">
                     Select a Confirmed Candidate ({candidates.length} found):
                   </div>
                   {candidates.map((cand, idx) => {
@@ -478,19 +479,19 @@ export default function LiveMapPage({
                           setCustomLat(cand.latitude.toString());
                           setCustomLng(cand.longitude.toString());
                         }}
-                        className={`p-2 rounded cursor-pointer border text-[11px] transition-colors ${
+                        className={`p-2 rounded-lg cursor-pointer border text-[11px] transition-colors ${
                           isChosen
-                            ? 'bg-blue-50 border-blue-400 text-blue-900 font-medium'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                            ? 'bg-blue-950/80 border-cyan-500/60 text-cyan-200 font-medium'
+                            : 'bg-[#0D1B2D] border-[#203550] text-slate-300 hover:border-slate-500'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold">{cand.display_name}</span>
-                          <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded bg-slate-100 text-slate-600">
+                          <span className="font-semibold text-white">{cand.display_name}</span>
+                          <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded bg-[#091629] text-slate-400 border border-[#203550]">
                             {cand.provider}
                           </span>
                         </div>
-                        <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                        <div className="text-[10px] font-mono text-slate-400 mt-0.5">
                           [{cand.latitude.toFixed(4)}, {cand.longitude.toFixed(4)}] · Conf: {(cand.confidence * 100).toFixed(0)}%
                         </div>
                       </div>
@@ -500,9 +501,9 @@ export default function LiveMapPage({
               )}
 
               {/* Manual Lat/Lng inputs */}
-              <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#091629] border border-[#203550]">
                 <div>
-                  <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                  <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                     Latitude (-90 to 90)
                   </label>
                   <input
@@ -514,11 +515,11 @@ export default function LiveMapPage({
                       setSelectedCandidate(null);
                     }}
                     placeholder="e.g. 11.6854"
-                    className="w-full bg-white border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D1B2D] border border-[#203550] rounded px-2.5 py-1 text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-medium mb-1 text-[11px]">
+                  <label className="block text-slate-300 font-medium mb-1 text-[11px]">
                     Longitude (-180 to 180)
                   </label>
                   <input
@@ -530,24 +531,24 @@ export default function LiveMapPage({
                       setSelectedCandidate(null);
                     }}
                     placeholder="e.g. 76.1320"
-                    className="w-full bg-white border border-slate-200 rounded px-2.5 py-1 text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0D1B2D] border border-[#203550] rounded px-2.5 py-1 text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
 
               {resolveError && (
-                <div className="p-2 rounded bg-rose-50 border border-rose-200 text-rose-800 text-[11px] flex items-center space-x-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                <div className="p-2 rounded bg-rose-950/60 border border-rose-500/40 text-rose-300 text-[11px] flex items-center space-x-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
                   <span>{resolveError}</span>
                 </div>
               )}
 
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-end space-x-2">
+              <div className="pt-2 border-t border-[#203550] flex items-center justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setResolvingIncident(null)}
                   disabled={isSubmittingLocation}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-[#132238] hover:bg-[#1f3657] text-slate-300 border border-[#203550] font-medium text-xs transition-colors"
                 >
                   Cancel
                 </button>
@@ -555,7 +556,7 @@ export default function LiveMapPage({
                   type="button"
                   onClick={handleConfirmLocation}
                   disabled={isSubmittingLocation || (!selectedCandidate && (!customLat || !customLng))}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1 disabled:opacity-50 transition-colors"
                 >
                   {isSubmittingLocation ? (
                     <>

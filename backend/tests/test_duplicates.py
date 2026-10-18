@@ -410,3 +410,190 @@ def test_merge_and_dismiss_produce_different_persisted_states(client):
     merg_aud = client.get("/api/v1/audit-log?incident_id=RQN-MERG-P").json()
     assert any(a["actionType"] == "DUPLICATE_REPORT_MERGED" for a in merg_aud)
 
+
+def test_self_merge_rejected_with_400(client):
+    """Attempting to merge an incident into itself must return HTTP 400."""
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-SELF-1",
+        "title": "Hospital Generator Smoke",
+        "sector": "Medical Core",
+        "severity": "critical",
+        "priorityScore": 95,
+        "report_text": "Smoke in hospital basement.",
+        "run_nlp_classification": False
+    })
+
+    resp = client.post("/api/v1/incidents/RQN-SELF-1/merge-duplicate", json={
+        "duplicateIncidentId": "RQN-SELF-1",
+        "primaryIncidentId": "RQN-SELF-1",
+        "operator": "Coordinator Davis",
+        "reason": "Accidental self merge attempt."
+    })
+    assert resp.status_code == 400
+    assert "cannot merge an incident into itself" in resp.json()["detail"].lower()
+
+
+def test_already_merged_duplicate_cannot_be_re_merged(client):
+    """Attempting to merge an already-merged duplicate must return HTTP 400."""
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-CANON-1", "title": "Substation Flood", "sector": "Sector A",
+        "severity": "high", "priorityScore": 88, "report_text": "Water in basement",
+        "run_nlp_classification": False
+    })
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-DUP-1", "title": "Substation Water Rise", "sector": "Sector A",
+        "severity": "high", "priorityScore": 85, "report_text": "Water in basement",
+        "run_nlp_classification": False
+    })
+
+    # Initial merge
+    m1 = client.post("/api/v1/incidents/RQN-CANON-1/merge-duplicate", json={
+        "duplicateIncidentId": "RQN-DUP-1",
+        "operator": "Coordinator Davis",
+        "reason": "First merge"
+    })
+    assert m1.status_code == 200
+
+    # Repeat merge of same duplicate must return 400
+    m2 = client.post("/api/v1/incidents/RQN-CANON-1/merge-duplicate", json={
+        "duplicateIncidentId": "RQN-DUP-1",
+        "operator": "Coordinator Davis",
+        "reason": "Duplicate second merge attempt"
+    })
+    assert m2.status_code == 400
+    assert "already been merged" in m2.json()["detail"].lower()
+
+    # Attempting to use merged duplicate as primary for another report must also return 400
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-DUP-2", "title": "Substation Pump Failure", "sector": "Sector A",
+        "severity": "high", "priorityScore": 80, "report_text": "Pump fail",
+        "run_nlp_classification": False
+    })
+    m3 = client.post("/api/v1/incidents/RQN-DUP-1/merge-duplicate", json={
+        "duplicateIncidentId": "RQN-DUP-2",
+        "primaryIncidentId": "RQN-DUP-1",
+        "operator": "Coordinator Davis",
+        "reason": "Attempting to merge into an already-merged duplicate"
+    })
+    assert m3.status_code == 400
+    assert "already a merged duplicate" in m3.json()["detail"].lower()
+
+
+def test_active_incidents_and_priority_queue_exclude_merged_duplicates(client):
+    """
+    Ensure:
+    1. GET /incidents excludes merged duplicate by default
+    2. GET /incidents?include_duplicates=true includes merged duplicate
+    3. GET /incidents/priority-queue strictly excludes merged duplicate and shows canonical incident
+    """
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-QUEUE-PRIMARY",
+        "title": "Hospital Flooding Override",
+        "sector": "Metro Basin",
+        "severity": "critical",
+        "priorityScore": 99,
+        "report_text": "Generator room flood threat.",
+        "run_nlp_classification": False
+    })
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-QUEUE-DUP",
+        "title": "Hospital Flooding Override",
+        "sector": "Metro Basin",
+        "severity": "critical",
+        "priorityScore": 99,
+        "report_text": "Generator room flood threat.",
+        "run_nlp_classification": False
+    })
+
+    # Merge duplicate into primary
+    m_resp = client.post("/api/v1/incidents/RQN-QUEUE-PRIMARY/merge-duplicate", json={
+        "duplicateIncidentId": "RQN-QUEUE-DUP",
+        "operator": "Lead Coordinator",
+        "reason": "Confirmed duplicate 911 dispatch call."
+    })
+    assert m_resp.status_code == 200
+
+    # 1. Default /incidents: only RQN-QUEUE-PRIMARY is returned
+    incidents_default = client.get("/api/v1/incidents").json()
+    returned_ids = [i["id"] for i in incidents_default]
+    assert "RQN-QUEUE-PRIMARY" in returned_ids
+    assert "RQN-QUEUE-DUP" not in returned_ids
+
+    # 2. /incidents?include_duplicates=true: both are returned
+    incidents_all = client.get("/api/v1/incidents?include_duplicates=true").json()
+    all_returned_ids = [i["id"] for i in incidents_all]
+    assert "RQN-QUEUE-PRIMARY" in all_returned_ids
+    assert "RQN-QUEUE-DUP" in all_returned_ids
+
+    # 3. Priority queue endpoint: strictly only canonical incident at top priority
+    pq = client.get("/api/v1/incidents/priority-queue").json()
+    pq_ids = [i["id"] for i in pq]
+    assert "RQN-QUEUE-PRIMARY" in pq_ids
+    assert "RQN-QUEUE-DUP" not in pq_ids
+    assert all(not i.get("is_duplicate", False) for i in pq)
+    assert all(i.get("responseStatus") != "merged_duplicate" for i in pq)
+
+
+def test_merge_preserves_verified_status_and_inherits_coordinates(client):
+    """
+    When primary is verified, merging an unverified duplicate must never overwrite or downgrade status.
+    If primary lacks confirmed coordinates, it inherits duplicate's coordinates.
+    """
+    # Primary incident: verified via officer patch, but no GPS coordinates
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-VERIF-P",
+        "title": "Landslide Highway 10",
+        "sector": "Mountain Pass",
+        "coordinates": None,
+        "severity": "critical",
+        "priorityScore": 90,
+        "riskFactors": ["Rockslide Risk"],
+        "report_text": "Boulders on road",
+        "run_nlp_classification": False
+    })
+    # Officer verifies primary incident ground truth
+    verif_resp = client.patch(
+        "/api/v1/incidents/RQN-VERIF-P/verification",
+        json={
+            "verificationStatus": "verified",
+            "operator": "Coordinator Davis",
+            "reason": "Aerial drone confirmed massive boulder blockage on road."
+        }
+    )
+    assert verif_resp.status_code == 200
+    assert verif_resp.json()["verificationStatus"] == "verified"
+
+    # Duplicate incident: unverified, but has confirmed GPS coordinates and additional risk factor
+    client.post("/api/v1/incidents", json={
+        "id": "RQN-VERIF-D",
+        "title": "Rockfall Highway 10 Mile 12",
+        "sector": "Mountain Pass",
+        "coordinates": [30.5574, 79.5663],
+        "verificationStatus": "unverified",
+        "severity": "high",
+        "priorityScore": 85,
+        "riskFactors": ["Traffic Bottleneck", "Rockslide Risk"],
+        "report_text": "Highway 10 blocked by rockfall",
+        "run_nlp_classification": False
+    })
+
+    # Execute merge
+    merge_resp = client.post("/api/v1/incidents/RQN-VERIF-P/merge-duplicate", json={
+        "duplicateIncidentId": "RQN-VERIF-D",
+        "operator": "Coordinator Davis",
+        "reason": "Corroborated exact GPS location from secondary field report."
+    })
+    assert merge_resp.status_code == 200
+
+    # Fetch updated primary
+    updated_primary = client.get("/api/v1/incidents/RQN-VERIF-P").json()
+    # Verified status must be protected
+    assert updated_primary["verificationStatus"] == "verified"
+    # Inherited coordinates
+    assert updated_primary["coordinates"] == [30.5574, 79.5663]
+    # Merged risk factors (union without duplicate, plus corroboration boost factor)
+    assert "Traffic Bottleneck" in updated_primary["riskFactors"]
+    assert "Rockslide Risk" in updated_primary["riskFactors"]
+    assert any("Corroborated" in rf for rf in updated_primary["riskFactors"])
+    assert len(updated_primary["riskFactors"]) == 3
+

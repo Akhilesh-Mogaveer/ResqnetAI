@@ -31,6 +31,7 @@ from backend.app.services.incident_service import (
     create_incident,
     get_incident_by_id,
     get_incidents,
+    get_priority_queue,
     override_incident_priority,
     override_incident_severity,
     update_incident_response_status,
@@ -52,13 +53,14 @@ router = APIRouter(prefix="/incidents", tags=["Incidents"])
 def list_incidents(
     severity: Optional[str] = Query(None, description="Filter by severity: critical, high, moderate, low"),
     verificationStatus: Optional[str] = Query(None, description="Filter: unverified, under_review, verified, disputed"),
-    responseStatus: Optional[str] = Query(None, description="Filter: unassigned, triage, dispatched, on_scene, resolved"),
+    responseStatus: Optional[str] = Query(None, description="Filter: unassigned, triage, dispatched, on_scene, resolved, merged_duplicate"),
     sector: Optional[str] = Query(None, description="Filter by sector name"),
     category: Optional[str] = Query(None, description="Filter by HumAID category"),
     search: Optional[str] = Query(None, description="Search term for title, location, text"),
+    include_duplicates: bool = Query(False, description="Whether to include merged duplicate incidents"),
     db: Session = Depends(get_db),
 ):
-    """Retrieve all emergency incident reports with optional filtering."""
+    """Retrieve all emergency incident reports with optional filtering. Excludes merged duplicates by default."""
     incidents = get_incidents(
         db=db,
         severity=severity,
@@ -67,7 +69,22 @@ def list_incidents(
         sector=sector,
         category=category,
         search=search,
+        include_duplicates=include_duplicates,
     )
+    return [i.to_dict() for i in incidents]
+
+
+@router.get("/priority-queue", response_model=List[IncidentResponse])
+def get_priority_queue_endpoint(
+    limit: Optional[int] = Query(None, description="Max number of priority queue items"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve active canonical incidents for the Operational Priority Queue.
+    Strictly excludes merged duplicate records and resolved incidents.
+    Returns authoritative canonical incidents ordered by priority score descending.
+    """
+    incidents = get_priority_queue(db=db, limit=limit)
     return [i.to_dict() for i in incidents]
 
 
@@ -268,18 +285,22 @@ def merge_duplicate_endpoint(
         duplicate_id = payload.duplicateIncidentId
 
     if primary_id == duplicate_id:
-        raise HTTPException(status_code=400, detail="Cannot merge an incident into itself.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot merge an incident into itself.")
 
-    primary, duplicate, audit_log = merge_duplicate_incident(
-        db=db,
-        primary_id=primary_id,
-        duplicate_id=duplicate_id,
-        operator=payload.operator,
-        reason=payload.reason,
-        update_corroboration=payload.updateCorroboration,
-    )
-    if not primary or not duplicate:
-        raise HTTPException(status_code=404, detail="Primary incident or duplicate incident not found.")
+    try:
+        primary, duplicate, audit_log = merge_duplicate_incident(
+            db=db,
+            primary_id=primary_id,
+            duplicate_id=duplicate_id,
+            operator=payload.operator,
+            reason=payload.reason,
+            update_corroboration=payload.updateCorroboration,
+        )
+    except ValueError as e:
+        err_msg = str(e)
+        if "not found" in err_msg.lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=err_msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg)
 
     res = primary.to_dict()
     res["primary_incident_id"] = primary.id

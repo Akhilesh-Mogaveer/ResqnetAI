@@ -5,7 +5,7 @@ import React from 'react';
 
 vi.mock('react-leaflet', () => ({
   MapContainer: ({ children, className }) => React.createElement('div', { 'data-testid': 'leaflet-container', className }, children),
-  TileLayer: () => React.createElement('div', { 'data-testid': 'tile-layer' }),
+  TileLayer: ({ url, attribution }) => React.createElement('div', { 'data-testid': 'tile-layer', 'data-url': url, 'data-attribution': attribution }),
   Marker: ({ children, position, eventHandlers }) =>
     React.createElement(
       'div',
