@@ -229,6 +229,10 @@ export default function LiveMapPage({
               incidents={filteredIncidents}
               selectedIncident={selectedIncident}
               onSelectIncident={(inc) => onSelectIncident(inc)}
+              onInspectIncident={(inc) => {
+                onSelectIncident(inc);
+                onNavigateTab?.('incidents');
+              }}
               attentionZones={showZonesLayer ? attentionZones : []}
               className="w-full h-full min-h-[460px]"
             />

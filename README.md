@@ -114,26 +114,26 @@ npm run dev
 
 All endpoints are versioned under `/api/v1`:
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/health` | Liveness check (status, uptime, version) |
-| `GET` | `/api/v1/health/ready` | Readiness check (verifies SQLite DB and HumAID model offline readiness) |
-| `POST` | `/api/v1/classify` | Classify freeform text with DistilBERT into HumAID category + confidence |
-| `POST` | `/api/v1/reports/classify` | Classify structured report preserving incident fields & original text |
-| `GET` | `/api/v1/incidents` | List incidents with optional filters (`status`, `severity`, `category`) |
-| `POST` | `/api/v1/incidents` | Create a new incident (optionally auto-classifies raw report text) |
-| `GET` | `/api/v1/incidents/{id}` | Retrieve incident details, HumAID predictions, and coordinator notes |
-| `PATCH` | `/api/v1/incidents/{id}/verification` | Update verification status (`unverified`, `field_confirmed`, `debunked`) |
-| `PATCH` | `/api/v1/incidents/{id}/response` | Update response lifecycle (`unassigned`, `dispatched`, `on_scene`, `resolved`) |
-| `PATCH` | `/api/v1/incidents/{id}/team` | Assign response unit (creates audit trail) |
-| `POST` | `/api/v1/incidents/{id}/override` | Coordinator priority override with mandatory logged justification |
-| `POST` | `/api/v1/incidents/{id}/notes` | Append coordinator timestamped operational note |
-| `GET` | `/api/v1/incidents/{id}/duplicates` | Query ranked explainable duplicate candidates for an incident |
-| `POST` | `/api/v1/incidents/{id}/merge-duplicate` | Human-authorized merge of duplicate incident with provenance audit trail |
-| `POST` | `/api/v1/incidents/{id}/dismiss-duplicate` | Coordinator dismissal of false duplicate suggestion |
-| `GET` | `/api/v1/zones` | List underreported attention zones |
-| `PATCH` | `/api/v1/zones/{id}/dispatch` | Dispatch reconnaissance scout/drone to underreported sector |
-| `GET` | `/api/v1/audit-log` | Retrieve chronological audit & accountability trail |
+| Method  | Endpoint                                   | Description                                                                    |
+| ------- | ------------------------------------------ | ------------------------------------------------------------------------------ |
+| `GET`   | `/api/v1/health`                           | Liveness check (status, uptime, version)                                       |
+| `GET`   | `/api/v1/health/ready`                     | Readiness check (verifies SQLite DB and HumAID model offline readiness)        |
+| `POST`  | `/api/v1/classify`                         | Classify freeform text with DistilBERT into HumAID category + confidence       |
+| `POST`  | `/api/v1/reports/classify`                 | Classify structured report preserving incident fields & original text          |
+| `GET`   | `/api/v1/incidents`                        | List incidents with optional filters (`status`, `severity`, `category`)        |
+| `POST`  | `/api/v1/incidents`                        | Create a new incident (optionally auto-classifies raw report text)             |
+| `GET`   | `/api/v1/incidents/{id}`                   | Retrieve incident details, HumAID predictions, and coordinator notes           |
+| `PATCH` | `/api/v1/incidents/{id}/verification`      | Update verification status (`unverified`, `field_confirmed`, `debunked`)       |
+| `PATCH` | `/api/v1/incidents/{id}/response`          | Update response lifecycle (`unassigned`, `dispatched`, `on_scene`, `resolved`) |
+| `PATCH` | `/api/v1/incidents/{id}/team`              | Assign response unit (creates audit trail)                                     |
+| `POST`  | `/api/v1/incidents/{id}/override`          | Coordinator priority override with mandatory logged justification              |
+| `POST`  | `/api/v1/incidents/{id}/notes`             | Append coordinator timestamped operational note                                |
+| `GET`   | `/api/v1/incidents/{id}/duplicates`        | Query ranked explainable duplicate candidates for an incident                  |
+| `POST`  | `/api/v1/incidents/{id}/merge-duplicate`   | Human-authorized merge of duplicate incident with provenance audit trail       |
+| `POST`  | `/api/v1/incidents/{id}/dismiss-duplicate` | Coordinator dismissal of false duplicate suggestion                            |
+| `GET`   | `/api/v1/zones`                            | List underreported attention zones                                             |
+| `PATCH` | `/api/v1/zones/{id}/dispatch`              | Dispatch reconnaissance scout/drone to underreported sector                    |
+| `GET`   | `/api/v1/audit-log`                        | Retrieve chronological audit & accountability trail                            |
 
 ---
 
@@ -148,7 +148,7 @@ Duplicate emergency reports often inundate emergency dispatch centers during dis
    - **HumAID Category Match (12%)**: Automatic agreement verification between DistilBERT predicted disaster categories.
 
 2. **Full Explainability**:
-   - Every candidate duplicate surfaces an explicit overall match score (0-100), confidence level (`HIGH`, `MEDIUM`, `LOW`), exact physical distance (km/m), text similarity %, and plain-language bullet points explaining *why* the reports are suspected duplicates.
+   - Every candidate duplicate surfaces an explicit overall match score (0-100), confidence level (`HIGH`, `MEDIUM`, `LOW`), exact physical distance (km/m), text similarity %, and plain-language bullet points explaining _why_ the reports are suspected duplicates.
 
 3. **Human Review Before Merging**:
    - Merging is **never automatic**.
@@ -194,6 +194,7 @@ npm run build
 ## ⚙️ Environment Configuration
 
 ### Backend (`backend/.env`)
+
 ```bash
 HOST=127.0.0.1
 PORT=8000
@@ -204,6 +205,7 @@ MODEL_DIR=../data/nlp/models/resqnet_distilbert
 ```
 
 ### Frontend (`frontend/.env`)
+
 ```bash
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```

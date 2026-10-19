@@ -149,6 +149,10 @@ class IncidentResponse(IncidentBase):
     location_source: Optional[str] = None
     is_priority_overridden: bool = False
     is_severity_overridden: bool = False
+    equity_review_flag: bool = Field(default=False, description="Flag prompting coordinator review for serious incidents with low information or sparse reporting.")
+    equityReviewFlag: Optional[bool] = None
+    equity_reasons: List[str] = Field(default_factory=list, description="Explanatory reasons why equity review was triggered.")
+    equityReasons: Optional[List[str]] = None
     scoring_breakdown: Optional[Dict[str, Any]] = None
     scoringBreakdown: Optional[Dict[str, Any]] = None
     dismissed_duplicates: List[str] = Field(default_factory=list)
@@ -234,3 +238,36 @@ class AttentionZoneResponse(BaseModel):
     coordinates: List[float]
     scoutStatus: str
     notes: str
+
+
+class EquityFlaggedIncidentSummary(BaseModel):
+    id: str
+    title: str
+    severity: str
+    priorityScore: int
+    sector: str
+    locationName: str
+    coordinates: Optional[List[float]] = None
+    verificationStatus: str
+    duplicate_count: int = 0
+    equity_reasons: List[str] = Field(default_factory=list)
+
+
+class EquityMonitorResponse(BaseModel):
+    unresolved_location_count: int = Field(description="Count of active incidents with missing/unresolved coordinates.")
+    serious_unverified_count: int = Field(description="Count of serious incidents (critical/high) awaiting verification.")
+    equity_review_flag_count: int = Field(description="Total count of active incidents flagged for equity review.")
+    high_urgency_pending_count: int = Field(description="Count of high urgency/critical reports in triage awaiting review.")
+    total_active_incidents: int = Field(description="Total count of active canonical incidents.")
+    underreported_zones_count: int = Field(description="Count of identified telemetry-deprived attention zones.")
+    coverage_measurement_mode: str = Field(
+        default="measured_telemetry_with_labeled_proxies",
+        description="Distinguishes measured telemetry signals from isolated-report proxies."
+    )
+    measurement_notes: str = Field(
+        default="Zone signal deviations reflect measured infrastructure telemetry. Single-report isolation is an explicit reporting proxy, not physical connectivity data."
+    )
+    flagged_incidents: List[EquityFlaggedIncidentSummary] = Field(
+        default_factory=list,
+        description="Active incidents currently qualifying for equity review."
+    )

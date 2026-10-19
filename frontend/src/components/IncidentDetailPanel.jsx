@@ -138,6 +138,23 @@ export default function IncidentDetailPanel({
                   🗺️ Geocoded ({incident.coordinates[0].toFixed(3)}, {incident.coordinates[1].toFixed(3)})
                 </span>
               )}
+
+              {((incident.report_source && incident.report_source.toLowerCase().includes('sms_forwarded')) || (incident.sourceSummary && incident.sourceSummary.toLowerCase().includes('forwarded'))) ? (
+                <span 
+                  className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 font-medium"
+                  data-testid="sms-source-badge"
+                >
+                  📱 FORWARDED SMS
+                </span>
+              ) : ((incident.report_source && incident.report_source.toLowerCase().includes('sms')) || (incident.sourceSummary && incident.sourceSummary.toLowerCase().includes('sms'))) ? (
+                <span 
+                  className="px-2 py-0.5 rounded bg-sky-950/60 border border-sky-800/60 text-sky-300 font-medium"
+                  data-testid="sms-source-badge"
+                >
+                  📱 SIMULATED SMS
+                </span>
+              ) : null}
+
             </div>
           </div>
 
@@ -155,6 +172,36 @@ export default function IncidentDetailPanel({
 
       {/* Scrollable Detail Body */}
       <div className="flex-1 overflow-y-auto space-y-4 py-3 pr-1 text-xs">
+        {/* Equity Review Alert Banner */}
+        {Boolean(incident.equity_review_flag || incident.equityReviewFlag) && (
+          <div 
+            data-testid="equity-review-banner"
+            className="p-3 rounded-lg bg-indigo-950/40 border border-indigo-500/40 text-xs text-indigo-200 space-y-1.5 shadow-sm"
+          >
+            <div className="flex items-center space-x-2 text-indigo-300 font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-[10px] font-mono border border-indigo-400/40">
+                ⚖️ EQUITY REVIEW REQUIRED
+              </span>
+              <span className="text-[11px] font-semibold text-slate-300">
+                Low-Information Emergency Safeguard
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              This incident exhibits high potential need but suffers from information barriers. Coordinators are prompted to review ground truth before deprioritizing.
+            </p>
+            {(incident.equity_reasons || incident.equityReasons || []).length > 0 && (
+              <div className="space-y-1 pt-1 border-t border-indigo-500/20 mt-1">
+                {(incident.equity_reasons || incident.equityReasons || []).map((reason, idx) => (
+                  <div key={idx} className="flex items-start space-x-1.5 text-[11px] text-amber-300/90 font-mono">
+                    <span className="text-amber-400 flex-shrink-0">•</span>
+                    <span>{reason}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 4 Metric Summary Tiles */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Priority Score */}

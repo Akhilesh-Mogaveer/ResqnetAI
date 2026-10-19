@@ -41,6 +41,7 @@ export default function PriorityQueuePage({
 
     if (filterType === 'urgent') return inc.priorityScore >= 80 || inc.severity === 'critical';
     if (filterType === 'unverified') return inc.verificationStatus === 'unverified';
+    if (filterType === 'equity') return Boolean(inc.equity_review_flag || inc.equityReviewFlag);
     if (filterType === 'unresolved') return inc.responseStatus !== 'resolved';
     if (filterType === 'unassigned') return !inc.assignedTeam || inc.responseStatus === 'unassigned';
 
@@ -142,6 +143,7 @@ export default function PriorityQueuePage({
                 { id: 'all', label: `All Ranked (${incidents.length})` },
                 { id: 'urgent', label: `Urgent (${incidents.filter(i => i.priorityScore >= 80 || i.severity === 'critical').length})` },
                 { id: 'unverified', label: `Unverified (${incidents.filter(i => i.verificationStatus === 'unverified').length})` },
+                { id: 'equity', label: `⚖️ Equity (${incidents.filter(i => i.equity_review_flag || i.equityReviewFlag).length})` },
                 { id: 'unresolved', label: `Unresolved (${incidents.filter(i => i.responseStatus !== 'resolved').length})` },
                 { id: 'unassigned', label: `Unassigned (${incidents.filter(i => !i.assignedTeam).length})` },
               ].map(f => (
@@ -216,6 +218,30 @@ export default function PriorityQueuePage({
                                 Merged
                               </span>
                             )}
+                            {Boolean(inc.equity_review_flag || inc.equityReviewFlag) && (
+                              <span 
+                                className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-indigo-950/70 text-indigo-300 border border-indigo-500/40"
+                                title={(inc.equity_reasons || inc.equityReasons || []).join('; ') || 'Flagged for coordinator review'}
+                              >
+                                ⚖️ Equity Review
+                              </span>
+                            )}
+                            {((inc.report_source && inc.report_source.toLowerCase().includes('sms_forwarded')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('forwarded'))) ? (
+                              <span 
+                                className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 font-mono"
+                                data-testid="sms-source-badge"
+                              >
+                                📱 FORWARDED SMS
+                              </span>
+                            ) : ((inc.report_source && inc.report_source.toLowerCase().includes('sms')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('sms'))) ? (
+                              <span 
+                                className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-sky-950/70 text-sky-300 border border-sky-500/40 font-mono"
+                                data-testid="sms-source-badge"
+                              >
+                                📱 SIMULATED SMS
+                              </span>
+                            ) : null}
+
                           </div>
 
                           <h3 className="text-xs font-semibold text-white truncate">

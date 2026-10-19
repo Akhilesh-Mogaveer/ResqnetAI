@@ -3,10 +3,13 @@ SQLAlchemy database models for RESQNET AI incident management
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
 from backend.app.database.session import Base
+
+logger = logging.getLogger(__name__)
 
 
 class Incident(Base):
@@ -109,9 +112,16 @@ class Incident(Base):
             return explicit
         if self.sourceSummary:
             first_part = self.sourceSummary.split(" - ")[0].split(" [")[0].strip()
+            if "forwarded" in first_part.lower() or "sms_forwarded" in first_part.lower():
+                return "sms_forwarded"
+            if first_part.lower() in ("sms_simulated", "sms (simulated)", "simulated_sms"):
+                return "sms_simulated"
             if first_part in ("Officer/Phone Call", "SMS", "Field Responder", "Sensor", "Social Media", "Other"):
                 return first_part
+            if "sms" in first_part.lower():
+                return "sms_simulated"
         return "Officer/Phone Call"
+
 
     @report_source.setter
     def report_source(self, val: Optional[str]):
@@ -216,31 +226,37 @@ class Incident(Base):
         from backend.app.services.scoring_service import calculate_priority_score
         try:
             score, bd = calculate_priority_score(
-                report_text=self.report_text or self.original_report_text or "",
-                title=self.title or "",
+                severity=self.severity or "moderate",
                 humaid_category=self.humaid_category,
                 humaid_confidence=self.humaid_confidence,
-                location_confidence=self.locationConfidence,
-                affected_count_numeric=self.affectedCountNumeric,
-                verification_status=self.verificationStatus,
-                duplicate_count=self.duplicate_count,
+                all_probabilities=self.all_probabilities,
+                affected_count=self.affectedCountNumeric or 0,
+                verification_status=self.verificationStatus or "unverified",
+                location_confidence=self.locationConfidence if self.locationConfidence is not None else 70,
+                duplicate_count=self.duplicate_count or 0,
                 timestamp=self.timestamp,
-                is_synthetic_location=self.is_synthetic_location,
-                location_source=self.location_source,
-                sector=self.sector,
-                source_summary=self.sourceSummary,
+                risk_factors=self.riskFactors,
             )
             bd["is_overridden"] = self.is_priority_overridden
             bd["calculated_score"] = score
             bd["effective_score"] = self.priorityScore
+            bd.setdefault("hazard_raw", self.severity or "moderate")
+            bd.setdefault("scale_raw", f"{self.affectedCountNumeric or 0} affected")
+            bd.setdefault("verification_raw", self.verificationStatus or "unverified")
+            bd.setdefault("location_raw", f"{self.locationConfidence or 0}%")
+            bd.setdefault("time_raw", self.timeAgo or "recent")
             return bd
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                f"Failed to calculate scoring breakdown for incident {self.id}: {exc}",
+                exc_info=True,
+            )
             return {
-                "hazard_sub": 50.0,
-                "scale_sub": 50.0,
-                "verification_sub": 50.0,
-                "location_sub": 50.0,
-                "time_sub": 50.0,
+                "hazard_sub": 0.0,
+                "scale_sub": 0.0,
+                "verification_sub": 0.0,
+                "location_sub": 0.0,
+                "time_sub": 0.0,
                 "corroboration_boost": 0,
                 "is_overridden": self.is_priority_overridden,
                 "calculated_score": self.priorityScore,
@@ -252,7 +268,79 @@ class Incident(Base):
                     "location": 0.10,
                     "time": 0.10,
                 },
+                "calculation_failed": True,
+                "error": str(exc),
             }
+
+    @property
+    def equity_review_flag(self) -> bool:
+        """
+        Flag serious or potentially serious incidents when location is unresolved,
+        verification is pending, corroboration is sparse, or the incident is located
+        in an underreported attention zone.
+        Prompts coordinator review, not automatic verification or artificial priority inflation.
+        """
+        if self.is_duplicate or self.responseStatus in ("resolved", "merged_duplicate"):
+            return False
+        return len(self.equity_reasons) > 0
+
+    @property
+    def equity_reasons(self) -> List[str]:
+        """
+        Return structured explanatory reasons why this incident requires equity review.
+        Evaluates emergency need vs information quality without inventing data.
+        """
+        if self.is_duplicate or self.responseStatus in ("resolved", "merged_duplicate"):
+            return []
+
+        # 1. Evaluate emergency need / seriousness
+        report_combined = f"{self.title or ''} {self.report_text or ''}".lower()
+        has_life_threat_terms = any(
+            k in report_combined
+            for k in [
+                "trapped", "entrapment", "submerged", "flash flood", "gas leak",
+                "explosion", "life-support", "casualt", "injured", "fatal", "bleeding"
+            ]
+        )
+        is_serious = (
+            self.severity in ("critical", "high")
+            or (self.priorityScore is not None and self.priorityScore >= 65)
+            or (self.affectedCountNumeric is not None and self.affectedCountNumeric > 0)
+            or has_life_threat_terms
+        )
+
+        if not is_serious:
+            return []
+
+        reasons: List[str] = []
+
+        # 2. Check location resolution / incomplete coordinates
+        coords = self.coordinates
+        has_missing_coords = (
+            coords is None
+            or len(coords) < 2
+            or coords[0] is None
+            or coords[1] is None
+            or (coords[0] == 0.0 and coords[1] == 0.0)
+        )
+        loc_res_status = getattr(self, "location_resolution_status", None)
+        if has_missing_coords or loc_res_status in ("unknown", "unresolved_ambiguous"):
+            reasons.append("Unresolved coordinates: incident lacks confirmed geospatial coordinates (scout or manual resolution required)")
+
+        # 3. Check verification status
+        if self.verificationStatus in ("unverified", "under_review"):
+            reasons.append(f"Verification pending: serious report has {self.verificationStatus} ground-truth status")
+
+        # 4. Check corroboration / sparse reporting proxy
+        if (self.duplicate_count or 0) == 0:
+            reasons.append("Limited reporting evidence: isolated single report without corroborating duplicates (sparse reporting proxy)")
+
+        # 5. Check recognized underreported attention zone from telemetry data
+        sec_lower = (self.sector or "").lower()
+        if any(k in sec_lower for k in ["south ridge", "old rail", "marina basin"]):
+            reasons.append(f"Telemetry coverage barrier: sector '{self.sector}' is an identified underreported attention zone")
+
+        return reasons
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary matching frontend dashboard schema."""
@@ -269,6 +357,10 @@ class Incident(Base):
             "locationConfidence": self.locationConfidence,
             "scoring_breakdown": self.scoring_breakdown,
             "scoringBreakdown": self.scoring_breakdown,
+            "equity_review_flag": self.equity_review_flag,
+            "equityReviewFlag": self.equity_review_flag,
+            "equity_reasons": self.equity_reasons,
+            "equityReasons": self.equity_reasons,
             "peopleAffected": self.peopleAffected,
             "affectedCountNumeric": self.affectedCountNumeric,
             "timeAgo": self.timeAgo,

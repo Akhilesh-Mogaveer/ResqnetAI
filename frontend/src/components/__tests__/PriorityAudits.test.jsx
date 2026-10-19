@@ -156,6 +156,57 @@ describe('Priority 2 & 4 Audits — Coordinates Provenance & Honest Simulation L
       expect(screen.getByText(/Assigned Response Team \(Demo Fleet Roster\)/i)).toBeDefined();
       expect(screen.getByText(/Alpha Search & Rescue \(SAR\) - available \[Simulated\]/i)).toBeDefined();
     });
+
+    it('displays the exact five-factor scoring breakdown from backend without placeholders', () => {
+      const incidentWithBreakdown = {
+        ...baseIncident,
+        id: 'RQN-0692',
+        priorityScore: 75,
+        scoring_breakdown: {
+          hazard_sub: 80.0,
+          scale_sub: 65.0,
+          verification_sub: 55.0,
+          location_sub: 95.0,
+          time_sub: 100.0,
+          corroboration_boost: 0,
+          weights: {
+            hazard: 0.35,
+            scale: 0.25,
+            verification: 0.20,
+            location: 0.10,
+            time: 0.10,
+          },
+          is_overridden: false,
+          calculated_score: 75,
+          effective_score: 75,
+          hazard_raw: 'high',
+          scale_raw: '5 affected',
+          verification_raw: 'unverified',
+          location_raw: '95%',
+          time_raw: 'Just now',
+        },
+      };
+
+      render(
+        <IncidentDetailPanel
+          incident={incidentWithBreakdown}
+          responseTeams={mockTeams}
+          onVerifyStatusChange={vi.fn()}
+          onResponseStatusChange={vi.fn()}
+          onAssignTeam={vi.fn()}
+          onAddNote={vi.fn()}
+          onOpenOverrideModal={vi.fn()}
+        />
+      );
+
+      // Verify the 5 factor scores are rendered exactly as persisted
+      expect(screen.getByText(/80 pts/i)).toBeDefined();
+      expect(screen.getByText(/65 pts/i)).toBeDefined();
+      expect(screen.getByText(/55 pts/i)).toBeDefined();
+      expect(screen.getByText(/95 pts/i)).toBeDefined();
+      expect(screen.getByText(/100 pts/i)).toBeDefined();
+      expect(screen.getByText(/Algorithmic Base:/i)).toBeDefined();
+    });
   });
 
   describe('Sidebar Telemetry (Priority 4)', () => {

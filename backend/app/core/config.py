@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     INDIA_STATIONS_CACHE_TTL_SECONDS: int = 600
     ENABLE_DEMO_SIMULATED_FEEDS: bool = True
 
+    # Simulated SMS Intake Configuration
+    RESQNET_SMS_SIMULATOR_TOKEN: str = "resqnet-sim-sms-dev-token-2026"
+    ENABLE_SMS_SIMULATOR: bool = True
+
     # Configurable Reference Location (Udupi, Karnataka)
     DEFAULT_ENV_LATITUDE: float = 13.3409
     DEFAULT_ENV_LONGITUDE: float = 74.7421

@@ -144,6 +144,7 @@ export default function IncidentMap({
   incidents = [],
   selectedIncident,
   onSelectIncident,
+  onInspectIncident,
   attentionZones = [],
   defaultShowLegend = true,
   className = "h-[540px]"
@@ -577,8 +578,17 @@ export default function IncidentMap({
                     </div>
                     <button
                       type="button"
-                      onClick={() => onSelectIncident?.(inc)}
-                      className="w-full mt-2 py-1.5 px-2 rounded bg-[#2878FF] hover:bg-blue-600 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1"
+                      onClick={(e) => {
+                        if (e?.stopPropagation) e.stopPropagation();
+                        if (e?.nativeEvent?.stopPropagation) e.nativeEvent.stopPropagation();
+                        if (onInspectIncident) {
+                          onInspectIncident(inc);
+                        } else {
+                          onSelectIncident?.(inc);
+                        }
+                      }}
+                      className="w-full mt-2 py-1.5 px-2 rounded bg-[#2878FF] hover:bg-blue-600 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+                      aria-label={`Inspect details for incident ${inc.id}`}
                     >
                       <span>Inspect Incident Details</span>
                       <ExternalLink className="w-3 h-3" />

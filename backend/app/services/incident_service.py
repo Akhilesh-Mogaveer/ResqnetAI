@@ -291,6 +291,14 @@ def create_incident(
     db.commit()
     db.refresh(incident)
     logger.info(f"Created incident {incident.id}: {incident.title} (Severity: {incident.severity}, Priority: {incident.priorityScore})")
+
+    # Canonical notification trigger: notify coordinators of genuinely new incident
+    try:
+        from backend.app.services.notification_service import create_incident_notification
+        create_incident_notification(db, incident)
+    except Exception as e:
+        logger.error(f"[Notification Center] Error creating notification for {incident.id}: {e}")
+
     return incident
 
 
@@ -303,6 +311,7 @@ def get_incidents(
     category: Optional[str] = None,
     search: Optional[str] = None,
     include_duplicates: bool = False,
+    equity_review: Optional[bool] = None,
 ) -> List[Incident]:
     """
     Retrieve incidents with optional filtering, ordered by priority score descending.
@@ -332,7 +341,95 @@ def get_incidents(
             | (Incident.id.ilike(f"%{search}%"))
         )
 
-    return query.order_by(desc(Incident.priorityScore)).all()
+    results = query.order_by(desc(Incident.priorityScore)).all()
+    if equity_review is not None:
+        results = [i for i in results if i.equity_review_flag == equity_review]
+    return results
+
+
+def get_equity_monitor_metrics(db: Session) -> Dict[str, Any]:
+    """
+    Calculate real operational equity & coverage metrics from live database records.
+    Distinguishes measured infrastructure telemetry from labeled reporting proxies.
+    """
+    from backend.app.models.incident import AttentionZone
+
+    active_incidents = (
+        db.query(Incident)
+        .filter(Incident.is_duplicate == False)
+        .filter(Incident.responseStatus != "merged_duplicate")
+        .filter(Incident.responseStatus != "resolved")
+        .all()
+    )
+
+    unresolved_loc_count = 0
+    serious_unverified_count = 0
+    equity_flagged_count = 0
+    high_urgency_pending_count = 0
+    flagged_summaries = []
+
+    for inc in active_incidents:
+        # Check unresolved location
+        coords = inc.coordinates
+        has_unresolved = (
+            coords is None
+            or len(coords) < 2
+            or coords[0] is None
+            or coords[1] is None
+            or (coords[0] == 0.0 and coords[1] == 0.0)
+            or getattr(inc, "location_resolution_status", None) in ("unknown", "unresolved_ambiguous")
+        )
+        if has_unresolved:
+            unresolved_loc_count += 1
+
+        # Check serious unverified
+        is_serious = inc.severity in ("critical", "high")
+        if is_serious and inc.verificationStatus in ("unverified", "under_review"):
+            serious_unverified_count += 1
+
+        # Check equity review flag
+        if inc.equity_review_flag:
+            equity_flagged_count += 1
+            flagged_summaries.append({
+                "id": inc.id,
+                "title": inc.title,
+                "severity": inc.severity,
+                "priorityScore": inc.priorityScore,
+                "sector": inc.sector,
+                "locationName": inc.locationName,
+                "coordinates": inc.coordinates,
+                "verificationStatus": inc.verificationStatus,
+                "duplicate_count": inc.duplicate_count or 0,
+                "equity_reasons": inc.equity_reasons,
+            })
+
+        # Check high urgency pending in triage
+        if (inc.priorityScore >= 70 or inc.severity == "critical") and inc.responseStatus == "triage":
+            high_urgency_pending_count += 1
+
+    # Check underreported attention zones
+    zones = db.query(AttentionZone).all()
+    underreported_count = 0
+    for z in zones:
+        dev_str = (z.signalDeviation or "").replace("%", "").strip()
+        try:
+            if float(dev_str) < 0:
+                underreported_count += 1
+        except ValueError:
+            if "underreport" in (z.riskCategory or "").lower() or "void" in (z.riskCategory or "").lower():
+                underreported_count += 1
+
+    return {
+        "unresolved_location_count": unresolved_loc_count,
+        "serious_unverified_count": serious_unverified_count,
+        "equity_review_flag_count": equity_flagged_count,
+        "high_urgency_pending_count": high_urgency_pending_count,
+        "total_active_incidents": len(active_incidents),
+        "underreported_zones_count": underreported_count,
+        "coverage_measurement_mode": "measured_telemetry_with_labeled_proxies",
+        "measurement_notes": "Zone signal deviations reflect measured infrastructure telemetry. Single-report isolation is an explicit reporting proxy, not physical connectivity data.",
+        "flagged_incidents": flagged_summaries,
+    }
 
 
 def get_priority_queue(

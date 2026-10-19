@@ -940,3 +940,109 @@ def test_no_duplicate_audit_logs_when_nothing_changes(db_session):
     dismiss_audits_2 = len(get_audit_logs(db_session, incident_id=inc.id))
     assert dismiss_audits_1 == dismiss_audits_2
 
+
+# ============================================================================
+# 9. Scoring Breakdown Reconciliation & Explainability Regression Tests
+# ============================================================================
+
+def test_rqn_0692_five_factor_breakdown_reconciles_with_priority_score_75():
+    """
+    Regression Test: Confirm that RQN-0692's five-factor breakdown reconciles with
+    its stored priority score of 75, given the same stored inputs and no override.
+
+    Inputs from smoke test intake:
+    - severity: 'high' -> hazard_sub: 80.0 (weight 35%)
+    - affectedCountNumeric: 5 -> scale_sub: 65.0 (weight 25%)
+    - verificationStatus: 'unverified' -> verification_sub: 55.0 (weight 20%)
+    - locationConfidence: 95 -> location_sub: 95.0 (weight 10%)
+    - fresh intake timestamp (<= 30 min) -> time_sub: 100.0 (weight 10%)
+    - duplicate_count: 0 -> corroboration_boost: 0
+    - is_priority_overridden: False
+
+    Composite:
+      (80.0 * 0.35) + (65.0 * 0.25) + (55.0 * 0.20) + (95.0 * 0.10) + (100.0 * 0.10)
+      = 28.0 + 16.25 + 11.0 + 9.5 + 10.0 = 74.75 -> round -> 75
+    """
+    from datetime import datetime, timezone
+    from backend.app.models.incident import Incident
+
+    fresh_timestamp = datetime.now(timezone.utc).isoformat()
+
+    incident = Incident(
+        id="RQN-0692",
+        title="[SMOKE TEST] Simulated drainage overflow on test road",
+        type="Flood / Inundation",
+        sector="East Harbor District",
+        locationName="Test Sector Alpha Depot",
+        severity="high",
+        priorityScore=75,
+        locationConfidence=95,
+        affectedCountNumeric=5,
+        verificationStatus="unverified",
+        duplicate_count=0,
+        timestamp=fresh_timestamp,
+        riskFactors=[
+            "Confirmed casualties reported (5 individuals)",
+            "Unverified citizen report requiring coordinator ground check",
+        ],
+    )
+
+    bd = incident.scoring_breakdown
+
+    # 1. Exact five-factor values (no 50.0 placeholders)
+    assert bd["hazard_sub"] == 80.0
+    assert bd["scale_sub"] == 65.0
+    assert bd["verification_sub"] == 55.0
+    assert bd["location_sub"] == 95.0
+    assert bd["time_sub"] == 100.0
+    assert bd["corroboration_boost"] == 0
+    assert bd["is_overridden"] is False
+
+    # 2. Centralized weights
+    assert bd["weights"]["hazard"] == 0.35
+    assert bd["weights"]["scale"] == 0.25
+    assert bd["weights"]["verification"] == 0.20
+    assert bd["weights"]["location"] == 0.10
+    assert bd["weights"]["time"] == 0.10
+
+    # 3. Exact mathematical reconciliation
+    weighted_sum = (
+        bd["hazard_sub"] * bd["weights"]["hazard"] +
+        bd["scale_sub"] * bd["weights"]["scale"] +
+        bd["verification_sub"] * bd["weights"]["verification"] +
+        bd["location_sub"] * bd["weights"]["location"] +
+        bd["time_sub"] * bd["weights"]["time"] +
+        bd["corroboration_boost"]
+    )
+    assert weighted_sum == 74.75
+    assert round(weighted_sum) == 75
+    assert bd["calculated_score"] == 75
+    assert bd["effective_score"] == 75
+    assert incident.priorityScore == 75
+    assert bd.get("calculation_failed") is not True
+
+
+def test_scoring_breakdown_failure_logs_and_returns_explicit_failed_state(monkeypatch, caplog):
+    """When calculate_priority_score raises an error, scoring_breakdown must log and flag failure explicitly."""
+    import logging
+    from backend.app.models.incident import Incident
+    import backend.app.services.scoring_service as scoring_service
+
+    def buggy_calculate(*args, **kwargs):
+        raise RuntimeError("Simulated failure in priority scoring")
+
+    monkeypatch.setattr(scoring_service, "calculate_priority_score", buggy_calculate)
+
+    incident = Incident(
+        id="RQN-TEST-FAIL",
+        severity="moderate",
+        priorityScore=50,
+    )
+
+    with caplog.at_level(logging.ERROR):
+        bd = incident.scoring_breakdown
+
+    assert bd["calculation_failed"] is True
+    assert "Simulated failure" in bd["error"]
+    assert any("Failed to calculate scoring breakdown" in record.message for record in caplog.records)
+

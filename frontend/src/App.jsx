@@ -53,6 +53,13 @@ export default function App() {
   // Notification Toast
   const [toastMessage, setToastMessage] = useState(null);
 
+  // Real-Time Notification Center State
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState(null);
+  const [notificationConnectionStatus, setNotificationConnectionStatus] = useState('connected');
+
   const showToast = (msg, type = 'info') => {
     setToastMessage({ msg, type });
     setTimeout(() => setToastMessage(null), 4500);
@@ -100,6 +107,129 @@ export default function App() {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  // Fetch persistent notifications from backend
+  const fetchNotifications = useCallback(async () => {
+    if (!backendConnected) return;
+    try {
+      setNotificationsLoading(true);
+      const res = await api.getNotifications({ limit: 50 });
+      if (res && Array.isArray(res.notifications)) {
+        setNotifications(res.notifications);
+        setUnreadNotificationsCount(res.unread_count);
+        setNotificationsError(null);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch tactical notifications:", err);
+      setNotificationsError(err.message);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [backendConnected]);
+
+  // Initial notification load when backend connects
+  useEffect(() => {
+    if (backendConnected) {
+      fetchNotifications();
+    }
+  }, [backendConnected, fetchNotifications]);
+
+  // WebSocket live notification stream with fallback to 10s polling
+  useEffect(() => {
+    if (!backendConnected) return;
+
+    let ws = null;
+    let pingInterval = null;
+    let reconnectTimeout = null;
+    let isCleanClose = false;
+
+    const connectWebSocket = () => {
+      try {
+        const wsUrl = api.getNotificationWebSocketUrl();
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          setNotificationConnectionStatus('connected');
+          setNotificationsError(null);
+          // Ping keepalive every 25s
+          pingInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 25000);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.event === 'incident_created' && data.notification) {
+              const newNotif = data.notification;
+              setNotifications((prev) => {
+                if (prev.some((n) => n.id === newNotif.id)) return prev;
+                return [newNotif, ...prev];
+              });
+              setUnreadNotificationsCount((prev) => prev + 1);
+              showToast(`🔔 ${newNotif.title}`, 'alert');
+            }
+          } catch (e) {
+            // Non-JSON message ignored
+          }
+        };
+
+        ws.onclose = () => {
+          clearInterval(pingInterval);
+          if (!isCleanClose) {
+            setNotificationConnectionStatus('polling');
+            reconnectTimeout = setTimeout(connectWebSocket, 5000);
+          }
+        };
+
+        ws.onerror = () => {
+          setNotificationConnectionStatus('polling');
+        };
+      } catch (err) {
+        setNotificationConnectionStatus('polling');
+      }
+    };
+
+    connectWebSocket();
+
+    // 10-second polling fallback to guarantee no notifications are lost during disconnections
+    const pollingInterval = setInterval(() => {
+      fetchNotifications();
+    }, 10000);
+
+    return () => {
+      isCleanClose = true;
+      clearInterval(pingInterval);
+      clearInterval(pollingInterval);
+      clearTimeout(reconnectTimeout);
+      if (ws) ws.close();
+    };
+  }, [backendConnected, fetchNotifications]);
+
+  // Notification action handlers
+  const handleMarkNotificationRead = async (id) => {
+    try {
+      await api.markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      setUnreadNotificationsCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await api.markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadNotificationsCount(0);
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
+  };
 
   const selectedIncident = incidents.find(i => i.id === selectedIncidentId) || incidents[0];
 
@@ -569,6 +699,16 @@ export default function App() {
           onOpenNewIncidentModal={() => setIsNewIncidentModalOpen(true)}
           onOpenNewIncident={() => setIsNewIncidentModalOpen(true)}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          notifications={notifications}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+          onSelectIncident={(incId) => setSelectedIncidentId(incId)}
+          onNavigateTab={(tab) => setActiveTab(tab)}
+          notificationConnectionStatus={notificationConnectionStatus}
+          isNotificationsLoading={notificationsLoading}
+          notificationsError={notificationsError}
+          onRefreshNotifications={fetchNotifications}
         />
 
         {/* Dynamic Main Body Content */}
@@ -601,7 +741,7 @@ export default function App() {
               incidents={incidents}
               attentionZones={attentionZones}
               selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || inc)}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onDispatchScout={handleDispatchScout}
               onVerifyStatusChange={handleVerifyStatusChange}
@@ -615,7 +755,7 @@ export default function App() {
             <IncidentsPage
               incidents={incidents}
               selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || inc)}
               onVerifyStatusChange={handleVerifyStatusChange}
               onResponseStatusChange={handleResponseStatusChange}
               onAssignTeam={handleAssignTeam}
@@ -635,7 +775,7 @@ export default function App() {
               incidents={incidents}
               attentionZones={attentionZones}
               selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || inc)}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onLocationUpdated={handleLocationUpdated}
               onShowToast={showToast}
@@ -647,7 +787,7 @@ export default function App() {
             <PriorityQueuePage
               incidents={incidents}
               selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || inc)}
               onOpenOverrideModal={() => setIsOverrideModalOpen(true)}
               onNavigateTab={(tab) => setActiveTab(tab)}
             />
@@ -658,7 +798,7 @@ export default function App() {
             <VerificationCenterPage
               incidents={incidents}
               selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || inc)}
               onVerifyStatusChange={handleVerifyStatusChange}
               onDuplicateMerged={handleDuplicateMerged}
               onDuplicateDismissed={handleDuplicateDismissed}

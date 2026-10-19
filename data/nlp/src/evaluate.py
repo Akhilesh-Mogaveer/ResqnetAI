@@ -293,7 +293,8 @@ def evaluate_saved_model(
                 return_tensors="pt",
             ).to(device)
 
-            outputs = model(**encoded)
+            inputs = {k: v for k, v in encoded.items() if k != "token_type_ids"}
+            outputs = model(**inputs)
             logits = outputs.logits
             probs = torch.softmax(logits, dim=-1).cpu().numpy()
             preds = np.argmax(probs, axis=1).tolist()

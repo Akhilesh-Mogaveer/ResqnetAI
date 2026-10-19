@@ -6,6 +6,7 @@ import logging
 from sqlalchemy.orm import Session
 from backend.app.database.session import Base, engine
 from backend.app.models.incident import Incident, AuditLog, AttentionZone
+from backend.app.models.sms import InboundSMSMessage
 
 logger = logging.getLogger("RESQNET.Database")
 
@@ -399,8 +400,65 @@ def init_db(db: Session) -> None:
                 if "dismissed_duplicates_json" not in existing_cols:
                     conn.execute(text("ALTER TABLE incidents ADD COLUMN dismissed_duplicates_json TEXT DEFAULT '[]';"))
                 conn.commit()
+
+            # Ensure inbound_sms_messages table exists on existing SQLite databases
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS inbound_sms_messages (
+                    id VARCHAR(128) PRIMARY KEY,
+                    sender VARCHAR(100) NOT NULL,
+                    body TEXT NOT NULL,
+                    provider VARCHAR(50) NOT NULL DEFAULT 'simulated',
+                    received_at DATETIME NOT NULL,
+                    status VARCHAR(50) NOT NULL DEFAULT 'processed',
+                    incident_id VARCHAR(64),
+                    raw_payload_json TEXT,
+                    created_at DATETIME
+                );
+            """))
+
+            # Ensure notifications table exists on existing SQLite databases
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id VARCHAR(128) PRIMARY KEY,
+                    type VARCHAR(50) NOT NULL DEFAULT 'incident_created',
+                    incident_id VARCHAR(64),
+                    title VARCHAR(255) NOT NULL,
+                    message TEXT NOT NULL,
+                    source VARCHAR(50) NOT NULL DEFAULT 'website',
+                    severity VARCHAR(50),
+                    priority_score INTEGER,
+                    is_read BOOLEAN NOT NULL DEFAULT 0,
+                    recipient_role VARCHAR(50) NOT NULL DEFAULT 'coordinator',
+                    user_id VARCHAR(64),
+                    created_at DATETIME NOT NULL,
+                    metadata_json TEXT DEFAULT '{}'
+                );
+            """))
+            conn.execute(text("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_notification_type_incident
+                ON notifications(type, incident_id);
+            """))
+
+            # Ensure community_emergency_numbers table exists on existing SQLite databases
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS community_emergency_numbers (
+                    id VARCHAR(64) PRIMARY KEY,
+                    phone_number VARCHAR(32) NOT NULL,
+                    country_code VARCHAR(8) NOT NULL,
+                    raw_number VARCHAR(24) NOT NULL,
+                    status VARCHAR(32) NOT NULL DEFAULT 'setup_required',
+                    forwarding_secret VARCHAR(128) NOT NULL,
+                    is_active BOOLEAN NOT NULL DEFAULT 1,
+                    volunteer_notes TEXT,
+                    created_at DATETIME,
+                    updated_at DATETIME,
+                    last_ping_at DATETIME
+                );
+            """))
+            conn.commit()
     except Exception as e:
         logger.warning(f"Column check or migration notice: {e}")
+
 
     # 1. Seed incidents
     if db.query(Incident).count() == 0:

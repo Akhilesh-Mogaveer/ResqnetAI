@@ -122,6 +122,8 @@ export const api = {
     return request(`/incidents${qs ? `?${qs}` : ''}`);
   },
 
+  getEquityMonitor: () => request('/incidents/equity-monitor'),
+
   getPriorityQueue: (params = {}) => {
     const query = new URLSearchParams();
     if (params.limit) query.append('limit', params.limit);
@@ -294,6 +296,74 @@ export const api = {
         reason: payload.reason || 'Officer confirmed coordinates for incident.',
       }),
     }),
+
+  // Simulated SMS Intake (token must be provided by authorized caller/tooling)
+  sendSimulatedSMS: (payload, token) =>
+    request('/sms/incoming', {
+      method: 'POST',
+      headers: {
+        ...(token ? { 'X-RESQNET-SMS-TOKEN': token } : {}),
+      },
+      body: JSON.stringify(payload),
+    }),
+
+  // Dynamic Community Emergency Number & Android SMS Gateway
+  getCommunityEmergencyNumber: () => request('/sms/community-number'),
+
+  saveCommunityEmergencyNumber: (payload) =>
+    request('/sms/community-number', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteCommunityEmergencyNumber: () =>
+    request('/sms/community-number', {
+      method: 'DELETE',
+    }),
+
+  testCommunityEmergencyNumberPing: () =>
+    request('/sms/community-number/test-ping', {
+      method: 'POST',
+    }),
+
+  sendForwardedSMSTest: (payload, secret) =>
+    request('/sms/forwarded', {
+      method: 'POST',
+      headers: {
+        ...(secret ? { 'X-RESQNET-FORWARDING-SECRET': secret } : {}),
+      },
+      body: JSON.stringify(payload),
+    }),
+
+  // Global Real-Time Tactical Notification Center
+  getNotifications: ({ unreadOnly = false, limit = 50 } = {}) => {
+    const qs = new URLSearchParams();
+    if (unreadOnly) qs.append('unread_only', 'true');
+    if (limit) qs.append('limit', limit);
+    const queryStr = qs.toString() ? `?${qs.toString()}` : '';
+    return request(`/notifications${queryStr}`);
+  },
+
+  getUnreadNotificationsCount: () => request('/notifications/unread-count'),
+
+  markNotificationRead: (id) =>
+    request(`/notifications/${id}/read`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_read: true }),
+    }),
+
+  markAllNotificationsRead: () =>
+    request('/notifications/mark-all-read', {
+      method: 'POST',
+    }),
+
+  getNotificationWebSocketUrl: () => {
+    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = API_BASE.replace(/^https?:\/\//, '');
+    const token = getAuthToken();
+    return `${wsProto}//${host}/api/v1/notifications/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
 };
 
 export default api;
+

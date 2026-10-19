@@ -65,6 +65,7 @@ export default function IncidentsPage({
 
     if (filterStatus === 'unverified') return inc.verificationStatus === 'unverified';
     if (filterStatus === 'verified') return inc.verificationStatus === 'verified';
+    if (filterStatus === 'equity') return Boolean(inc.equity_review_flag || inc.equityReviewFlag);
     if (filterStatus === 'active') return inc.responseStatus !== 'resolved';
     if (filterStatus === 'resolved') return inc.responseStatus === 'resolved';
 
@@ -190,6 +191,7 @@ export default function IncidentsPage({
                 { id: 'all', label: `Active (${activeCanonicalCount})` },
                 { id: 'unverified', label: 'Unverified' },
                 { id: 'verified', label: 'Verified' },
+                { id: 'equity', label: `⚖️ Equity (${incidents.filter(i => i.equity_review_flag || i.equityReviewFlag).length})` },
                 { id: 'merged', label: `Merged (${mergedCount})` },
               ].map(f => (
                 <button
@@ -267,6 +269,32 @@ export default function IncidentsPage({
                               Coords Unknown
                             </span>
                           )}
+
+                          {Boolean(inc.equity_review_flag || inc.equityReviewFlag) && (
+                            <span 
+                              className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+                              title={(inc.equity_reasons || inc.equityReasons || []).join('; ') || 'Flagged for coordinator review'}
+                            >
+                              ⚖️ Equity Review
+                            </span>
+                          )}
+
+                          {((inc.report_source && inc.report_source.toLowerCase().includes('sms_forwarded')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('forwarded'))) ? (
+                            <span 
+                              className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono"
+                              data-testid="sms-source-badge"
+                            >
+                              📱 FORWARDED SMS
+                            </span>
+                          ) : ((inc.report_source && inc.report_source.toLowerCase().includes('sms')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('sms'))) ? (
+                            <span 
+                              className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-mono"
+                              data-testid="sms-source-badge"
+                            >
+                              📱 SIMULATED SMS
+                            </span>
+                          ) : null}
+
                         </div>
 
                         <h3 className="text-xs font-semibold text-white truncate">

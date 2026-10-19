@@ -310,7 +310,7 @@ def test_coordinator_authorized_severity_override_succeeds_and_creates_audit_log
 
 
 def test_scoring_breakdown_is_returned_and_explainable(client):
-    """API responses must return explainable 5-factor scoring engine breakdown."""
+    """API responses must return explainable 5-factor scoring engine breakdown with actual calculated values."""
     resp = client.get("/api/v1/incidents/priority-queue")
     assert resp.status_code == 200
     items = resp.json()
@@ -330,3 +330,18 @@ def test_scoring_breakdown_is_returned_and_explainable(client):
     assert bd["weights"]["verification"] == 0.20
     assert bd["weights"]["location"] == 0.10
     assert bd["weights"]["time"] == 0.10
+
+    # Ensure factors are genuinely calculated and not the all-50.0 fallback
+    assert bd.get("calculation_failed") is not True
+    all_fifties = (
+        bd["hazard_sub"] == 50.0 and
+        bd["scale_sub"] == 50.0 and
+        bd["verification_sub"] == 50.0 and
+        bd["location_sub"] == 50.0 and
+        bd["time_sub"] == 50.0
+    )
+    # The top priority incident in the queue should have genuine non-fallback scoring
+    assert not all_fifties, "scoring_breakdown returned fallback placeholder 50.0s for all factors"
+    assert "calculated_score" in bd
+    assert "effective_score" in bd
+

@@ -15,6 +15,8 @@ import {
   Info
 } from 'lucide-react';
 
+import CommunityEmergencyNumberCard from '../components/CommunityEmergencyNumberCard';
+
 export default function ResponseCommPage({
   responseTeams = [],
   incidents = [],
@@ -41,7 +43,7 @@ export default function ResponseCommPage({
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Tactical squad dispatch roster, simulated emergency broadcast transmitter, and SITREP operational export tools.
+            Tactical squad dispatch roster, simulated emergency broadcast transmitter, and dynamic community emergency number settings.
           </p>
         </div>
 
@@ -65,6 +67,9 @@ export default function ResponseCommPage({
         </div>
       </div>
 
+      {/* Dynamic Community Emergency Number & Android SMS Gateway */}
+      <CommunityEmergencyNumberCard onShowToast={onShowToast} />
+
       {/* Honest Prototype & Simulation Disclaimer Banner */}
       <div className="bg-[#132238] border border-amber-500/30 rounded-xl p-4 text-xs space-y-1 text-slate-300">
         <div className="flex items-center space-x-2 text-amber-400 font-bold">
@@ -78,6 +83,7 @@ export default function ResponseCommPage({
 
       {/* Main Grid: Response Team Roster (Left) + Broadcast & Simulation Tools (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
         {/* Left Column: Response Squad Fleet Roster */}
         <div className="lg:col-span-7 bg-[#0D1B2D] rounded-xl border border-[#203550] shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#203550]">

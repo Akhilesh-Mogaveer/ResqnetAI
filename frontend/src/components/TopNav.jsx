@@ -9,6 +9,7 @@ import {
   Search,
   Bell
 } from 'lucide-react';
+import NotificationCenterDropdown from './NotificationCenterDropdown';
 
 export default function TopNav({
   activeTabName = 'Operations Overview',
@@ -20,14 +21,30 @@ export default function TopNav({
   onOpenNewIncident,
   onSubmitReport,
   onToggleMobileMenu,
-  unreadNotificationsCount = 3,
+  unreadNotificationsCount = 0,
   onNotificationClick,
-  onOpenNotifications
+  onOpenNotifications,
+  // Notification center props
+  notifications = [],
+  isNotificationCenterOpen,
+  onToggleNotificationCenter,
+  onCloseNotificationCenter,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
+  onSelectIncident,
+  onNavigateTab,
+  notificationConnectionStatus = 'connected',
+  isNotificationsLoading = false,
+  notificationsError = null,
+  onRefreshNotifications,
 }) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(unreadNotificationsCount);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchInputRef = useRef(null);
+
+  const isCenterOpen = typeof isNotificationCenterOpen === 'boolean' ? isNotificationCenterOpen : isDropdownOpen;
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -41,16 +58,16 @@ export default function TopNav({
   }, [unreadNotificationsCount]);
 
   // Global Ctrl+K / Cmd+K listener to focus quick search
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // useEffect(() => {
+  //   const handleKeyDown = (e) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+  //       e.preventDefault();
+  //       searchInputRef.current?.focus();
+  //     }
+  //   };
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
 
   const formattedTime = currentTime.toLocaleTimeString([], {
     hour12: false,
@@ -69,12 +86,19 @@ export default function TopNav({
   const handleOpenReport = onOpenNewIncident || onOpenNewIncidentModal || onSubmitReport;
 
   const handleNotificationClick = () => {
+    if (onToggleNotificationCenter) {
+      onToggleNotificationCenter();
+    } else {
+      setIsDropdownOpen((prev) => !prev);
+    }
     if (onNotificationClick) {
       onNotificationClick();
     } else if (onOpenNotifications) {
       onOpenNotifications();
     }
-    setUnreadCount((prev) => (prev > 0 ? 0 : 3));
+    if (onNotificationClick && !notifications.length) {
+      setUnreadCount((prev) => (prev > 0 ? 0 : 3));
+    }
   };
 
   return (
@@ -112,8 +136,7 @@ export default function TopNav({
 
       {/* 2. Middle: Compact Ctrl+K Search Hint & Compact Backend Connected Status */}
       <div className="hidden md:flex items-center gap-2.5 min-w-0 flex-shrink">
-        {/* Compact Quick Search with embedded Ctrl+K shortcut hint */}
-        <div className="relative flex items-center min-w-0">
+        {/* <div className="relative flex items-center min-w-0">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none flex-shrink-0" />
           <input
             ref={searchInputRef}
@@ -128,7 +151,7 @@ export default function TopNav({
           <kbd className="absolute right-1.5 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-[#091629] border border-[#203550] rounded pointer-events-none select-none">
             Ctrl+K
           </kbd>
-        </div>
+        </div> */}
 
         {/* Compact Backend status indicator */}
         <div
@@ -169,21 +192,43 @@ export default function TopNav({
       {/* 3. Right: Action Buttons, Notification Bell & Coordinator Profile */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {/* Notification Bell with self-contained non-overlapping space and interior badge */}
-        <button
-          type="button"
-          onClick={handleNotificationClick}
-          title="Live Tactical Alerts"
-          aria-label="Tactical Notifications"
-          className="relative w-8 h-8 rounded-lg bg-[#132238] hover:bg-[#1A2E4B] border border-[#203550] flex items-center justify-center text-slate-300 hover:text-white transition-colors flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-        >
-          <Bell className="w-4 h-4 flex-shrink-0" />
-          {unreadCount > 0 && (
-            <span
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-400 ring-2 ring-[#132238] pointer-events-none"
-              aria-label={`${unreadCount} unread alerts`}
-            />
-          )}
-        </button>
+        <div className="relative flex-shrink-0">
+          <button
+            type="button"
+            onClick={handleNotificationClick}
+            title="Live Tactical Alerts"
+            aria-label="Tactical Notifications"
+            aria-expanded={isCenterOpen}
+            className="relative w-8 h-8 rounded-lg bg-[#132238] hover:bg-[#1A2E4B] border border-[#203550] flex items-center justify-center text-slate-300 hover:text-white transition-colors flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+          >
+            <Bell className="w-4 h-4 flex-shrink-0" />
+            {unreadCount > 0 && (
+              <span
+                data-testid="notification-bell-badge"
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-400 ring-2 ring-[#132238] pointer-events-none"
+                aria-label={`${unreadCount} unread alerts`}
+              />
+            )}
+          </button>
+
+          <NotificationCenterDropdown
+            isOpen={isCenterOpen}
+            onClose={() => {
+              if (onCloseNotificationCenter) onCloseNotificationCenter();
+              setIsDropdownOpen(false);
+            }}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            isLoading={isNotificationsLoading}
+            error={notificationsError}
+            connectionStatus={notificationConnectionStatus}
+            onMarkRead={onMarkNotificationRead}
+            onMarkAllRead={onMarkAllNotificationsRead}
+            onSelectIncident={onSelectIncident}
+            onNavigateTab={onNavigateTab}
+            onRefresh={onRefreshNotifications}
+          />
+        </div>
 
         {/* Prominent Submit Report Button (bg-blue-600 required by test) */}
         <button

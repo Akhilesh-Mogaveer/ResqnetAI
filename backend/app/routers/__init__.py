@@ -9,6 +9,8 @@ from .zones import router as zones_router
 from .environmental import router as environmental_router
 from .geocoding import router as geocoding_router
 from .auth import router as auth_router
+from .sms import router as sms_router
+from .notifications import router as notifications_router
 
 __all__ = [
     "health_router",
@@ -19,5 +21,7 @@ __all__ = [
     "environmental_router",
     "geocoding_router",
     "auth_router",
+    "sms_router",
+    "notifications_router",
 ]
 

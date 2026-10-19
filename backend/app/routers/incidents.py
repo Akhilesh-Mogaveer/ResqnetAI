@@ -23,6 +23,7 @@ from backend.app.schemas.incident import (
     DuplicateDismissResponse,
     NoteCreate,
     NoteResponse,
+    EquityMonitorResponse,
 )
 from backend.app.schemas.report_structuring import (
     ReportStructuringRequest,
@@ -35,6 +36,7 @@ from backend.app.services.incident_service import (
     get_incident_by_id,
     get_incidents,
     get_priority_queue,
+    get_equity_monitor_metrics,
     override_incident_priority,
     override_incident_severity,
     update_incident_response_status,
@@ -62,6 +64,7 @@ def list_incidents(
     category: Optional[str] = Query(None, description="Filter by HumAID category"),
     search: Optional[str] = Query(None, description="Search term for title, location, text"),
     include_duplicates: bool = Query(False, description="Whether to include merged duplicate incidents"),
+    equity_review: Optional[bool] = Query(None, description="Filter incidents requiring equity review"),
     db: Session = Depends(get_db),
 ):
     """Retrieve all emergency incident reports with optional filtering. Excludes merged duplicates by default."""
@@ -74,8 +77,19 @@ def list_incidents(
         category=category,
         search=search,
         include_duplicates=include_duplicates,
+        equity_review=equity_review,
     )
     return [i.to_dict() for i in incidents]
+
+
+@router.get("/equity-monitor", response_model=EquityMonitorResponse)
+def get_equity_monitor_endpoint(db: Session = Depends(get_db)):
+    """
+    Retrieve live operational Equity & Coverage Monitor metrics.
+    Provides counts for unresolved locations, serious unverified incidents,
+    equity review flags, and high urgency reports awaiting review from real database state.
+    """
+    return get_equity_monitor_metrics(db=db)
 
 
 @router.get("/priority-queue", response_model=List[IncidentResponse])

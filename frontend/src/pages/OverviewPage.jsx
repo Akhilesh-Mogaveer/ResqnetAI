@@ -3,6 +3,7 @@ import SummaryCards from '../components/SummaryCards';
 import IncidentMap from '../components/IncidentMap';
 import UnderreportedZones from '../components/UnderreportedZones';
 import EnvironmentalConditionsPanel from '../components/EnvironmentalConditionsPanel';
+import EquityCoverageMonitor from '../components/EquityCoverageMonitor';
 import { 
   AlertTriangle, 
   ShieldAlert, 
@@ -66,6 +67,10 @@ export default function OverviewPage({
     return incidents.filter(i => i.verificationStatus === 'unverified' && !i.is_duplicate && i.responseStatus !== 'merged_duplicate').length;
   }, [incidents]);
 
+  const equityCount = useMemo(() => {
+    return incidents.filter(i => Boolean(i.equity_review_flag || i.equityReviewFlag) && !i.is_duplicate && i.responseStatus !== 'resolved' && i.responseStatus !== 'merged_duplicate').length;
+  }, [incidents]);
+
   const unassignedCount = useMemo(() => {
     return incidents.filter(i => (!i.assignedTeam || i.responseStatus === 'unassigned') && !i.is_duplicate && i.responseStatus !== 'merged_duplicate').length;
   }, [incidents]);
@@ -84,6 +89,7 @@ export default function OverviewPage({
       .filter(i => {
         if (filterSeverity === 'all') return true;
         if (filterSeverity === 'unverified') return i.verificationStatus === 'unverified';
+        if (filterSeverity === 'equity') return Boolean(i.equity_review_flag || i.equityReviewFlag);
         if (filterSeverity === 'moderate') return i.severity === 'moderate' || i.severity === 'medium';
         return i.severity === filterSeverity;
       })
@@ -137,6 +143,16 @@ export default function OverviewPage({
           else if (filterType === 'unverified') onNavigateTab('verification');
           else if (filterType === 'critical') onNavigateTab('priority');
           else onNavigateTab('incidents');
+        }}
+      />
+
+      {/* 2b. Equity & Coverage Monitor Layer */}
+      <EquityCoverageMonitor
+        incidents={incidents}
+        onNavigateTab={onNavigateTab}
+        onSelectIncident={(inc) => {
+          onSelectIncident(inc);
+          onNavigateTab?.('incidents');
         }}
       />
 
@@ -254,6 +270,19 @@ export default function OverviewPage({
                   }`}
                 >
                   <span>Unverified ({unverifiedCount})</span>
+                </button>
+
+                {/* Equity Review */}
+                <button
+                  type="button"
+                  onClick={() => setFilterSeverity(filterSeverity === 'equity' ? 'all' : 'equity')}
+                  className={`px-2 py-1 rounded text-xs font-semibold transition-colors flex items-center space-x-1 border ${
+                    filterSeverity === 'equity'
+                      ? 'bg-indigo-950/90 text-indigo-300 border-indigo-500'
+                      : 'bg-[#091629] text-indigo-300/80 border-[#203550] hover:border-indigo-800/60'
+                  }`}
+                >
+                  <span>⚖️ Equity ({equityCount})</span>
                 </button>
               </div>
 
@@ -400,6 +429,32 @@ export default function OverviewPage({
                             }`}>
                               {incident.verificationStatus === 'verified' ? '✓ Verified' : '⚠ Unverified'}
                             </span>
+
+                            {Boolean(incident.equity_review_flag || incident.equityReviewFlag) && (
+                              <span 
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-indigo-950/70 text-indigo-300 border-indigo-700/60"
+                                title={(incident.equity_reasons || incident.equityReasons || []).join('; ') || 'Flagged for coordinator review'}
+                              >
+                                ⚖️ Equity Review
+                              </span>
+                            )}
+
+                            {((incident.report_source && incident.report_source.toLowerCase().includes('sms_forwarded')) || (incident.sourceSummary && incident.sourceSummary.toLowerCase().includes('forwarded'))) ? (
+                              <span 
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-emerald-950/70 text-emerald-300 border-emerald-700/60 font-mono"
+                                data-testid="sms-source-badge"
+                              >
+                                📱 FORWARDED SMS
+                              </span>
+                            ) : ((incident.report_source && incident.report_source.toLowerCase().includes('sms')) || (incident.sourceSummary && incident.sourceSummary.toLowerCase().includes('sms'))) ? (
+                              <span 
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-sky-950/70 text-sky-300 border-sky-700/60 font-mono"
+                                data-testid="sms-source-badge"
+                              >
+                                📱 SIMULATED SMS
+                              </span>
+                            ) : null}
+
 
                             <span className="text-[11px] text-slate-400 flex items-center space-x-1">
                               <Users className="w-3 h-3 text-slate-500 inline flex-shrink-0" />
@@ -604,6 +659,10 @@ export default function OverviewPage({
                 incidents={incidents}
                 selectedIncident={selectedIncident}
                 onSelectIncident={(inc) => onSelectIncident(inc)}
+                onInspectIncident={(inc) => {
+                  onSelectIncident(inc);
+                  onNavigateTab?.('incidents');
+                }}
                 attentionZones={attentionZones}
                 defaultShowLegend={false}
                 className="w-full h-full"
