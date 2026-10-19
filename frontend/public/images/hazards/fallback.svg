@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none">
+  <rect width="400" height="400" fill="#091629"/>
+  <rect x="2" y="2" width="396" height="396" stroke="#203550" stroke-width="4" rx="16"/>
+  <circle cx="200" cy="180" r="56" fill="#132238" stroke="#2878FF" stroke-width="3"/>
+  <path d="M200 152v32m0 16h.02" stroke="#21D4FD" stroke-width="6" stroke-linecap="round"/>
+  <text x="200" y="275" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="600" fill="#94A3B8" text-anchor="middle">Emergency Operations</text>
+  <text x="200" y="298" font-family="ui-monospace, monospace" font-size="12" fill="#64748B" text-anchor="middle">RESQNET AI SITREP</text>
+</svg>

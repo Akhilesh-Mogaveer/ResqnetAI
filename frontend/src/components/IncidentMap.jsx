@@ -23,7 +23,7 @@ import {
   Globe
 } from 'lucide-react';
 
-function MapController({ center, zoom, isFullscreen, onRegisterMap }) {
+function MapController({ center, zoom, bounds, userSelected, isFullscreen, onRegisterMap }) {
   const map = useMap();
 
   useEffect(() => {
@@ -33,10 +33,22 @@ function MapController({ center, zoom, isFullscreen, onRegisterMap }) {
   }, [map, onRegisterMap]);
 
   useEffect(() => {
-    if (center && center.length === 2 && center[0] != null && center[1] != null) {
-      map.flyTo(center, zoom || map.getZoom(), { duration: 0.8 });
+    // When an incident is explicitly selected by the user, fly directly to it at close range
+    if (userSelected && center && center.length === 2 && center[0] != null && center[1] != null) {
+      map.flyTo(center, zoom || 13, { duration: 0.8 });
+    } else if (bounds && typeof map.fitBounds === 'function') {
+      // Fit viewport to envelope all active incident markers with padding
+      try {
+        map.fitBounds(bounds, { padding: [35, 35], maxZoom: 13 });
+      } catch (_e) {
+        if (center && center.length === 2 && center[0] != null && center[1] != null) {
+          map.flyTo(center, zoom || 13, { duration: 0.8 });
+        }
+      }
+    } else if (center && center.length === 2 && center[0] != null && center[1] != null) {
+      map.flyTo(center, zoom || 13, { duration: 0.8 });
     }
-  }, [center, zoom, map]);
+  }, [center, zoom, bounds, userSelected, map]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -96,16 +108,16 @@ const BASEMAP_TILES = {
     maxZoom: 19,
     description: 'Detailed street and infrastructure cartography'
   },
-  dark: {
-    id: 'dark',
-    name: 'CartoDB Dark Matter',
-    label: 'Dark Map',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19,
-    description: 'High-contrast dark operations map'
-  },
+  // dark: {
+  //   id: 'dark',
+  //   name: 'CartoDB Dark Matter',
+  //   label: 'Dark Map',
+  //   url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+  //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
+  //   subdomains: 'abcd',
+  //   maxZoom: 19,
+  //   description: 'High-contrast dark operations map'
+  // },
   terrain: {
     id: 'terrain',
     name: 'Esri World Topo (Terrain)',
@@ -117,20 +129,42 @@ const BASEMAP_TILES = {
   }
 };
 
+export function isValidCoordinate(coords) {
+  if (!coords || !Array.isArray(coords) || coords.length !== 2) return false;
+  const [lat, lng] = coords;
+  if (lat == null || lng == null) return false;
+  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return false;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  if (lat === 0 && lng === 0) return false;
+  return true;
+}
+
 export default function IncidentMap({
   incidents = [],
   selectedIncident,
   onSelectIncident,
   attentionZones = [],
+  defaultShowLegend = true,
   className = "h-[540px]"
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showUnderreported, setShowUnderreported] = useState(true);
-  const [showLegend, setShowLegend] = useState(true);
+  const [showLegend, setShowLegend] = useState(defaultShowLegend);
   const [severityFilter, setSeverityFilter] = useState('all');
   const [verificationFilter, _setVerificationFilter] = useState('all');
   const [basemapId, setBasemapId] = useState('satellite');
   const [tileError, setTileError] = useState(false);
+
+  const [userSelectedId, setUserSelectedId] = useState(null);
+  const prevSelectedIncidentIdRef = useRef(selectedIncident?.id);
+
+  useEffect(() => {
+    if (selectedIncident?.id && selectedIncident.id !== prevSelectedIncidentIdRef.current) {
+      prevSelectedIncidentIdRef.current = selectedIncident.id;
+      setUserSelectedId(selectedIncident.id);
+    }
+  }, [selectedIncident]);
 
   const mapInstanceRef = useRef(null);
   const mapContainerRef = useRef(null);
@@ -142,15 +176,12 @@ export default function IncidentMap({
   const activeCenter = useMemo(() => {
     if (
       selectedIncident &&
-      Array.isArray(selectedIncident.coordinates) &&
-      selectedIncident.coordinates.length === 2 &&
-      selectedIncident.coordinates[0] != null &&
-      selectedIncident.coordinates[1] != null
+      isValidCoordinate(selectedIncident.coordinates)
     ) {
       return selectedIncident.coordinates;
     }
     const withCoords = (incidents || []).filter(
-      i => !i.is_duplicate && i.responseStatus !== 'merged_duplicate' && Array.isArray(i.coordinates) && i.coordinates.length === 2 && i.coordinates[0] != null && i.coordinates[1] != null
+      i => !i.is_duplicate && i.responseStatus !== 'merged_duplicate' && isValidCoordinate(i.coordinates)
     );
     if (withCoords.length > 0) {
       const avgLat = withCoords.reduce((acc, c) => acc + c.coordinates[0], 0) / withCoords.length;
@@ -169,7 +200,7 @@ export default function IncidentMap({
       if (inc.is_duplicate || inc.duplicate_of_id || inc.responseStatus === 'merged_duplicate') {
         return false;
       }
-      if (!inc.coordinates || !Array.isArray(inc.coordinates) || inc.coordinates.length !== 2 || inc.coordinates[0] == null || inc.coordinates[1] == null) {
+      if (!isValidCoordinate(inc.coordinates)) {
         return false;
       }
       if (severityFilter !== 'all' && inc.severity !== severityFilter) return false;
@@ -179,10 +210,21 @@ export default function IncidentMap({
     });
   }, [incidents, severityFilter, verificationFilter]);
 
+  // Compute bounding box across all active mapped incident coordinates
+  const mapBounds = useMemo(() => {
+    const validCoords = (mapIncidents || [])
+      .map(i => i.coordinates)
+      .filter(isValidCoordinate);
+    if (validCoords.length > 1) {
+      return L.latLngBounds(validCoords);
+    }
+    return null;
+  }, [mapIncidents]);
+
   // Count unmapped incidents (excluding merged duplicates)
   const unmappedIncidents = useMemo(() => {
     return (incidents || []).filter(
-      (i) => (!i.coordinates || !Array.isArray(i.coordinates) || i.coordinates.length !== 2 || i.coordinates[0] == null || i.coordinates[1] == null) &&
+      (i) => !isValidCoordinate(i.coordinates) &&
             !i.is_duplicate && i.responseStatus !== 'merged_duplicate'
     );
   }, [incidents]);
@@ -227,7 +269,28 @@ export default function IncidentMap({
 
   const handleZoomIn = () => mapInstanceRef.current?.zoomIn();
   const handleZoomOut = () => mapInstanceRef.current?.zoomOut();
-  const handleRecenter = () => mapInstanceRef.current?.flyTo(activeCenter, 13, { duration: 0.8 });
+  const handleFitAll = () => {
+    setUserSelectedId(null);
+    if (!mapInstanceRef.current) return;
+    if (mapBounds && typeof mapInstanceRef.current.fitBounds === 'function') {
+      mapInstanceRef.current.fitBounds(mapBounds, { padding: [35, 35], maxZoom: 13 });
+    } else if (mapIncidents.length === 1 && isValidCoordinate(mapIncidents[0].coordinates)) {
+      mapInstanceRef.current.flyTo(mapIncidents[0].coordinates, 13, { duration: 0.8 });
+    } else {
+      mapInstanceRef.current.flyTo(defaultCenter, 11, { duration: 0.8 });
+    }
+  };
+
+  const handleRecenter = () => {
+    if (!mapInstanceRef.current) return;
+    if (selectedIncident && isValidCoordinate(selectedIncident.coordinates)) {
+      mapInstanceRef.current.flyTo(selectedIncident.coordinates, 13, { duration: 0.8 });
+    } else if (mapBounds && typeof mapInstanceRef.current.fitBounds === 'function') {
+      mapInstanceRef.current.fitBounds(mapBounds, { padding: [35, 35], maxZoom: 13 });
+    } else {
+      mapInstanceRef.current.flyTo(defaultCenter, 11, { duration: 0.8 });
+    }
+  };
 
   return (
     <div
@@ -246,6 +309,16 @@ export default function IncidentMap({
           <span className="text-[11px] text-slate-400 font-mono">
             ({mapIncidents.length} on map)
           </span>
+          {mapBounds && (
+            <button
+              type="button"
+              onClick={handleFitAll}
+              className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#132238] hover:bg-[#203550] text-[#21D4FD] border border-[#203550] transition-colors"
+              title="Fit map view to all plotted incident markers"
+            >
+              Fit View
+            </button>
+          )}
         </div>
 
         {/* Severity Filters & Basemap Selector */}
@@ -287,7 +360,7 @@ export default function IncidentMap({
             {[
               { id: 'satellite', label: 'Satellite', icon: Globe },
               { id: 'streets', label: 'Streets' },
-              { id: 'dark', label: 'Dark' },
+              // { id: 'dark', label: 'Dark' },
               { id: 'terrain', label: 'Terrain' }
             ].map(b => {
               const IconComponent = b.icon;
@@ -358,25 +431,30 @@ export default function IncidentMap({
               <span className="text-[10px] text-rose-300 leading-tight block">Tiles could not be loaded from tile server. Switch to another layer:</span>
             </div>
             <div className="flex items-center space-x-1">
+              {['satellite', 'streets', 'terrain']
+                .filter(id => id !== basemapId)
+                .slice(0, 2)
+                .map(id => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setTileError(false);
+                      setBasemapId(id);
+                    }}
+                    className="px-2 py-1 bg-rose-900 hover:bg-rose-800 text-rose-100 rounded text-[10px] font-medium transition-colors"
+                  >
+                    {BASEMAP_TILES[id]?.label || id}
+                  </button>
+                ))
+              }
               <button
                 type="button"
-                onClick={() => {
-                  setTileError(false);
-                  setBasemapId('streets');
-                }}
-                className="px-2 py-1 bg-rose-900 hover:bg-rose-800 text-rose-100 rounded text-[10px] font-medium transition-colors"
+                onClick={() => setTileError(false)}
+                className="px-1.5 py-1 text-rose-300 hover:text-white text-[10px] transition-colors ml-1"
+                aria-label="Dismiss tile error banner"
               >
-                OSM Streets
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTileError(false);
-                  setBasemapId('dark');
-                }}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[10px] font-medium transition-colors"
-              >
-                Dark
+                ✕
               </button>
             </div>
           </div>
@@ -391,6 +469,8 @@ export default function IncidentMap({
           <MapController
             center={activeCenter}
             zoom={13}
+            bounds={mapBounds}
+            userSelected={userSelectedId != null}
             isFullscreen={isFullscreen}
             onRegisterMap={(map) => { mapInstanceRef.current = map; }}
           />
@@ -454,7 +534,10 @@ export default function IncidentMap({
                 position={inc.coordinates}
                 icon={createCustomMarkerIcon(inc, isSelected)}
                 eventHandlers={{
-                  click: () => onSelectIncident?.(inc)
+                  click: () => {
+                    setUserSelectedId(inc.id);
+                    onSelectIncident?.(inc);
+                  }
                 }}
               >
                 <Popup>
@@ -509,18 +592,29 @@ export default function IncidentMap({
 
         {/* Accessible Map Legend */}
         <div
-          className="absolute bottom-4 left-4 z-20 bg-[#0D1B2D]/95 backdrop-blur-xs rounded-lg shadow-xl border border-[#203550] p-2.5 text-[11px] max-w-[210px]"
+          className={`absolute bottom-4 left-4 z-20 bg-[#0D1B2D]/95 backdrop-blur-xs rounded-lg shadow-xl border border-[#203550] transition-all ${
+            showLegend ? 'p-2.5 max-w-[210px]' : 'p-1.5'
+          }`}
           aria-label="Map Legend"
         >
-          <div className="flex items-center justify-between font-bold text-slate-200 pb-1 mb-1.5 border-b border-[#203550]">
-            <span className="flex items-center space-x-1 text-[10px] uppercase font-mono tracking-wider">
+          <div className={`flex items-center justify-between font-bold text-slate-200 ${showLegend ? 'pb-1 mb-1.5 border-b border-[#203550]' : ''}`}>
+            <button
+              type="button"
+              onClick={() => setShowLegend(!showLegend)}
+              className="flex items-center space-x-1 text-[10px] uppercase font-mono tracking-wider text-slate-300 hover:text-white transition-colors"
+              aria-label={showLegend ? "Collapse map legend" : "Expand map legend"}
+            >
               <Layers className="w-3 h-3 text-[#2878FF]" />
               <span>Map Legend</span>
-            </span>
+              <span className="text-[10px] text-slate-400 font-sans normal-case ml-0.5">
+                {showLegend ? '▾' : '▸'}
+              </span>
+            </button>
             <button
+              type="button"
               onClick={() => setShowLegend(!showLegend)}
-              className="text-slate-400 hover:text-slate-200 p-0.5 text-[10px] underline"
-              aria-label={showLegend ? "Collapse map legend" : "Expand map legend"}
+              className="text-slate-400 hover:text-slate-200 p-0.5 text-[10px] underline ml-2"
+              aria-label={showLegend ? "Hide legend items" : "Show legend items"}
             >
               {showLegend ? 'Hide' : 'Show'}
             </button>
@@ -587,9 +681,19 @@ export default function IncidentMap({
           >
             <Minus className="w-4 h-4" />
           </button>
+          {mapBounds && (
+            <button
+              onClick={handleFitAll}
+              className="p-1.5 hover:bg-[#132238] rounded text-[#21D4FD] border-t border-[#203550] transition-colors"
+              title="Fit All Markers to Viewport"
+              aria-label="Fit All Markers"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={handleRecenter}
-            className="p-1.5 hover:bg-[#132238] rounded text-[#21D4FD] border-t border-[#203550] transition-colors"
+            className={`p-1.5 hover:bg-[#132238] rounded text-slate-300 hover:text-white transition-colors ${!mapBounds ? 'border-t border-[#203550]' : ''}`}
             title="Recenter Map"
             aria-label="Recenter Map"
           >

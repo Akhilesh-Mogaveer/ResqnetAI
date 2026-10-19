@@ -6,6 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import User, require_roles
 from backend.app.database.session import get_db
 from backend.app.schemas.incident import AttentionZoneResponse
 from backend.app.services.incident_service import get_attention_zones, dispatch_zone_scout
@@ -21,10 +22,15 @@ def list_attention_zones(db: Session = Depends(get_db)):
 
 
 @router.patch("/{zone_id}/dispatch", response_model=AttentionZoneResponse)
-def dispatch_scout_to_zone(zone_id: str, db: Session = Depends(get_db)):
+def dispatch_scout_to_zone(
+    zone_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
+):
     """Dispatch a field reconnaissance scout or drone to an underreported sector."""
     zone = dispatch_zone_scout(db, zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail=f"Zone '{zone_id}' not found.")
     return zone.to_dict()
+
 

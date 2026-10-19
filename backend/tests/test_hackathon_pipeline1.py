@@ -435,7 +435,8 @@ def test_authorized_priority_override_at_intake_records_audit_trail(client):
             "override_operator": "Lead Coordinator Jordan Davis",
             "override_reason": "Direct telephonic confirmation of life-support backup failure risk.",
             "run_nlp_classification": False,
-        }
+        },
+        headers={"Authorization": "Bearer dev-coordinator-token"},
     )
     assert resp.status_code == 201
     data = resp.json()

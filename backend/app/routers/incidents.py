@@ -21,12 +21,15 @@ from backend.app.schemas.incident import (
     DuplicateDismissRequest,
     DuplicateMergeResponse,
     DuplicateDismissResponse,
+    NoteCreate,
+    NoteResponse,
 )
 from backend.app.schemas.report_structuring import (
     ReportStructuringRequest,
     ReportStructuringResponse,
 )
 from backend.app.schemas.geocoding import LocationConfirmationRequest
+from backend.app.core.security import User, require_roles, get_authenticated_user_strict_optional
 from backend.app.services.incident_service import (
     create_incident,
     get_incident_by_id,
@@ -38,6 +41,7 @@ from backend.app.services.incident_service import (
     update_incident_verification,
     update_incident_location,
     get_audit_logs,
+    add_incident_note,
 )
 from backend.app.services.report_structuring_service import extract_structured_incident_report
 from backend.app.services.duplicate_service import (
@@ -98,14 +102,28 @@ def structure_report_endpoint(payload: ReportStructuringRequest):
 
 
 @router.post("", response_model=IncidentResponse, status_code=status.HTTP_201_CREATED)
-def create_incident_endpoint(payload: IncidentCreate, db: Session = Depends(get_db)):
+def create_incident_endpoint(
+    payload: IncidentCreate,
+    current_user: Optional[User] = Depends(get_authenticated_user_strict_optional),
+    db: Session = Depends(get_db),
+):
     """
     Submit a new emergency incident report.
-    Optionally triggers NLP classification using HumAID DistilBERT to suggest situation category.
+    Supports public/anonymous submission for ordinary emergency reports.
+    Enforces that manual priority/severity overrides require authenticated coordinator or
+    administrator credentials and a mandatory justification reason.
     """
     try:
-        incident = create_incident(db, payload)
+        incident = create_incident(db, payload, current_user=current_user)
         return incident.to_dict()
+    except PermissionError as e:
+        status_code = status.HTTP_401_UNAUTHORIZED if current_user is None else status.HTTP_403_FORBIDDEN
+        headers = {"WWW-Authenticate": "Bearer"} if current_user is None else None
+        raise HTTPException(
+            status_code=status_code,
+            detail=str(e),
+            headers=headers,
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -118,11 +136,13 @@ def update_location_endpoint(
     incident_id: str,
     payload: LocationConfirmationRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
 ):
     """
     Confirm or correct coordinates and landmark location for an incident.
     Records operator action in the immutable audit log and rescores priority.
     """
+    operator = current_user.name if current_user else payload.operator
     try:
         incident = update_incident_location(
             db=db,
@@ -131,7 +151,7 @@ def update_location_endpoint(
             location_name=payload.locationName,
             sector=payload.sector,
             confirmation_status=payload.confirmationStatus,
-            operator=payload.operator,
+            operator=operator,
             reason=payload.reason,
         )
         if not incident:
@@ -164,16 +184,18 @@ def update_verification_endpoint(
     incident_id: str,
     payload: VerificationStatusUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
 ):
     """
     Update human coordinator verification status (e.g. unverified -> verified).
     Records operator identity and rationale in immutable audit trail.
     """
+    operator = current_user.name if current_user else payload.operator
     incident = update_incident_verification(
         db=db,
         incident_id=incident_id,
         new_status=payload.verificationStatus,
-        operator=payload.operator,
+        operator=operator,
         reason=payload.reason,
     )
     if not incident:
@@ -186,17 +208,19 @@ def update_response_status_endpoint(
     incident_id: str,
     payload: ResponseStatusUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "responder", "admin"])),
 ):
     """
     Update dispatch/response status (e.g. triage -> dispatched) and assigned team.
     Records operator identity and rationale in audit trail.
     """
+    operator = current_user.name if current_user else payload.operator
     incident = update_incident_response_status(
         db=db,
         incident_id=incident_id,
         new_status=payload.responseStatus,
         assigned_team=payload.assignedTeam,
-        operator=payload.operator,
+        operator=operator,
         reason=payload.reason,
     )
     if not incident:
@@ -209,16 +233,18 @@ def override_priority_endpoint(
     incident_id: str,
     payload: PriorityOverrideRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
 ):
     """
     Apply manual coordinator priority score override with mandatory justification.
     Updates priorityScore and records event in audit trail.
     """
+    operator = current_user.name if current_user else payload.operator
     incident = override_incident_priority(
         db=db,
         incident_id=incident_id,
         new_priority=payload.newPriority,
-        operator=payload.operator,
+        operator=operator,
         reason=payload.reason,
         response_status=payload.responseStatus,
     )
@@ -232,16 +258,18 @@ def override_severity_endpoint(
     incident_id: str,
     payload: SeverityOverrideRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
 ):
     """
     Apply manual coordinator severity tier override with mandatory justification.
     Updates severity, recalculates priority if not overridden, and records event in audit trail.
     """
+    operator = current_user.name if current_user else payload.operator
     incident = override_incident_severity(
         db=db,
         incident_id=incident_id,
         new_severity=payload.newSeverity,
-        operator=payload.operator,
+        operator=operator,
         reason=payload.reason,
     )
     if not incident:
@@ -249,8 +277,45 @@ def override_severity_endpoint(
     return incident.to_dict()
 
 
+@router.post("/{incident_id}/notes", response_model=IncidentResponse, status_code=status.HTTP_201_CREATED)
+def add_incident_note_endpoint(
+    incident_id: str,
+    payload: NoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "responder", "admin"])),
+):
+    """
+    Append an authoritative coordinator or responder note to an incident.
+    Persists note in SQLite and writes immutable entry in audit log.
+    Enforces server-side authentication and role-based permissions.
+    """
+    author = current_user.name if current_user else payload.author
+    try:
+        incident = add_incident_note(
+            db=db,
+            incident_id=incident_id,
+            text=payload.text,
+            author=author,
+        )
+        if not incident:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Incident '{incident_id}' not found.",
+            )
+        return incident.to_dict()
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+
+
 @router.get("/{incident_id}/audit-log", response_model=List[AuditLogResponse])
-def get_incident_audit_trail(incident_id: str, db: Session = Depends(get_db)):
+def get_incident_audit_trail(
+    incident_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
+):
     """Retrieve audit trail logs specific to this incident."""
     logs = get_audit_logs(db, incident_id=incident_id)
     return [l.to_dict() for l in logs]
@@ -271,12 +336,14 @@ def merge_duplicate_endpoint(
     incident_id: str,
     payload: DuplicateMergeRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
 ):
     """
     Coordinator action: Merge a duplicate report into this primary incident.
     Requires human review. Updates duplicate status, boosts corroboration, and writes audit trail.
     Supports coordinator confirmation of primary incident.
     """
+    operator = current_user.name if current_user else payload.operator
     if payload.primaryIncidentId and payload.primaryIncidentId != incident_id:
         primary_id = payload.primaryIncidentId
         duplicate_id = payload.duplicateIncidentId if payload.duplicateIncidentId != primary_id else incident_id
@@ -292,7 +359,7 @@ def merge_duplicate_endpoint(
             db=db,
             primary_id=primary_id,
             duplicate_id=duplicate_id,
-            operator=payload.operator,
+            operator=operator,
             reason=payload.reason,
             update_corroboration=payload.updateCorroboration,
         )
@@ -319,16 +386,18 @@ def dismiss_duplicate_endpoint(
     incident_id: str,
     payload: DuplicateDismissRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["coordinator", "admin"])),
 ):
     """
     Coordinator action: Dismiss a duplicate candidate suggestion as a distinct event.
     Logs coordinator rationale and ensures the suggestion is not shown again.
     """
+    operator = current_user.name if current_user else payload.operator
     primary, duplicate, audit_log = dismiss_duplicate_suggestion(
         db=db,
         primary_id=incident_id,
         duplicate_id=payload.duplicateIncidentId,
-        operator=payload.operator,
+        operator=operator,
         reason=payload.reason,
     )
     if not primary or not duplicate:
@@ -342,5 +411,6 @@ def dismiss_duplicate_endpoint(
     res["message"] = f"Dismissed duplicate suggestion for {duplicate.id}."
     res["audit_log_id"] = audit_log.id if audit_log else None
     return res
+
 
 

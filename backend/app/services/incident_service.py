@@ -12,6 +12,7 @@ from sqlalchemy import desc
 
 from backend.app.models.incident import Incident, AuditLog, AttentionZone
 from backend.app.schemas.incident import IncidentCreate, IncidentUpdate
+from backend.app.core.security import User, UserRole
 from backend.app.services.nlp_service import enrich_incident_with_nlp
 from backend.app.services.geocoding_service import (
     resolve_incident_coordinates,
@@ -52,11 +53,19 @@ def _generate_incident_id(db: Session) -> str:
     return f"RQN-{candidate:04d}"
 
 
-def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
+def create_incident(
+    db: Session,
+    incident_in: IncidentCreate,
+    current_user: Optional[User] = None,
+) -> Incident:
     """
     Create a new incident report in SQLite.
     Runs HumAID DistilBERT text classification, coordinate resolution, and
     deterministic severity & priority scoring.
+
+    Enforces that manual priority/severity overrides require coordinator or
+    administrator authentication and a mandatory justification reason.
+    Anonymous public reports cannot set override flags or force custom scores.
     """
     incident_id = incident_in.id or _generate_incident_id(db)
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -114,9 +123,28 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
         source_summary=incident_in.sourceSummary,
     )
 
-    # 3. Check for deliberate manual coordinator overrides
+    # 3. Check for deliberate manual coordinator overrides with strict server-side RBAC
     is_prio_overridden = bool(getattr(incident_in, "is_priority_overridden", False))
     is_sev_overridden = bool(getattr(incident_in, "is_severity_overridden", False))
+
+    if is_prio_overridden or is_sev_overridden:
+        if current_user is None:
+            raise PermissionError(
+                "Authentication required: Manual priority or severity overrides require coordinator or administrator credentials."
+            )
+        if current_user.role not in (UserRole.COORDINATOR, UserRole.ADMIN):
+            raise PermissionError(
+                f"Access denied: Role '{current_user.role.value}' is not authorized to apply manual priority or severity overrides."
+            )
+        override_rs = (getattr(incident_in, "override_reason", None) or "").strip()
+        if not override_rs:
+            raise ValueError(
+                "A mandatory justification reason is required for manual priority or severity overrides."
+            )
+        override_op = getattr(incident_in, "override_operator", None) or current_user.name
+    else:
+        override_rs = None
+        override_op = "System Intake"
 
     final_severity = incident_in.severity if is_sev_overridden else scoring_result.severity
     final_priority = incident_in.priorityScore if is_prio_overridden else scoring_result.priority_score
@@ -192,9 +220,6 @@ def create_incident(db: Session, incident_in: IncidentCreate) -> Incident:
     incident.riskFactors = final_risks
     incident.report_source = rep_source
     incident.source_reference = src_ref
-
-    override_op = getattr(incident_in, "override_operator", None) or "Coordinator Intake"
-    override_rs = getattr(incident_in, "override_reason", None) or "Manual coordinator intake override."
 
     initial_notes = []
     if is_prio_overridden:
@@ -820,3 +845,57 @@ def update_incident_location(
     db.commit()
     db.refresh(incident)
     return incident
+
+
+def add_incident_note(
+    db: Session,
+    incident_id: str,
+    text: str,
+    author: str = "Coordinator Jordan Davis",
+) -> Optional[Incident]:
+    """
+    Append an authoritative coordinator note to the incident report.
+    Persists note in SQLite and writes an entry in the immutable audit log.
+    """
+    incident = get_incident_by_id(db, incident_id)
+    if not incident:
+        return None
+
+    clean_text = text.strip()
+    if not clean_text:
+        raise ValueError("Note text cannot be empty.")
+
+    clean_author = author.strip() if author and author.strip() else "Coordinator Jordan Davis"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    note_id = f"n-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}-{uuid.uuid4().hex[:4]}"
+
+    new_note = {
+        "id": note_id,
+        "author": clean_author,
+        "time": "Just now",
+        "timestamp": now_iso,
+        "text": clean_text,
+    }
+
+    # Prepend to notes list so newest notes appear first
+    current_notes = list(incident.notes or [])
+    current_notes.insert(0, new_note)
+    incident.notes = current_notes
+
+    # Add immutable audit log entry
+    audit_entry = AuditLog(
+        id=_generate_audit_log_id(),
+        timestamp=now_iso,
+        incidentId=incident.id,
+        operator=clean_author,
+        actionType="COORDINATOR_NOTE_ADDED",
+        oldValue="N/A",
+        newValue=clean_text[:120],
+        reason=f"Coordinator note recorded by {clean_author}",
+    )
+    db.add(audit_entry)
+    db.commit()
+    db.refresh(incident)
+    logger.info(f"Appended note {note_id} to incident {incident.id} by {clean_author}")
+    return incident
+

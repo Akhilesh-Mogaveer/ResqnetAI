@@ -8,6 +8,7 @@ from .audit_log import router as audit_log_router
 from .zones import router as zones_router
 from .environmental import router as environmental_router
 from .geocoding import router as geocoding_router
+from .auth import router as auth_router
 
 __all__ = [
     "health_router",
@@ -17,4 +18,6 @@ __all__ = [
     "zones_router",
     "environmental_router",
     "geocoding_router",
+    "auth_router",
 ]
+

@@ -32,6 +32,7 @@ from backend.app.routers import (
     zones_router,
     environmental_router,
     geocoding_router,
+    auth_router,
 )
 
 # Configure logging
@@ -99,6 +100,7 @@ app.include_router(audit_log_router, prefix=settings.API_V1_STR)
 app.include_router(zones_router, prefix=settings.API_V1_STR)
 app.include_router(environmental_router, prefix=settings.API_V1_STR)
 app.include_router(geocoding_router, prefix=settings.API_V1_STR)
+app.include_router(auth_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", tags=["Root"])

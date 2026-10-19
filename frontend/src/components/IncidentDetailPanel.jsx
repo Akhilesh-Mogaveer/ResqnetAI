@@ -235,21 +235,27 @@ export default function IncidentDetailPanel({
             <div className="flex items-center justify-between text-xs font-semibold text-slate-200 mb-2">
               <span className="flex items-center space-x-1.5 text-[#21D4FD]">
                 <FileText className="w-3.5 h-3.5" />
-                <span>HumAID NLP Categorization</span>
+                <span>HumAID NLP Categorization (Situational Need)</span>
               </span>
-              {incident.humaid_confidence !== undefined && incident.humaid_confidence !== null && (
+              {incident.humaid_confidence !== undefined && incident.humaid_confidence !== null ? (
                 <span className="px-2 py-0.5 rounded-full bg-blue-950/80 text-[#21D4FD] font-semibold text-[10px] border border-blue-800/60 font-mono">
-                  {(incident.humaid_confidence * 100).toFixed(1)}% Confidence
+                  {(incident.humaid_confidence * 100).toFixed(1)}% Model Confidence
                 </span>
+              ) : (
+                <span className="text-[10px] text-slate-500 font-mono">Confidence Unknown</span>
               )}
             </div>
 
-            {incident.humaid_category && (
+            {incident.humaid_category ? (
               <div className="mb-2">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Predicted Humanitarian Category:</span>
                 <span className="inline-block px-2.5 py-0.5 rounded bg-[#0D1B2D] border border-[#203550] text-[#21D4FD] font-medium text-xs uppercase tracking-wide">
                   {incident.humaid_category.replace(/_/g, ' ')}
                 </span>
+              </div>
+            ) : (
+              <div className="mb-2 text-[10px] text-slate-500 italic">
+                HumAID classification: Unclassified / General Emergency
               </div>
             )}
 
@@ -261,7 +267,7 @@ export default function IncidentDetailPanel({
             )}
 
             <div className="mt-2 text-[10px] text-amber-200/80 bg-amber-950/30 p-2 rounded border border-amber-900/50">
-              * Automated triage suggestion only. Model predictions do not confirm report authenticity. Verification and dispatch decisions remain strictly human-in-the-loop.
+              * Automated triage suggestion only. Model classification confidence reflects text pattern likelihood and does NOT prove that a report is factually true or verified. Verification and dispatch decisions remain strictly human-in-the-loop.
             </div>
           </div>
         )}
@@ -339,6 +345,73 @@ export default function IncidentDetailPanel({
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Priority Score Breakdown (5-Factor Engine) */}
+        <div className="bg-[#091629] border border-[#203550] rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-white">
+            <span className="flex items-center space-x-1.5 text-cyan-400 font-mono">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Priority Score Breakdown (5-Factor Engine)</span>
+            </span>
+            <span className="font-mono text-xs font-bold text-white">
+              {incident.priorityScore} / 100
+            </span>
+          </div>
+
+          {(() => {
+            const breakdown = incident.scoring_breakdown || incident.scoringBreakdown;
+            if (breakdown) {
+              return (
+                <div className="space-y-2 pt-1 text-[11px]">
+                  {breakdown.is_overridden && (
+                    <div className="p-2 rounded bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] flex items-center justify-between">
+                      <span className="font-semibold">⚠️ Manual Coordinator Override Active</span>
+                      <span className="font-mono font-bold">Effective: {incident.priorityScore} (Algorithmic: {breakdown.calculated_score})</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
+                    <div className="p-2 rounded bg-[#0D1B2D] border border-[#203550] flex items-center justify-between">
+                      <span className="text-slate-400">1. Hazard Impact ({((breakdown.weights?.hazard ?? 0.35) * 100).toFixed(0)}%):</span>
+                      <span className="text-white font-bold">{breakdown.hazard_sub} pts <span className="text-[10px] text-slate-500 font-normal">({breakdown.hazard_raw})</span></span>
+                    </div>
+                    <div className="p-2 rounded bg-[#0D1B2D] border border-[#203550] flex items-center justify-between">
+                      <span className="text-slate-400">2. Scale / Casualties ({((breakdown.weights?.scale ?? 0.25) * 100).toFixed(0)}%):</span>
+                      <span className="text-white font-bold">{breakdown.scale_sub} pts <span className="text-[10px] text-slate-500 font-normal">({breakdown.scale_raw})</span></span>
+                    </div>
+                    <div className="p-2 rounded bg-[#0D1B2D] border border-[#203550] flex items-center justify-between">
+                      <span className="text-slate-400">3. Verification ({((breakdown.weights?.verification ?? 0.20) * 100).toFixed(0)}%):</span>
+                      <span className="text-white font-bold">{breakdown.verification_sub} pts <span className="text-[10px] text-slate-500 font-normal">({breakdown.verification_raw})</span></span>
+                    </div>
+                    <div className="p-2 rounded bg-[#0D1B2D] border border-[#203550] flex items-center justify-between">
+                      <span className="text-slate-400">4. Location Precision ({((breakdown.weights?.location ?? 0.10) * 100).toFixed(0)}%):</span>
+                      <span className="text-white font-bold">{breakdown.location_sub} pts <span className="text-[10px] text-slate-500 font-normal">({breakdown.location_raw})</span></span>
+                    </div>
+                    <div className="p-2 rounded bg-[#0D1B2D] border border-[#203550] flex items-center justify-between">
+                      <span className="text-slate-400">5. Time Recency ({((breakdown.weights?.time ?? 0.10) * 100).toFixed(0)}%):</span>
+                      <span className="text-white font-bold">{breakdown.time_sub} pts <span className="text-[10px] text-slate-500 font-normal">({breakdown.time_raw})</span></span>
+                    </div>
+                    {breakdown.corroboration_boost > 0 && (
+                      <div className="p-2 rounded bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-emerald-300">
+                        <span>+ Corroboration Boost:</span>
+                        <span className="font-bold">+{breakdown.corroboration_boost} pts</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono pt-1 border-t border-[#203550]/60 flex items-center justify-between">
+                    <span>Algorithmic Base: <strong className="text-cyan-300">{breakdown.calculated_score}</strong> / 100</span>
+                    <span>Status: <strong className="text-slate-200">{incident.verificationStatus?.toUpperCase() || 'UNVERIFIED'}</strong></span>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div className="text-[11px] text-slate-400 font-mono">
+                Computed dynamically by the backend 5-factor scoring engine (Hazard 35%, Scale 25%, Verification 20%, Location 10%, Time 10%).
+              </div>
+            );
+          })()}
         </div>
 
         {/* Priority Explanation */}

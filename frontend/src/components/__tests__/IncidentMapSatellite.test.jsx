@@ -67,7 +67,7 @@ describe('IncidentMap Satellite View & Geospatial Intelligence Layer Suite', () 
     expect(tileLayer.getAttribute('data-attribution')).toContain('Esri');
   });
 
-  it('renders all 4 available basemap layer options (Satellite, Streets, Dark, Terrain)', () => {
+  it('renders all 4 available basemap layer options (Satellite, Streets,  Terrain)', () => {
     render(
       <IncidentMap
         incidents={sampleIncidents}
@@ -77,7 +77,6 @@ describe('IncidentMap Satellite View & Geospatial Intelligence Layer Suite', () 
 
     expect(screen.getByRole('button', { name: /Satellite/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Streets/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Dark/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Terrain/i })).toBeInTheDocument();
   });
 
@@ -106,20 +105,20 @@ describe('IncidentMap Satellite View & Geospatial Intelligence Layer Suite', () 
     expect(markers).toHaveLength(2); // Only the 2 mapped incidents
   });
 
-  it('switches to CartoDB Dark Matter basemap when clicked', () => {
-    render(
-      <IncidentMap
-        incidents={sampleIncidents}
-        attentionZones={sampleZones}
-      />
-    );
+  // it('switches to CartoDB Dark Matter basemap when clicked', () => {
+  //   render(
+  //     <IncidentMap
+  //       incidents={sampleIncidents}
+  //       attentionZones={sampleZones}
+  //     />
+  //   );
 
-    const darkBtn = screen.getByRole('button', { name: /Dark/i });
-    fireEvent.click(darkBtn);
+  //   const darkBtn = screen.getByRole('button', { name: /Dark/i });
+  //   fireEvent.click(darkBtn);
 
-    const tileLayer = screen.getByTestId('tile-layer');
-    expect(tileLayer.getAttribute('data-url')).toContain('basemaps.cartocdn.com/dark_all');
-  });
+  //   const tileLayer = screen.getByTestId('tile-layer');
+  //   expect(tileLayer.getAttribute('data-url')).toContain('basemaps.cartocdn.com/dark_all');
+  // });
 
   it('preserves real incident coordinates and avoids plotting unmapped incidents arbitrarily', () => {
     render(

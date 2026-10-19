@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import TopNav from '../TopNav';
 import NewIncidentModal from '../NewIncidentModal';
+import OverviewPage from '../../pages/OverviewPage';
 import api from '../../services/api';
 
 vi.mock('../../services/api', () => ({
@@ -98,6 +99,95 @@ describe('RESQNET AI Dashboard Header (TopNav)', () => {
     expect(screen.getByText('Jordan Davis')).toBeInTheDocument();
     expect(screen.getByText('Lead Coordinator')).toBeInTheDocument();
     expect(screen.getByText('JD')).toBeInTheDocument();
+  });
+
+  it('renders notification button with internal badge and handles click and unread count', () => {
+    const onNotificationClick = vi.fn();
+    render(
+      <TopNav
+        activeTabName="Operations Overview"
+        backendConnected={true}
+        onNotificationClick={onNotificationClick}
+        unreadNotificationsCount={3}
+      />
+    );
+
+    const notifBtn = screen.getByRole('button', { name: /Tactical Notifications/i });
+    expect(notifBtn).toBeInTheDocument();
+    expect(notifBtn).toHaveClass('w-8', 'h-8');
+
+    // Verify unread alert badge is rendered
+    expect(screen.getByLabelText(/3 unread alerts/i)).toBeInTheDocument();
+
+    // Clicking notification button triggers callback and clears badge
+    fireEvent.click(notifBtn);
+    expect(onNotificationClick).toHaveBeenCalledTimes(1);
+    expect(screen.queryByLabelText(/unread alerts/i)).not.toBeInTheDocument();
+  });
+
+  it('renders compact Ctrl+K shortcut hint in quick search and focuses search input on Ctrl+K', () => {
+    render(
+      <TopNav
+        activeTabName="Operations Overview"
+        backendConnected={true}
+      />
+    );
+
+    const searchInput = screen.getByRole('textbox', { name: /Quick Search/i });
+    expect(searchInput).toBeInTheDocument();
+    expect(screen.getByText('Ctrl+K')).toBeInTheDocument();
+
+    // Trigger Ctrl+K keydown
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    expect(searchInput).toHaveFocus();
+  });
+
+  it('renders compact Backend Connected indicator for online and offline states', () => {
+    const { rerender } = render(
+      <TopNav
+        activeTabName="Operations Overview"
+        backendConnected={true}
+      />
+    );
+
+    expect(screen.getByText('Backend Connected')).toBeInTheDocument();
+
+    // Rerender in offline fallback state
+    rerender(
+      <TopNav
+        activeTabName="Operations Overview"
+        backendConnected={false}
+      />
+    );
+    expect(screen.getByText('Offline (Local Fallback)')).toBeInTheDocument();
+  });
+});
+
+describe('OverviewPage Hero Banner Refinement', () => {
+  it('renders hero title, description, and Live SitRep while removing the 3 red-boxed metric cards', () => {
+    render(
+      <OverviewPage
+        incidents={[]}
+        attentionZones={[]}
+        selectedIncident={null}
+        onSelectIncident={vi.fn()}
+        onNavigateTab={vi.fn()}
+        onDispatchScout={vi.fn()}
+        onVerifyStatusChange={vi.fn()}
+        onResponseStatusChange={vi.fn()}
+        backendConnected={true}
+      />
+    );
+
+    // Kept items
+    expect(screen.getByText('Emergency Response Operations Overview')).toBeInTheDocument();
+    expect(screen.getByText('Live SitRep')).toBeInTheDocument();
+    expect(screen.getByText(/Real-time multi-hazard coordination dashboard/i)).toBeInTheDocument();
+
+    // Removed red-boxed hero metric cards
+    expect(screen.queryByText(/Median Triage/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Est\. Affected/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Active Fleet/i)).not.toBeInTheDocument();
   });
 });
 

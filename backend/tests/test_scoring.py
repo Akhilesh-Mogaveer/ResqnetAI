@@ -331,10 +331,15 @@ def test_api_create_incident_preserves_explicit_coordinator_override(client):
         "priorityScore": 99,  # Manual coordinator override
         "is_priority_overridden": True,
         "is_severity_overridden": True,
+        "override_reason": "VIP event priority escalation",
         "run_nlp_classification": False,
     }
 
-    resp = client.post("/api/v1/incidents", json=payload)
+    resp = client.post(
+        "/api/v1/incidents",
+        json=payload,
+        headers={"Authorization": "Bearer dev-coordinator-token"},
+    )
     assert resp.status_code == 201
     data = resp.json()
 
@@ -441,6 +446,9 @@ def test_intake_overrides_persistence_and_independence(db_session):
     A priority-only override must not mark severity as overridden, and vice-versa.
     """
     from backend.app.services.incident_service import create_incident, get_incident_by_id
+    from backend.app.core.security import SYSTEM_USERS
+
+    coord_user = SYSTEM_USERS["coordinator"]
 
     # 1. Priority-only override
     inc_prio = create_incident(
@@ -449,9 +457,11 @@ def test_intake_overrides_persistence_and_independence(db_session):
             title="Priority Only Override",
             priorityScore=92,
             is_priority_overridden=True,
+            override_reason="Field commander radio confirmed priority update",
             run_nlp_classification=False,
             coordinates=[19.0760, 72.8777],
         ),
+        current_user=coord_user,
     )
     db_session.expire_all()
     reloaded_prio = get_incident_by_id(db_session, inc_prio.id)
@@ -467,9 +477,11 @@ def test_intake_overrides_persistence_and_independence(db_session):
             title="Severity Only Override",
             severity="critical",
             is_severity_overridden=True,
+            override_reason="Severe embankment breach observed on-scene",
             run_nlp_classification=False,
             coordinates=[19.0760, 72.8777],
         ),
+        current_user=coord_user,
     )
     db_session.expire_all()
     reloaded_sev = get_incident_by_id(db_session, inc_sev.id)
@@ -487,9 +499,11 @@ def test_intake_overrides_persistence_and_independence(db_session):
             severity="low",
             is_priority_overridden=True,
             is_severity_overridden=True,
+            override_reason="False alarm verified by ground sensor",
             run_nlp_classification=False,
             coordinates=[19.0760, 72.8777],
         ),
+        current_user=coord_user,
     )
     db_session.expire_all()
     reloaded_both = get_incident_by_id(db_session, inc_both.id)
@@ -774,6 +788,7 @@ def test_manual_overrides_survive_automatic_rescoring(db_session):
         get_audit_logs,
     )
     from backend.app.services.duplicate_service import merge_duplicate_reports
+    from backend.app.core.security import SYSTEM_USERS
 
     inc_in = IncidentCreate(
         id="RQN-P2-04",
@@ -790,9 +805,10 @@ def test_manual_overrides_survive_automatic_rescoring(db_session):
         priorityScore=94,  # Coordinator manually overrides priority to 94 (e.g. VIP event)
         is_priority_overridden=True,
         is_severity_overridden=True,
+        override_reason="VIP event priority adjustment",
         run_nlp_classification=False,
     )
-    primary = create_incident(db_session, inc_in)
+    primary = create_incident(db_session, inc_in, current_user=SYSTEM_USERS["coordinator"])
     assert primary.priorityScore == 94
     assert primary.severity == "low"
     assert primary.is_priority_overridden is True

@@ -13,7 +13,6 @@ import {
   HelpCircle,
   ShieldAlert,
   Radio,
-  Lock,
   Info,
   Map as MapIcon
 } from 'lucide-react';
@@ -34,6 +33,23 @@ function mapHumaidCategory(rawCategory) {
   if (norm.includes('medical') || norm.includes('casualty') || norm.includes('injured')) return 'Medical Emergency';
   if (norm.includes('transport') || norm.includes('accident')) return 'Transportation Accident';
   return 'Other Emergency';
+}
+
+function formatHumaidSituationalNeed(cat) {
+  if (!cat) return 'Unclassified / General Distress';
+  const dict = {
+    requests_or_urgent_needs: 'Requests or Urgent Needs',
+    injured_or_dead_people: 'Injured or Dead People',
+    infrastructure_and_utility_damage: 'Infrastructure & Utility Damage',
+    displaced_people_and_evacuations: 'Displaced People & Evacuations',
+    caution_and_advice: 'Caution & Advice',
+    missing_or_found_people: 'Missing or Found People',
+    other_relevant_information: 'Other Relevant Information',
+    not_humanitarian: 'Not Humanitarian',
+    sympathy_and_support: 'Sympathy & Support',
+    dont_know_or_cant_judge: 'Cannot Determine (Uncertain)',
+  };
+  return dict[cat] || cat.replace(/_/g, ' ');
 }
 
 function MapPreviewClickPicker({ onPickLocation }) {
@@ -66,8 +82,6 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
   const [hazardCategory, setHazardCategory] = useState('Flood / Inundation');
   const [sector, setSector] = useState('East Harbor District');
   const [locationName, setLocationName] = useState('');
-  const [severity, setSeverity] = useState('high');
-  const [priorityScore, setPriorityScore] = useState(75);
   const [peopleAffected, setPeopleAffected] = useState('10 - 25 people');
   const [reportText, setReportText] = useState('');
   const [latitude, setLatitude] = useState('');
@@ -76,11 +90,6 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
   // Source Provenance
   const [reportSource, setReportSource] = useState('Officer/Phone Call');
   const [sourceReference, setSourceReference] = useState('');
-
-  // Priority & Verification Override Controls
-  const [isManualOverride, setIsManualOverride] = useState(false);
-  const [overrideOperator, setOverrideOperator] = useState('Coordinator Intake');
-  const [overrideReason, setOverrideReason] = useState('');
 
   // NLP & Structuring State
   const [isClassifying, setIsClassifying] = useState(false);
@@ -313,14 +322,6 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
       return;
     }
 
-    if (isManualOverride) {
-      if (!overrideReason.trim()) {
-        setErrorMsg('Mandatory justification reason is required for manual priority override.');
-        onShowToast?.('Justification reason is required for manual priority override.', 'alert');
-        return;
-      }
-    }
-
     let userCoords = null;
     let locSource = 'unknown';
     let locStatus = 'unknown';
@@ -362,12 +363,10 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
 
       const payload = {
         title: title.trim(),
-        type: hazardCategory || (nlpPrediction?.predicted_category ? nlpPrediction.predicted_category.replace(/_/g, ' ') : "Emergency Incident"),
+        type: hazardCategory || "Emergency Incident",
         sector,
         locationName: locationName.trim() || `${sector} Zone`,
         coordinates: userCoords,
-        severity,
-        priorityScore: parseInt(priorityScore, 10) || 50,
         peopleAffected: peopleAffected.trim() || "Unknown count",
         report_text: reportText.trim(),
         rawReportText: reportText.trim(),
@@ -378,10 +377,6 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
         location_source: locSource,
         location_resolution_status: locStatus,
         run_nlp_classification: true,
-        is_priority_overridden: isManualOverride,
-        is_severity_overridden: isManualOverride,
-        override_operator: isManualOverride ? (overrideOperator.trim() || 'Coordinator Intake') : null,
-        override_reason: isManualOverride ? overrideReason.trim() : null,
       };
 
       const created = await api.createIncident(payload);
@@ -399,8 +394,6 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
       setPeopleAffected('10 - 25 people');
       setReportSource('Officer/Phone Call');
       setSourceReference('');
-      setIsManualOverride(false);
-      setOverrideReason('');
       setNlpPrediction(null);
       setStructuredData(null);
       setLocationResolutionTag(null);
@@ -819,24 +812,10 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
             </div>
           </div>
 
-          {/* Severity & Casualties / Affected People */}
+          {/* Casualties & Affected Population + Automated Severity / Priority Notice */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-medium mb-1">Severity Tier</label>
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value)}
-                className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-mono"
-              >
-                <option value="critical">Critical (Red)</option>
-                <option value="high">High (Amber)</option>
-                <option value="moderate">Moderate (Cyan)</option>
-                <option value="low">Low (Green)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-medium mb-1">Casualties & Affected People</label>
+              <label className="block text-slate-300 font-medium mb-1">Casualties & Affected Population *</label>
               <input
                 type="text"
                 value={peopleAffected}
@@ -845,10 +824,20 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                 className="w-full bg-[#091629] border border-[#203550] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
               />
             </div>
+
+            <div className="p-2.5 rounded-lg bg-[#091629] border border-[#203550] flex flex-col justify-center text-[11px]">
+              <span className="font-mono text-cyan-300 font-bold uppercase text-[10px] flex items-center space-x-1 mb-0.5">
+                <Brain className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Automated Severity & Priority Engine</span>
+              </span>
+              <span className="text-slate-400 text-[10px] leading-snug">
+                Initial severity tier and priority score (0–100) are dynamically computed by the backend 5-factor scoring engine upon ingestion.
+              </span>
+            </div>
           </div>
 
-          {/* Section 3: Verification Status & Priority Scoring Controls */}
-          <div className="p-3 rounded-lg bg-[#091629] border border-[#203550] space-y-3">
+          {/* Section 3: Verification Status & Scoring Protocol */}
+          <div className="p-3 rounded-lg bg-[#091629] border border-[#203550] space-y-2">
             {/* Unverified Default Status Banner */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded bg-[#132238] border border-amber-500/30 text-slate-300 text-[11px]">
               <div className="flex items-center space-x-2">
@@ -867,78 +856,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
               </span>
             </div>
 
-            {/* Manual Priority Override Checkbox */}
-            <div className="space-y-2">
-              <label htmlFor="manual-priority-override" className="flex items-center space-x-2 cursor-pointer text-slate-200 font-medium">
-                <input
-                  type="checkbox"
-                  id="manual-priority-override"
-                  checked={isManualOverride}
-                  onChange={(e) => setIsManualOverride(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4 bg-[#0D1B2D] border-[#203550]"
-                />
-                <span className="text-xs">
-                  Manual Priority / Severity Override (Lead Coordinator Authorization Required)
-                </span>
-              </label>
-
-              {!isManualOverride ? (
-                <div className="text-[11px] text-slate-400 font-mono bg-[#0D1B2D] p-2 rounded border border-[#203550] flex items-center justify-between">
-                  <span>
-                    ⚡ Automated Priority: Priority score will be calculated dynamically by the RESQNET scoring engine upon submission.
-                  </span>
-                  <span className="text-cyan-400 font-bold">Auto-Score Active</span>
-                </div>
-              ) : (
-                <div className="p-3 bg-[#132238] border border-amber-500/30 rounded-lg space-y-2 text-xs">
-                  <div className="flex items-center space-x-1.5 text-amber-300 font-bold text-[11px]">
-                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Authorized Coordinator Override</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-slate-300 font-medium mb-1 text-[11px]">
-                        Override Priority (0-100) *
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={priorityScore}
-                        onChange={(e) => setPriorityScore(e.target.value)}
-                        className="w-full bg-[#091629] border border-amber-500/40 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-300 font-medium mb-1 text-[11px]">
-                        Authorizing Coordinator *
-                      </label>
-                      <input
-                        type="text"
-                        value={overrideOperator}
-                        onChange={(e) => setOverrideOperator(e.target.value)}
-                        placeholder="e.g. Coordinator Jordan Davis"
-                        className="w-full bg-[#091629] border border-amber-500/40 rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-300 font-medium mb-1 text-[11px]">
-                        Mandatory Justification *
-                      </label>
-                      <input
-                        type="text"
-                        value={overrideReason}
-                        onChange={(e) => setOverrideReason(e.target.value)}
-                        placeholder="e.g. Direct phone dispatch confirmed trapped families"
-                        className="w-full bg-[#091629] border border-amber-500/40 rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-amber-300 italic">
-                    * This override bypasses automated priority calculation and records an immutable audit log entry.
-                  </p>
-                </div>
-              )}
+            <div className="text-[11px] text-slate-400 font-mono bg-[#0D1B2D] p-2 rounded border border-[#203550] flex items-center justify-between">
+              <span>
+                ⚡ Intake Protocol: Manual priority overrides are restricted to authenticated Lead Coordinators in the Operations Management console.
+              </span>
+              <span className="text-cyan-400 font-bold">Auto-Score Active</span>
             </div>
           </div>
 
@@ -1082,19 +1004,20 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                     <span>Model Inferred Fields</span>
                   </span>
                   <div className="text-slate-200 flex items-center justify-between">
-                    <span>Category: <strong className="font-mono text-white">{structuredData.inferred_fields?.hazard_category?.replace(/_/g, ' ') || 'Unknown'}</strong></span>
+                    <span>HumAID Situational Need: <strong className="font-mono text-white">{formatHumaidSituationalNeed(structuredData.inferred_fields?.hazard_category)}</strong></span>
                     {structuredData.inferred_fields?.hazard_category && (
                       <button
                         type="button"
                         onClick={() => setHazardCategory(mapHumaidCategory(structuredData.inferred_fields.hazard_category))}
                         className="text-[10px] text-indigo-300 underline font-mono"
+                        title="Map situational clue to closest physical hazard option"
                       >
-                        Apply
+                        Set Hazard Type
                       </button>
                     )}
                   </div>
                   <div className="text-slate-200">
-                    NLP Confidence: <strong className="font-mono text-white">{((structuredData.inferred_fields?.nlp_confidence || 0) * 100).toFixed(1)}%</strong>
+                    Model Classification Confidence: <strong className="font-mono text-white">{((structuredData.inferred_fields?.nlp_confidence || 0) * 100).toFixed(1)}%</strong>
                   </div>
                   <div className="text-slate-200">
                     Urgent Indicators: <strong className="font-mono text-white">
@@ -1117,7 +1040,7 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
               )}
 
               <p className="text-[10px] text-slate-400 italic">
-                * Note: NLP confidence indicates model categorization certainty and must not be confused with field report reliability or ground-truth verification.
+                * Note: NLP confidence indicates model categorization certainty and must not be confused with field report reliability or ground-truth verification. Model confidence does not establish that a report is factually true.
               </p>
             </div>
           )}
@@ -1128,17 +1051,20 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
               <div className="flex items-center justify-between text-[11px] font-mono text-blue-300 mb-1">
                 <span className="font-bold flex items-center space-x-1">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>HumAID Prediction</span>
+                  <span>HumAID Situational Need (AI Inferred)</span>
                 </span>
                 <span className="text-emerald-400 font-semibold">
                   {(nlpPrediction.confidence * 100).toFixed(1)}% Confidence
                 </span>
               </div>
               <div className="text-white font-mono font-bold text-xs uppercase tracking-wide">
-                Category: {nlpPrediction.predicted_category.replace(/_/g, ' ')}
+                Situational Need: {formatHumaidSituationalNeed(nlpPrediction.predicted_category)}
+              </div>
+              <div className="text-[11px] text-slate-300 mt-1 font-sans">
+                Physical Hazard Selected: <strong className="text-cyan-300">{hazardCategory}</strong>
               </div>
               <p className="text-[10px] text-slate-400 mt-1 italic">
-                * Suggested situational categorization. Coordinator authorization required before dispatching rescue units.
+                * Suggested situational categorization. Model confidence reflects classification likelihood only, not ground-truth proof. Coordinator authorization required before dispatching rescue units.
               </p>
             </div>
           )}

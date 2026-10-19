@@ -210,6 +210,50 @@ class Incident(Base):
     def is_severity_overridden(self, val: bool):
         self._is_severity_overridden = bool(val)
 
+    @property
+    def scoring_breakdown(self) -> Dict[str, Any]:
+        """Explainable 5-factor scoring engine breakdown."""
+        from backend.app.services.scoring_service import calculate_priority_score
+        try:
+            score, bd = calculate_priority_score(
+                report_text=self.report_text or self.original_report_text or "",
+                title=self.title or "",
+                humaid_category=self.humaid_category,
+                humaid_confidence=self.humaid_confidence,
+                location_confidence=self.locationConfidence,
+                affected_count_numeric=self.affectedCountNumeric,
+                verification_status=self.verificationStatus,
+                duplicate_count=self.duplicate_count,
+                timestamp=self.timestamp,
+                is_synthetic_location=self.is_synthetic_location,
+                location_source=self.location_source,
+                sector=self.sector,
+                source_summary=self.sourceSummary,
+            )
+            bd["is_overridden"] = self.is_priority_overridden
+            bd["calculated_score"] = score
+            bd["effective_score"] = self.priorityScore
+            return bd
+        except Exception:
+            return {
+                "hazard_sub": 50.0,
+                "scale_sub": 50.0,
+                "verification_sub": 50.0,
+                "location_sub": 50.0,
+                "time_sub": 50.0,
+                "corroboration_boost": 0,
+                "is_overridden": self.is_priority_overridden,
+                "calculated_score": self.priorityScore,
+                "effective_score": self.priorityScore,
+                "weights": {
+                    "hazard": 0.35,
+                    "scale": 0.25,
+                    "verification": 0.20,
+                    "location": 0.10,
+                    "time": 0.10,
+                },
+            }
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary matching frontend dashboard schema."""
         return {
@@ -223,6 +267,8 @@ class Incident(Base):
             "priorityScore": self.priorityScore,
             "reportReliability": self.reportReliability,
             "locationConfidence": self.locationConfidence,
+            "scoring_breakdown": self.scoring_breakdown,
+            "scoringBreakdown": self.scoring_breakdown,
             "peopleAffected": self.peopleAffected,
             "affectedCountNumeric": self.affectedCountNumeric,
             "timeAgo": self.timeAgo,

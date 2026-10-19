@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuditLogView from '../components/AuditLogView';
 import { 
   Activity, 
@@ -26,6 +26,26 @@ export default function ActivityHealthPage({
   onSelectIncidentById
 }) {
   const [activeSubTab, setActiveSubTab] = useState('audit'); // audit | health
+  const [healthData, setHealthData] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeSubTab === 'health' && backendConnected) {
+      let isMounted = true;
+      setHealthLoading(true);
+      api.getHealth()
+        .then(data => {
+          if (isMounted) setHealthData(data);
+        })
+        .catch(err => {
+          console.error("Health probe error:", err);
+        })
+        .finally(() => {
+          if (isMounted) setHealthLoading(false);
+        });
+      return () => { isMounted = false; };
+    }
+  }, [activeSubTab, backendConnected]);
 
   return (
     <div className="space-y-6">
@@ -150,19 +170,23 @@ export default function ActivityHealthPage({
                 <div className="p-2 rounded-lg bg-purple-500/15 text-purple-400 border border-purple-500/30">
                   <Brain className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                  LOADED
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                  (healthData?.model_loaded ?? true)
+                    ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                    : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {(healthData?.model_loaded ?? true) ? 'LOADED' : 'FALLBACK'}
                 </span>
               </div>
               <div>
                 <h3 className="font-bold text-white text-xs">HumAID DistilBERT</h3>
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
-                  resqnet_distilbert_full
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate" title={healthData?.model_dir || 'resqnet_distilbert_full'}>
+                  {healthData?.model_dir ? healthData.model_dir.replace(/\\/g, '/').split('/').pop() : 'resqnet_distilbert_full'}
                 </p>
               </div>
               <div className="pt-2 border-t border-[#203550] text-[11px] flex items-center space-x-1 font-medium text-purple-400">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>11 Crisis Classes Ready</span>
+                <span>{(healthData?.model_loaded ?? true) ? '11 Humanitarian Classes Ready' : 'Inference Fallback Mode'}</span>
               </div>
             </div>
 
@@ -177,14 +201,14 @@ export default function ActivityHealthPage({
                 </span>
               </div>
               <div>
-                <h3 className="font-bold text-white text-xs">Telemetry Simulation</h3>
+                <h3 className="font-bold text-white text-xs">Simulated Telemetry Stream</h3>
                 <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  14.2 pkts/sec nominal
+                  14.2 pkts/sec nominal (Synthetic Demo Feed)
                 </p>
               </div>
               <div className="pt-2 border-t border-[#203550] text-[11px] flex items-center space-x-1 font-medium text-amber-400">
                 <Clock className="w-3.5 h-3.5" />
-                <span>Sensor stream active</span>
+                <span>Simulated stream — Not live physical sensors</span>
               </div>
             </div>
           </div>

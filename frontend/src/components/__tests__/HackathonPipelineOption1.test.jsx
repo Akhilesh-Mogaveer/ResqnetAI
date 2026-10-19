@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NewIncidentModal from '../NewIncidentModal';
+import CoordinatorOverrideModal from '../CoordinatorOverrideModal';
 import IncidentMap from '../IncidentMap';
 import LiveMapPage from '../../pages/LiveMapPage';
 import api from '../../services/api';
@@ -552,14 +553,15 @@ describe('Hackathon Pipeline Option 1 Frontend Suite', () => {
       expect(screen.getByDisplayValue('Chamoli Disaster Zone')).toBeInTheDocument();
     });
 
-    it('enforces coordinator justification when manual priority override is toggled', async () => {
+    it('submits clean report without client-side override flags, letting backend score priority', async () => {
       const onToast = vi.fn();
+      const onCreated = vi.fn();
 
       render(
         <NewIncidentModal
           isOpen={true}
           onClose={vi.fn()}
-          onIncidentCreated={vi.fn()}
+          onIncidentCreated={onCreated}
           onShowToast={onToast}
         />
       );
@@ -570,44 +572,78 @@ describe('Hackathon Pipeline Option 1 Frontend Suite', () => {
       fireEvent.change(screen.getByPlaceholderText(/Rising floodwater/i), {
         target: { value: 'Pillars cracked under load' }
       });
-
-      // Toggle manual override
-      const overrideCheckbox = screen.getByRole('checkbox', { name: /Manual Priority \/ Severity Override/i });
-      fireEvent.click(overrideCheckbox);
-
-      // Try submitting without justification reason
-      const form = screen.getByRole('button', { name: /Submit Report/i }).closest('form');
-      fireEvent.submit(form);
-
-      expect(onToast).toHaveBeenCalledWith(
-        'Justification reason is required for manual priority override.',
-        'alert'
-      );
-      expect(api.createIncident).not.toHaveBeenCalled();
-
-      // Now enter coordinator and reason
-      const reasonInput = screen.getByPlaceholderText(/Direct phone dispatch/i);
-      fireEvent.change(reasonInput, {
-        target: { value: 'Confirmed by District Collector via secure radio call' }
+      fireEvent.change(screen.getByPlaceholderText(/5 injured/i), {
+        target: { value: '15 people stranded' }
       });
+
+      // Confirm reporter-facing manual override controls are NOT present
+      expect(screen.queryByRole('checkbox', { name: /Manual Priority \/ Severity Override/i })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Severity Tier/i)).not.toBeInTheDocument();
 
       api.createIncident.mockResolvedValueOnce({
         id: 'RQN-0502',
         title: 'Bridge structural failure',
-        is_priority_overridden: true,
-        priorityScore: 95,
+        severity: 'critical',
+        priorityScore: 85,
         verificationStatus: 'unverified',
+      });
+
+      const form = screen.getByRole('button', { name: /Submit Report/i }).closest('form');
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(api.createIncident).toHaveBeenCalledTimes(1);
+      });
+
+      const payload = api.createIncident.mock.calls[0][0];
+      expect(payload.title).toBe('Bridge structural failure');
+      expect(payload.report_text).toBe('Pillars cracked under load');
+      expect(payload.peopleAffected).toBe('15 people stranded');
+      expect(payload.is_priority_overridden).toBeUndefined();
+      expect(payload.is_severity_overridden).toBeUndefined();
+      expect(payload.override_reason).toBeUndefined();
+    });
+
+    it('enforces coordinator justification when manual priority override is submitted via CoordinatorOverrideModal', async () => {
+      const onSave = vi.fn();
+      const onClose = vi.fn();
+
+      const fakeIncident = {
+        id: 'RQN-0502',
+        title: 'Bridge structural failure',
+        priorityScore: 70,
+        responseStatus: 'triage',
+      };
+
+      render(
+        <CoordinatorOverrideModal
+          isOpen={true}
+          onClose={onClose}
+          incident={fakeIncident}
+          onSaveOverride={onSave}
+        />
+      );
+
+      // Attempt to submit without reason
+      const form = screen.getByRole('button', { name: /Commit Authorized Override/i }).closest('form');
+      fireEvent.submit(form);
+
+      expect(screen.getByText(/A transparent coordinator justification reason is mandatory/i)).toBeInTheDocument();
+      expect(onSave).not.toHaveBeenCalled();
+
+      // Enter valid coordinator justification reason
+      const reasonInput = screen.getByPlaceholderText(/State the verifiable ground truth/i);
+      fireEvent.change(reasonInput, {
+        target: { value: 'Direct drone recon confirmed 15 people trapped under fallen bridge slab' }
       });
 
       fireEvent.submit(form);
 
-      await waitFor(() => {
-        expect(api.createIncident).toHaveBeenCalledWith(expect.objectContaining({
-          is_priority_overridden: true,
-          override_reason: 'Confirmed by District Collector via secure radio call',
-          override_operator: 'Coordinator Intake',
-        }));
-      });
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+        incidentId: 'RQN-0502',
+        reason: 'Direct drone recon confirmed 15 people trapped under fallen bridge slab',
+      }));
+      expect(onClose).toHaveBeenCalled();
     });
 
     it('preserves unresolved location without inventing fake coordinates when officer selects Leave Unresolved', async () => {

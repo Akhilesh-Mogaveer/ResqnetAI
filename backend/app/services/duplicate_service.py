@@ -15,6 +15,7 @@ import math
 import re
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 from sqlalchemy.orm import Session
@@ -420,8 +421,21 @@ def merge_duplicate_incident(
             if primary.verificationStatus != "verified" and duplicate.verificationStatus == "verified":
                 primary.verificationStatus = "verified"
 
-            # 2e. Record corroboration note on primary
+            # 2e. Retain duplicate's existing notes and evidence on primary incident
             primary_notes = list(primary.notes or [])
+            if duplicate.notes:
+                for d_note in duplicate.notes:
+                    if isinstance(d_note, dict):
+                        d_text = d_note.get("text", "")
+                        d_auth = d_note.get("author", "Coordinator")
+                        if "Merged as duplicate into" not in d_text:
+                            primary_notes.append({
+                                "id": f"n-merged-{uuid.uuid4().hex[:6]}",
+                                "author": f"{d_auth} [via {duplicate.id}]",
+                                "time": d_note.get("time", "Earlier"),
+                                "text": f"[Merged from {duplicate.id}]: {d_text}",
+                            })
+
             corroboration_text = (
                 f"Corroborating Report Merged ({duplicate.id}): '{duplicate.title}' from sector {duplicate.sector}. "
                 f"Original message: '{duplicate.original_report_text or duplicate.report_text or 'N/A'}'. "
@@ -434,6 +448,16 @@ def merge_duplicate_incident(
                 "text": corroboration_text,
             })
             primary.notes = primary_notes
+
+            # 2f. Retain and corroborate narrative and source summary
+            if duplicate.sourceSummary and duplicate.sourceSummary not in (primary.sourceSummary or ""):
+                primary.sourceSummary = f"{primary.sourceSummary or ''} | Merged {duplicate.id}: {duplicate.sourceSummary}".strip(" |")
+
+            # 2g. Consolidate casualty / affected count if duplicate provides higher estimate
+            if (duplicate.affectedCountNumeric or 0) > (primary.affectedCountNumeric or 0):
+                primary.affectedCountNumeric = duplicate.affectedCountNumeric
+                primary.peopleAffected = duplicate.peopleAffected
+
 
             # 3. Create immutable audit log records for accountability on both records
             audit_merge_primary = AuditLog(

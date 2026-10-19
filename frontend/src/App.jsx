@@ -300,6 +300,8 @@ export default function App() {
         return;
       } catch (err) {
         console.error("Failed to add note on backend:", err);
+        showToast(`Failed to save note to ${incidentId}: ${err.message || 'API error'}`, 'error');
+        return;
       }
     }
 

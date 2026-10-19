@@ -46,7 +46,7 @@ class IndiaEnvironmentalService:
 
     async def get_sources_status(self) -> List[SourceStatusItem]:
         """Audit and report current connectivity of all official and modelled sources."""
-        async with httpx.AsyncClient(verify=False) as client:
+        async with httpx.AsyncClient() as client:
             statuses = await asyncio.gather(
                 self.imd_adapter.get_status(client),
                 self.nwdp_adapter.get_status(client),
@@ -206,7 +206,7 @@ class IndiaEnvironmentalService:
 
         fetch_time = datetime.now(timezone.utc).isoformat()
 
-        async with httpx.AsyncClient(verify=False) as client:
+        async with httpx.AsyncClient() as client:
             # Parallel fetch from source adapters and health check
             tasks = [
                 self.get_sources_status(),

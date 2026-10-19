@@ -304,6 +304,55 @@ export default function PriorityQueuePage({
                 </p>
               </div>
 
+              {/* 5-Factor Scoring Breakdown */}
+              {(() => {
+                const breakdown = selectedIncident.scoring_breakdown || selectedIncident.scoringBreakdown;
+                if (!breakdown) return null;
+                return (
+                  <div className="p-3.5 rounded-xl bg-[#091629] border border-[#203550] space-y-2 text-xs font-mono">
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="text-[10px] uppercase font-bold text-cyan-400">Scoring Engine Sub-Scores</span>
+                      <span className="text-[11px] font-bold text-white">{selectedIncident.priorityScore} / 100</span>
+                    </div>
+
+                    {breakdown.is_overridden && (
+                      <div className="p-2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-sans">
+                        ⚠️ <strong>Coordinator Override Active</strong> · Algorithmic base: {breakdown.calculated_score}
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="flex justify-between items-center text-slate-300">
+                        <span className="text-slate-400">Hazard Weight (35%):</span>
+                        <span className="font-bold text-white">{breakdown.hazard_sub} pts</span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-300">
+                        <span className="text-slate-400">Scale / Casualties (25%):</span>
+                        <span className="font-bold text-white">{breakdown.scale_sub} pts</span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-300">
+                        <span className="text-slate-400">Verification Status (20%):</span>
+                        <span className="font-bold text-white">{breakdown.verification_sub} pts</span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-300">
+                        <span className="text-slate-400">Location Accuracy (10%):</span>
+                        <span className="font-bold text-white">{breakdown.location_sub} pts</span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-300">
+                        <span className="text-slate-400">Time Recency (10%):</span>
+                        <span className="font-bold text-white">{breakdown.time_sub} pts</span>
+                      </div>
+                      {breakdown.corroboration_boost > 0 && (
+                        <div className="flex justify-between items-center text-emerald-400">
+                          <span>+ Corroboration Boost:</span>
+                          <span className="font-bold">+{breakdown.corroboration_boost} pts</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Compounding Risk Factors */}
               {selectedIncident.riskFactors && selectedIncident.riskFactors.length > 0 && (
                 <div>

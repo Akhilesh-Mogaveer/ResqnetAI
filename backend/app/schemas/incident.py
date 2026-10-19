@@ -3,7 +3,7 @@ Pydantic schemas for Incident Management, Verification, Overrides, and Audit Log
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class IncidentBase(BaseModel):
@@ -149,6 +149,8 @@ class IncidentResponse(IncidentBase):
     location_source: Optional[str] = None
     is_priority_overridden: bool = False
     is_severity_overridden: bool = False
+    scoring_breakdown: Optional[Dict[str, Any]] = None
+    scoringBreakdown: Optional[Dict[str, Any]] = None
     dismissed_duplicates: List[str] = Field(default_factory=list)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -173,6 +175,39 @@ class DuplicateDismissResponse(IncidentResponse):
     message: str
     audit_log_id: Optional[str] = None
 
+
+
+class NoteCreate(BaseModel):
+    text: str = Field(description="Note body text written by the coordinator.")
+    author: str = Field(default="Coordinator", description="Name/role of the coordinator writing the note.")
+
+    @field_validator("text")
+    @classmethod
+    def text_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Note text must not be blank.")
+        if len(v) > 2000:
+            raise ValueError("Note text must not exceed 2,000 characters.")
+        return v
+
+    @field_validator("author")
+    @classmethod
+    def author_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Author must not be blank.")
+        if len(v) > 255:
+            raise ValueError("Author name must not exceed 255 characters.")
+        return v
+
+
+class NoteResponse(BaseModel):
+    id: str
+    author: str
+    time: str
+    text: str
+    override_type: Optional[str] = None
 
 
 class AuditLogResponse(BaseModel):

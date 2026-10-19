@@ -6,10 +6,36 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
 const API_V1 = `${API_BASE}/api/v1`;
 
+let _cachedToken = null;
+
+export const getAuthToken = () => {
+  if (_cachedToken) return _cachedToken;
+  try {
+    return localStorage.getItem('resqnet_auth_token') || 'dev-coordinator-token';
+  } catch {
+    return 'dev-coordinator-token';
+  }
+};
+
+export const setAuthToken = (token) => {
+  _cachedToken = token;
+  try {
+    if (token) {
+      localStorage.setItem('resqnet_auth_token', token);
+    } else {
+      localStorage.removeItem('resqnet_auth_token');
+    }
+  } catch {
+    // Ignore localStorage errors in non-browser/test environments
+  }
+};
+
 async function request(endpoint, options = {}) {
   const url = `${API_V1}${endpoint}`;
+  const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 
