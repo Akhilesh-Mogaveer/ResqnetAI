@@ -16,6 +16,8 @@ import {
   Zap,
   Info
 } from 'lucide-react';
+import { getHazardMeta, handleHazardImageError } from '../utils/hazardMapping';
+import AnimatedPriorityScore from '../components/AnimatedPriorityScore';
 
 export default function PriorityQueuePage({
   incidents = [],
@@ -175,26 +177,38 @@ export default function PriorityQueuePage({
                 const isSelected = selectedIncident?.id === inc.id;
                 const rankNumber = idx + 1 < 10 ? `0${idx + 1}` : `${idx + 1}`;
                 const isCrit = inc.severity === 'critical';
+                const hazardMeta = getHazardMeta(inc);
 
                 return (
                   <div
                     key={inc.id}
                     onClick={() => onSelectIncident(inc)}
-                    className={`p-4 transition-all cursor-pointer rounded-lg my-1 ${
+                    className={`p-3.5 transition-all cursor-pointer rounded-lg my-1 ${
                       isSelected
                         ? 'bg-[#132238] border border-cyan-500/60 shadow-sm'
                         : 'hover:bg-[#091629] border border-transparent'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start space-x-3 truncate">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 ${
                           isCrit ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40' : 'bg-[#091629] text-slate-300 border border-[#203550]'
                         }`}>
                           {rankNumber}
                         </span>
 
-                        <div className="truncate space-y-1">
+                        {/* Resolved Hazard Thumbnail */}
+                        <div className="w-16 h-14 sm:w-20 sm:h-16 rounded-lg overflow-hidden border border-[#203550] bg-[#07111F] flex-shrink-0 shadow-sm hidden xs:block">
+                          <img
+                            src={hazardMeta.image}
+                            alt={hazardMeta.altText}
+                            onError={handleHazardImageError}
+                            loading="lazy"
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center space-x-2 flex-wrap">
                             <span className="font-mono text-xs font-bold text-slate-200">
                               {inc.id}
@@ -264,16 +278,17 @@ export default function PriorityQueuePage({
                         </div>
                       </div>
 
-                      {/* Priority Score badge */}
-                      <div className="text-right flex-shrink-0 flex flex-col items-end pl-2">
-                        <span className="text-[9px] font-mono text-slate-400 uppercase">Score</span>
-                        <span className={`text-lg font-bold font-mono ${
-                          inc.priorityScore >= 85 ? 'text-rose-400' :
-                          inc.priorityScore >= 70 ? 'text-amber-400' : 'text-cyan-400'
-                        }`}>
-                          {inc.priorityScore}
-                        </span>
-                        <ChevronRight className={`w-4 h-4 mt-1 transition-transform ${
+                      {/* Priority Score Gauge */}
+                      <div className="flex items-center space-x-2 flex-shrink-0 pl-2">
+                        <AnimatedPriorityScore
+                          score={inc.priorityScore}
+                          severity={inc.severity}
+                          size="sm"
+                          showDenominator={false}
+                          showLabel={true}
+                          label="Score"
+                        />
+                        <ChevronRight className={`w-4 h-4 transition-transform ${
                           isSelected ? 'text-cyan-400 translate-x-1' : 'text-slate-500'
                         }`} />
                       </div>

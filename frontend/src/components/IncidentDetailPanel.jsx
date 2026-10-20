@@ -18,6 +18,8 @@ import {
   TrendingUp,
   RotateCcw
 } from 'lucide-react';
+import { getHazardMeta, handleHazardImageError } from '../utils/hazardMapping';
+import AnimatedPriorityScore from './AnimatedPriorityScore';
 
 export default function IncidentDetailPanel({
   incident,
@@ -75,40 +77,54 @@ export default function IncidentDetailPanel({
     }
   };
 
+  const hazardMeta = getHazardMeta(incident);
+
   return (
     <div className="bg-[#0D1B2D] border border-[#203550] rounded-xl p-5 shadow-xl flex flex-col h-[600px] overflow-hidden">
-      {/* Panel Header with subtle rescue-bg-3.jpg backdrop */}
+      {/* Panel Header with resolved hazard category backdrop */}
       <div 
         className="pb-3 border-b border-[#203550] -mx-5 -mt-5 p-5 mb-1 rounded-t-xl relative overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.78) 0%, rgba(9, 22, 41, 0.48) 50%, rgba(13, 27, 45, 0.22) 100%), url('/images/rescue-bg-3.jpg')`,
+          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.88) 0%, rgba(9, 22, 41, 0.65) 50%, rgba(13, 27, 45, 0.3) 100%), url('${hazardMeta.image}')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 20%',
           backgroundRepeat: 'no-repeat'
         }}
       >
         <div className="flex items-start justify-between gap-3 relative z-10">
-          <div className="min-w-0">
-            <div className="flex items-center space-x-2">
-              <span className="font-mono text-xs font-bold text-[#21D4FD] drop-shadow-xs">
-                {incident.id}
-              </span>
-              <button
-                onClick={handleCopyId}
-                title="Copy Incident ID"
-                className="text-slate-300 hover:text-white transition-colors"
-              >
-                {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-              <span className="text-slate-500">·</span>
-              <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${getSeverityBadgeClass(incident.severity)}`}>
-                {incident.severity}
-              </span>
+          <div className="flex items-start gap-3 min-w-0">
+            {/* Category Thumbnail Image with Fallback */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border border-[#203550] bg-[#07111F] flex-shrink-0 shadow-md">
+              <img 
+                src={hazardMeta.image} 
+                alt={hazardMeta.altText} 
+                onError={handleHazardImageError}
+                loading="lazy"
+                className="w-full h-full object-cover rounded-lg"
+              />
             </div>
 
-            <h3 className="text-sm font-bold text-white tracking-tight mt-1 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
-              {incident.title}
-            </h3>
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2">
+                <span className="font-mono text-xs font-bold text-[#21D4FD] drop-shadow-xs">
+                  {incident.id}
+                </span>
+                <button
+                  onClick={handleCopyId}
+                  title="Copy Incident ID"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                <span className="text-slate-500">·</span>
+                <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${getSeverityBadgeClass(incident.severity)}`}>
+                  {incident.severity}
+                </span>
+              </div>
+
+              <h3 className="text-sm font-bold text-white tracking-tight mt-1 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+                {incident.title}
+              </h3>
 
             <div className="flex items-center space-x-2 text-[11px] text-slate-100 mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
               <MapPin className="w-3 h-3 text-cyan-400 flex-shrink-0" />
@@ -154,9 +170,9 @@ export default function IncidentDetailPanel({
                   📱 SIMULATED SMS
                 </span>
               ) : null}
-
             </div>
           </div>
+        </div>
 
           {/* Priority Override Button */}
           <button
@@ -217,8 +233,8 @@ export default function IncidentDetailPanel({
             </div>
             <div className="w-full bg-[#132238] h-1.5 rounded-full mt-1.5 overflow-hidden">
               <div
-                style={{ width: `${incident.priorityScore}%` }}
-                className={`h-full ${
+                style={{ width: `${Math.min(100, Math.max(0, incident.priorityScore))}%` }}
+                className={`h-full transition-all ${
                   incident.priorityScore >= 85 ? 'bg-[#FF4566]' :
                   incident.priorityScore >= 70 ? 'bg-[#FFB547]' : 'bg-[#2878FF]'
                 }`}

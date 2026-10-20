@@ -10,12 +10,14 @@ import {
   Clock, 
   ShieldCheck, 
   ShieldAlert, 
-  MapPin,
-  ChevronRight,
-  Layers,
-  Sparkles,
-  Info
+  MapPin, 
+  ChevronRight, 
+  Layers, 
+  Sparkles, 
+  Info 
 } from 'lucide-react';
+import { getHazardMeta, handleHazardImageError } from '../utils/hazardMapping';
+import AnimatedPriorityScore from '../components/AnimatedPriorityScore';
 
 export default function IncidentsPage({
   incidents = [],
@@ -222,6 +224,7 @@ export default function IncidentsPage({
                 const isSelected = selectedIncident?.id === inc.id;
                 const isCrit = inc.severity === 'critical';
                 const isHigh = inc.severity === 'high';
+                const hazardMeta = getHazardMeta(inc);
 
                 return (
                   <div
@@ -233,93 +236,107 @@ export default function IncidentsPage({
                         : 'bg-[#091629] border-[#203550] hover:bg-[#0D1B2D] hover:border-slate-600'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center space-x-2 flex-wrap">
-                          <span className="font-mono text-xs font-bold text-cyan-400">
-                            {inc.id}
-                          </span>
-
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.2 rounded border ${
-                            isCrit 
-                              ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                              : isHigh
-                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                              : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-                          }`}>
-                            {inc.severity}
-                          </span>
-
-                          <span className={`text-[10px] font-semibold px-2 py-0.2 rounded border ${
-                            inc.verificationStatus === 'verified'
-                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                              : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                          }`}>
-                            {inc.verificationStatus === 'verified' ? '✓ Verified' : '⚠ Unverified'}
-                          </span>
-
-                          {inc.is_duplicate && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                              Merged Duplicate
-                            </span>
-                          )}
-
-                          {(!inc.coordinates || inc.coordinates[0] == null) && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                              Coords Unknown
-                            </span>
-                          )}
-
-                          {Boolean(inc.equity_review_flag || inc.equityReviewFlag) && (
-                            <span 
-                              className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-                              title={(inc.equity_reasons || inc.equityReasons || []).join('; ') || 'Flagged for coordinator review'}
-                            >
-                              ⚖️ Equity Review
-                            </span>
-                          )}
-
-                          {((inc.report_source && inc.report_source.toLowerCase().includes('sms_forwarded')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('forwarded'))) ? (
-                            <span 
-                              className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono"
-                              data-testid="sms-source-badge"
-                            >
-                              📱 FORWARDED SMS
-                            </span>
-                          ) : ((inc.report_source && inc.report_source.toLowerCase().includes('sms')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('sms'))) ? (
-                            <span 
-                              className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-mono"
-                              data-testid="sms-source-badge"
-                            >
-                              📱 SIMULATED SMS
-                            </span>
-                          ) : null}
-
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        {/* Resolved Hazard Thumbnail */}
+                        <div className="w-16 h-14 sm:w-20 sm:h-16 rounded-lg overflow-hidden border border-[#203550] bg-[#07111F] flex-shrink-0 shadow-sm hidden xs:block">
+                          <img
+                            src={hazardMeta.image}
+                            alt={hazardMeta.altText}
+                            onError={handleHazardImageError}
+                            loading="lazy"
+                            className="w-full h-full object-cover rounded-lg"
+                          />
                         </div>
 
-                        <h3 className="text-xs font-semibold text-white truncate">
-                          {inc.title}
-                        </h3>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            <span className="font-mono text-xs font-bold text-cyan-400">
+                              {inc.id}
+                            </span>
 
-                        <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono">
-                          <span>{inc.sector}</span>
-                          <span>·</span>
-                          <span>{inc.locationName || 'Location Not Specified'}</span>
-                          <span>·</span>
-                          <span>{inc.timeAgo}</span>
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.2 rounded border ${
+                              isCrit 
+                                ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                                : isHigh
+                                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                            }`}>
+                              {inc.severity}
+                            </span>
+
+                            <span className={`text-[10px] font-semibold px-2 py-0.2 rounded border ${
+                              inc.verificationStatus === 'verified'
+                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                            }`}>
+                              {inc.verificationStatus === 'verified' ? '✓ Verified' : '⚠ Unverified'}
+                            </span>
+
+                            {inc.is_duplicate && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                Merged Duplicate
+                              </span>
+                            )}
+
+                            {(!inc.coordinates || inc.coordinates[0] == null) && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                Coords Unknown
+                              </span>
+                            )}
+
+                            {Boolean(inc.equity_review_flag || inc.equityReviewFlag) && (
+                              <span 
+                                className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+                                title={(inc.equity_reasons || inc.equityReasons || []).join('; ') || 'Flagged for coordinator review'}
+                              >
+                                ⚖️ Equity Review
+                              </span>
+                            )}
+
+                            {((inc.report_source && inc.report_source.toLowerCase().includes('sms_forwarded')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('forwarded'))) ? (
+                              <span 
+                                className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono"
+                                data-testid="sms-source-badge"
+                              >
+                                📱 FORWARDED SMS
+                              </span>
+                            ) : ((inc.report_source && inc.report_source.toLowerCase().includes('sms')) || (inc.sourceSummary && inc.sourceSummary.toLowerCase().includes('sms'))) ? (
+                              <span 
+                                className="text-[10px] font-semibold px-2 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-mono"
+                                data-testid="sms-source-badge"
+                              >
+                                📱 SIMULATED SMS
+                              </span>
+                            ) : null}
+
+                          </div>
+
+                          <h3 className="text-xs font-semibold text-white truncate">
+                            {inc.title}
+                          </h3>
+
+                          <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono">
+                            <span>{inc.sector}</span>
+                            <span>·</span>
+                            <span>{inc.locationName || 'Location Not Specified'}</span>
+                            <span>·</span>
+                            <span>{inc.timeAgo}</span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Score Badge */}
-                      <div className="text-right flex-shrink-0 flex flex-col items-end">
-                        <span className="text-[9px] font-mono text-slate-400 uppercase">Priority</span>
-                        <span className={`text-base font-bold font-mono ${
-                          inc.priorityScore >= 85 ? 'text-rose-400' :
-                          inc.priorityScore >= 70 ? 'text-amber-400' : 'text-cyan-400'
-                        }`}>
-                          {inc.priorityScore}
-                        </span>
-                        <ChevronRight className={`w-4 h-4 mt-1 transition-transform ${
+                      <div className="flex items-center space-x-2 flex-shrink-0 pl-2">
+                        <AnimatedPriorityScore
+                          score={inc.priorityScore}
+                          severity={inc.severity}
+                          size="sm"
+                          showDenominator={false}
+                          showLabel={true}
+                          label="Priority"
+                        />
+                        <ChevronRight className={`w-4 h-4 transition-transform ${
                           isSelected ? 'text-cyan-400 translate-x-1' : 'text-slate-600'
                         }`} />
                       </div>

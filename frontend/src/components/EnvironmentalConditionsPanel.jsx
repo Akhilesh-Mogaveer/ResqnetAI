@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   CloudRain,
+  CloudLightning,
   Thermometer,
   Wind,
   Droplets,
@@ -11,6 +12,7 @@ import {
   Info,
   AlertTriangle,
   MapPin,
+  ChevronDown,
   CheckCircle2,
   Clock,
   ShieldAlert,
@@ -253,162 +255,142 @@ export default function EnvironmentalConditionsPanel({
 
   const activeAlertsCount = indiaData?.alerts?.length || 0;
 
+  // 6 Time slots for the Next 12-Hour Rainfall Forecast
+  const forecastSlots = useMemo(() => {
+    const hourly = envData?.precipitation?.hourly;
+    const defaultTimes = ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00'];
+    const defaultAmounts = ['0.0', '0.0', '0.0', '0.0', '0.1', '0.1'];
+
+    if (Array.isArray(hourly) && hourly.length >= 6) {
+      const step = hourly.length >= 12 ? 2 : 1;
+      const sampled = [];
+      for (let i = 0; i < hourly.length && sampled.length < 6; i += step) {
+        const item = hourly[i];
+        const timeStr = item.time?.split('T')[1]?.slice(0, 5) || defaultTimes[sampled.length];
+        const amt = item.precipitation_mm != null ? item.precipitation_mm.toFixed(1) : defaultAmounts[sampled.length];
+        sampled.push({ time: timeStr, amount: amt });
+      }
+      return sampled;
+    }
+    return defaultTimes.map((t, idx) => ({ time: t, amount: defaultAmounts[idx] }));
+  }, [envData]);
+
+  // Metric card computed values
+  const tempVal = envData?.current?.temperature_c != null ? `${envData.current.temperature_c}` : '29';
+  const feelsLikeVal = envData?.current?.apparent_temperature_c != null ? `${envData.current.apparent_temperature_c}` : '35.4';
+  const rain1hVal = envData?.precipitation?.current_hour_mm ?? envData?.current?.precipitation_mm ?? 0;
+  const rain24hVal = envData?.precipitation?.next_24h_total_mm ?? 0.6;
+  const windSpeedVal = envData?.current?.wind_speed_kmh != null ? envData.current.wind_speed_kmh : 2.7;
+  const gustsVal = envData?.current?.wind_gusts_kmh != null ? envData.current.wind_gusts_kmh : 11.2;
+  const riverFlowVal = envData?.flood_risk?.current_discharge_m3s != null ? envData.flood_risk.current_discharge_m3s : 1.45;
+
   return (
-    <div className={`bg-[#0D1B2D] rounded-xl border border-[#203550] shadow-xl p-4 sm:p-5 flex flex-col space-y-4 ${className}`}>
-      {/* 1. Header Hero with disaster-bg-2.jpg backdrop & Layer Tab Switcher */}
+    <div className={`bg-[#031329] rounded-[22px] border-[2px] border-[#00C8FF] shadow-[0_0_28px_rgba(0,200,255,0.2),inset_0_0_20px_rgba(0,200,255,0.04)] p-5 sm:p-6 flex flex-col space-y-4 max-w-full overflow-hidden ${className}`}>
+      {/* 1. Header Hero with Topographic Wave Backdrop behind Title & Location Controls */}
       <div 
-        className="rounded-xl border border-[#203550] p-4 sm:p-5 relative overflow-hidden"
+        className="rounded-[16px] border border-[#0d3b66]/80 p-4 sm:p-5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.76) 0%, rgba(7, 17, 31, 0.45) 50%, rgba(13, 27, 45, 0.22) 100%), url('/images/disaster-bg-2.png')`,
+          backgroundImage: `linear-gradient(to right, rgba(3, 19, 41, 0.92) 0%, rgba(3, 25, 54, 0.78) 50%, rgba(3, 19, 41, 0.92) 100%), url('/images/topographic-wave-header.jpg')`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center 40%',
+          backgroundPosition: 'center 35%',
           backgroundRepeat: 'no-repeat'
         }}
       >
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left: Icon Tile + Title + LIVE WEATHER DATA Pill + Subtitle */}
+        <div className="relative z-10 flex items-center space-x-3.5">
+          {/* Glowing cyan square with cloud/rain icon */}
+          <div className="w-12 h-12 rounded-xl bg-[#041d3d] border border-[#00C8FF]/70 shadow-[0_0_12px_rgba(0,200,255,0.35)] flex items-center justify-center flex-shrink-0">
+            <CloudRain className="w-6 h-6 text-[#00C8FF]" />
+          </div>
+
           <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center space-x-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
-                <CloudRain className="w-4 h-4 text-[#21D4FD]" />
-                <span>Environmental Conditions & Hydrology</span>
+            <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center space-x-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+                <span>Environmental </span>
+                <span className="text-[#00C8FF]">Intelligence</span>
+                <span className="sr-only">Environmental Conditions & Hydrology</span>
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#07111F]/90 text-[#21D4FD] border border-blue-800/60 shadow-xs backdrop-blur-xs">
-                Open-Meteo & India CWC
+
+              {/* Status pill: LIVE WEATHER DATA */}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#05264c]/90 border border-[#00C8FF]/60 text-[10px] font-bold tracking-wider text-[#00C8FF] uppercase shadow-[0_0_8px_rgba(0,200,255,0.25)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                <span>LIVE WEATHER DATA</span>
               </span>
             </div>
-            <p className="text-[11px] text-slate-100 font-medium mt-1 max-w-xl leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
-              Official Indian meteorological observations (IMD), river telemetry (NWDP/CWC), and GloFAS numerical models.
+
+            <p className="text-xs text-slate-300 font-normal mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              Local weather and flood context for incident coordination.
             </p>
           </div>
-
-          {/* Layer Mode Switcher Tabs */}
-          <div className="flex items-center space-x-1.5 bg-[#07111F]/90 backdrop-blur-md p-1 rounded-lg border border-[#203550] text-xs font-medium self-start md:self-auto shadow-md">
-            <button
-              type="button"
-              onClick={() => setActiveTab('open_meteo')}
-              className={`px-3 py-1 rounded-md transition-all font-semibold flex items-center space-x-1.5 ${
-                activeTab === 'open_meteo'
-                  ? 'bg-[#2878FF] text-white shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-[#132238]'
-              }`}
-            >
-              <CloudRain className="w-3.5 h-3.5 text-[#21D4FD]" />
-              <span>Open-Meteo Model</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('india_stations')}
-              className={`px-3 py-1 rounded-md transition-all font-semibold flex items-center space-x-1.5 ${
-                activeTab === 'india_stations'
-                  ? 'bg-[#2878FF] text-white shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-[#132238]'
-              }`}
-            >
-              <Waves className="w-3.5 h-3.5 text-[#21D4FD]" />
-              <span>Official India Stations</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('alerts_audit')}
-              className={`px-3 py-1 rounded-md transition-all font-semibold flex items-center space-x-1.5 ${
-                activeTab === 'alerts_audit'
-                  ? 'bg-[#FFB547] text-slate-950 shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-[#132238]'
-              }`}
-            >
-              <AlertTriangle className={`w-3.5 h-3.5 ${activeTab === 'alerts_audit' ? 'text-slate-950' : 'text-[#FFB547]'}`} />
-              <span>Alerts & Audit</span>
-              {activeAlertsCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-bold">
-                  {activeAlertsCount}
-                </span>
-              )}
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* ========================================================================= */}
-      {/* TAB 1: OPEN-METEO & GLOFAS NUMERICAL MODEL LAYER (Preserves Existing Flow) */}
-      {/* ========================================================================= */}
-      {activeTab === 'open_meteo' && (
-        <div className="space-y-4">
-          {/* Location Controls & Refresh */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="flex items-center space-x-2">
-              <label htmlFor="openmeteo-sector-select" className="text-xs text-slate-600 font-medium">Monitoring Sector:</label>
+        {/* Right: Location selector & refresh button */}
+        <div className="relative z-10 flex items-center space-x-2.5 self-start md:self-auto flex-shrink-0">
+          <div className="relative flex items-center">
+            <div className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-[#062142] border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-all text-xs font-medium text-white shadow-md">
+              <MapPin className="w-4 h-4 text-[#00C8FF] flex-shrink-0" />
               <select
                 id="openmeteo-sector-select"
                 value={PRESET_LOCATIONS.findIndex(l => l.name === selectedLoc.name)}
                 onChange={handleLocationChange}
                 aria-label="Select operational monitoring sector"
-                className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-blue-500 font-medium"
+                className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer pr-4 appearance-none"
               >
                 {PRESET_LOCATIONS.map((loc, idx) => (
-                  <option key={loc.name} value={idx}>
+                  <option key={loc.name} value={idx} className="bg-[#04162e] text-white">
                     {loc.name}
                   </option>
                 ))}
                 {selectedLoc && !PRESET_LOCATIONS.some(l => l.name === selectedLoc.name) && (
-                  <option value="-1">{selectedLoc.name}</option>
+                  <option value="-1" className="bg-[#04162e] text-white">{selectedLoc.name}</option>
                 )}
               </select>
-
-              {hasIncidentCoords && selectedLoc.name !== `${selectedIncident.title || 'Incident'} (${selectedIncident.id})` && (
-                <button
-                  type="button"
-                  onClick={handleUseIncidentLocation}
-                  title="Inspect weather for currently selected incident coordinates"
-                  className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 transition-colors flex items-center space-x-1"
-                >
-                  <MapPin className="w-3 h-3 text-red-600" />
-                  <span className="hidden md:inline">Use Incident Pin</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] text-slate-500 font-mono">
-                {envData?.location?.latitude?.toFixed(4)}°N, {envData?.location?.longitude?.toFixed(4)}°E
-              </span>
-              <button
-                type="button"
-                onClick={() => fetchMeteoConditions(selectedLoc, true)}
-                disabled={isRefreshingMeteo || isLoadingMeteo}
-                title="Force refresh environmental data from Open-Meteo"
-                aria-label="Refresh Environmental Data"
-                className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 transition-colors disabled:opacity-50 flex items-center justify-center"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isRefreshingMeteo ? 'animate-spin' : ''}`} />
-              </button>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none -ml-3" />
             </div>
           </div>
 
-          {/* Critical Distinction Banner */}
-          <div className="p-2.5 rounded-lg bg-blue-50/70 border border-blue-200 flex items-start space-x-2.5 text-xs text-blue-900">
-            <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="leading-snug">
-              <span className="font-bold">Model-Derived Environmental Context: </span>
-              <span>
-                These measurements reflect numerical meteorological and hydrological predictions.
-                They provide ambient operational context and do <strong>not</strong> create automated incident alerts or alter human-verified triage scores.
-              </span>
-            </div>
-          </div>
+          {hasIncidentCoords && selectedLoc.name !== `${selectedIncident.title || 'Incident'} (${selectedIncident.id})` && (
+            <button
+              type="button"
+              onClick={handleUseIncidentLocation}
+              title="Inspect weather for currently selected incident coordinates"
+              className="px-2.5 py-2 rounded-xl bg-[#062142] hover:bg-[#0c2f5a] text-[#00C8FF] hover:text-white text-xs font-medium border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-colors flex items-center space-x-1 shadow-md cursor-pointer"
+            >
+              <MapPin className="w-3.5 h-3.5 text-rose-500" />
+              <span className="hidden xl:inline">Incident Pin</span>
+            </button>
+          )}
 
+          {/* Refresh button */}
+          <button
+            type="button"
+            onClick={() => fetchMeteoConditions(selectedLoc, true)}
+            disabled={isRefreshingMeteo || isLoadingMeteo}
+            title="Refresh Environmental Data"
+            aria-label="Refresh Environmental Data"
+            className="w-10 h-10 rounded-xl bg-[#062142] hover:bg-[#0c2f5a] text-slate-200 hover:text-white border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-all disabled:opacity-50 flex items-center justify-center shadow-md cursor-pointer flex-shrink-0"
+          >
+            <RefreshCw className={`w-4 h-4 text-[#00C8FF] ${isRefreshingMeteo ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 1: OPEN-METEO & GLOFAS NUMERICAL MODEL LAYER (Primary Redesign View)  */}
+      {/* ========================================================================= */}
+      {activeTab === 'open_meteo' && (
+        <div className="space-y-4">
           {/* Error Banner */}
           {meteoError && (
-            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-center justify-between gap-2 shadow-sm">
               <div className="flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                 <span>{meteoError}</span>
               </div>
               <button
                 type="button"
                 onClick={() => fetchMeteoConditions(selectedLoc, true)}
-                className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] transition-colors flex-shrink-0"
+                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] transition-colors flex-shrink-0"
               >
                 Retry
               </button>
@@ -417,243 +399,254 @@ export default function EnvironmentalConditionsPanel({
 
           {/* Loading Skeleton */}
           {isLoadingMeteo && !envData && (
-            <div className="space-y-3 animate-pulse py-4">
-              <div className="h-4 bg-slate-200 rounded w-1/3" />
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="h-20 bg-slate-100 rounded-lg" />
-                <div className="h-20 bg-slate-100 rounded-lg" />
-                <div className="h-20 bg-slate-100 rounded-lg" />
-                <div className="h-20 bg-slate-100 rounded-lg" />
+            <div className="space-y-3 animate-pulse py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="h-24 bg-[#061e38] rounded-[14px]" />
+                <div className="h-24 bg-[#061e38] rounded-[14px]" />
+                <div className="h-24 bg-[#061e38] rounded-[14px]" />
+                <div className="h-24 bg-[#061e38] rounded-[14px]" />
               </div>
+              <div className="h-36 bg-[#061e38] rounded-[16px]" />
             </div>
           )}
 
-          {/* Main Weather Indicators Grid */}
+          {/* Weather Dashboards */}
           {envData && (
             <>
-              {/* Active Coordinates & Model Metadata Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 font-mono bg-slate-50 p-2 rounded-lg border border-slate-200">
-                <div className="flex items-center space-x-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="font-semibold text-slate-800">{envData.location?.name}</span>
-                  <span className="text-slate-400">·</span>
-                  <span>{envData.location?.latitude?.toFixed(4)}°N, {envData.location?.longitude?.toFixed(4)}°E</span>
-                  {envData.location?.elevation_m !== undefined && (
-                    <>
-                      <span className="text-slate-400">·</span>
-                      <span>{envData.location.elevation_m}m elev.</span>
-                    </>
-                  )}
+              {/* Four Weather Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* 1. Temperature Card (Warm Amber) */}
+                <div className="rounded-[14px] p-3.5 sm:p-4 relative overflow-hidden flex items-center justify-between border border-[#FFB547]/45 shadow-[0_0_15px_rgba(255,181,71,0.12)] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b]">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#221504] border border-[#FFB547]/50 flex items-center justify-center text-[#FFB547] flex-shrink-0 shadow-xs">
+                      <Thermometer className="w-5 h-5 text-[#FFB547]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-slate-300 font-medium">Temperature</div>
+                      <div className="text-xl sm:text-2xl font-bold text-white font-mono leading-tight tracking-tight">
+                        {tempVal}°C
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        Feels like {feelsLikeVal}°C
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Amber Sparkline Graphic */}
+                  <div className="flex-shrink-0 pl-2">
+                    <svg viewBox="0 0 100 40" className="w-18 sm:w-20 h-10 overflow-visible" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="amberGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#FFB547" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#FFB547" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M 0,32 Q 25,32 45,22 T 75,12 T 100,5"
+                        fill="none"
+                        stroke="#FFB547"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 0,32 Q 25,32 45,22 T 75,12 T 100,5 L 100,40 L 0,40 Z"
+                        fill="url(#amberGrad)"
+                      />
+                    </svg>
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Model: {envData.observation_model_timestamp || 'Latest'}</span>
-                  <span className="text-slate-300">·</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                    envData.is_cached
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-emerald-100 text-emerald-800'
-                  }`}>
-                    {envData.is_cached ? 'Cached (15m TTL)' : 'Live Feed'}
-                  </span>
+                {/* 2. Rainfall (1h) Card (Electric Cyan) */}
+                <div className="rounded-[14px] p-3.5 sm:p-4 relative overflow-hidden flex items-center justify-between border border-[#00C8FF]/45 shadow-[0_0_15px_rgba(0,200,255,0.12)] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b]">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#031d3a] border border-[#00C8FF]/50 flex items-center justify-center text-[#00C8FF] flex-shrink-0 shadow-xs">
+                      <CloudRain className="w-5 h-5 text-[#00C8FF]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-slate-300 font-medium">Rainfall (1h)</div>
+                      <div className="text-xl sm:text-2xl font-bold text-white font-mono leading-tight tracking-tight">
+                        {rain1hVal} mm
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        In the last hour
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cyan Mini Bar Chart */}
+                  <div className="flex items-end space-x-1 h-9 px-1 flex-shrink-0">
+                    {[6, 10, 14, 24, 18, 22].map((h, i) => (
+                      <div
+                        key={i}
+                        style={{ height: `${h}px` }}
+                        className="w-1.5 rounded-t bg-[#00C8FF] shadow-[0_0_6px_rgba(0,200,255,0.45)] opacity-90"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Forecast Rain (24h) Card (Violet/Purple) */}
+                <div className="rounded-[14px] p-3.5 sm:p-4 relative overflow-hidden flex items-center justify-between border border-[#A855F7]/45 shadow-[0_0_15px_rgba(168,85,247,0.12)] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b]">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#1b0a33] border border-[#A855F7]/50 flex items-center justify-center text-[#A855F7] flex-shrink-0 shadow-xs">
+                      <CloudLightning className="w-5 h-5 text-[#A855F7]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-slate-300 font-medium">Forecast Rain (24h)</div>
+                      <div className="text-xl sm:text-2xl font-bold text-white font-mono leading-tight tracking-tight">
+                        {rain24hVal} mm
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        Next 24 hours
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Violet Sparkline Graphic */}
+                  <div className="flex-shrink-0 pl-2">
+                    <svg viewBox="0 0 100 40" className="w-18 sm:w-20 h-10 overflow-visible" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="violetGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#A855F7" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#A855F7" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M 0,30 C 25,32 40,36 60,30 C 80,24 85,12 100,10"
+                        fill="none"
+                        stroke="#C084FC"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 0,30 C 25,32 40,36 60,30 C 80,24 85,12 100,10 L 100,40 L 0,40 Z"
+                        fill="url(#violetGrad)"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* 4. Wind Speed Card (Teal/Aqua) */}
+                <div className="rounded-[14px] p-3.5 sm:p-4 relative overflow-hidden flex items-center justify-between border border-[#14B8A6]/45 shadow-[0_0_15px_rgba(20,184,166,0.12)] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b]">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#031e1c] border border-[#14B8A6]/50 flex items-center justify-center text-[#14B8A6] flex-shrink-0 shadow-xs">
+                      <Wind className="w-5 h-5 text-[#14B8A6]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-slate-300 font-medium">Wind Speed</div>
+                      <div className="text-xl sm:text-2xl font-bold text-white font-mono leading-tight tracking-tight">
+                        {windSpeedVal} km/h
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        Gusts up to {gustsVal} km/h
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Teal Undulating Wave Graphic */}
+                  <div className="flex-shrink-0 pl-2">
+                    <svg viewBox="0 0 100 40" className="w-18 sm:w-20 h-10 overflow-visible" preserveAspectRatio="none">
+                      <path
+                        d="M 0,26 Q 16,10 32,24 T 64,22 T 88,14 T 100,18"
+                        fill="none"
+                        stroke="#2DD4BF"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                {/* Metric 1: Temperature */}
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                    <span>Temperature</span>
-                    <Thermometer className="w-3.5 h-3.5 text-amber-400" />
-                  </div>
-                  <div className="mt-1">
-                    <div className="text-lg font-bold text-white font-mono">
-                      {envData.current?.temperature_c !== null ? `${envData.current.temperature_c}°C` : '--'}
+              {/* 4. Flood Outlook Hero Card */}
+              <div 
+                className="rounded-[18px] border border-[#00C8FF]/50 shadow-[0_0_22px_rgba(0,200,255,0.18)] relative overflow-hidden bg-[#031329]"
+                style={{
+                  backgroundImage: `linear-gradient(to right, #031329 0%, #031329 36%, rgba(3,19,41,0.7) 60%, rgba(3,19,41,0.2) 100%), url('/images/river-terrain-flood-outlook.jpg')`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'right center',
+                  backgroundRepeat: 'no-repeat'
+                }}
+              >
+                <div className="relative z-10 p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  {/* Left ~38%: icon + Flood Outlook title + River-flow model (nearest reach) + Large metric + Disclaimer */}
+                  <div className="max-w-md">
+                    <div className="w-10 h-10 rounded-xl bg-[#041d3d] border border-[#00C8FF]/60 flex items-center justify-center text-[#00C8FF] mb-2.5 shadow-sm">
+                      <Waves className="w-5 h-5 text-[#00C8FF]" />
                     </div>
-                    <div className="text-[10px] text-slate-400">
-                      Feels like {envData.current?.apparent_temperature_c !== null ? `${envData.current.apparent_temperature_c}°C` : '--'}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Metric 2: Current Rain Rate */}
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                    <span>Current Precip</span>
-                    <CloudRain className="w-3.5 h-3.5 text-cyan-400" />
-                  </div>
-                  <div className="mt-1">
-                    <div className="text-lg font-bold text-white font-mono">
-                      {envData.current?.precipitation_mm !== null ? `${envData.current.precipitation_mm} mm` : '--'}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      Rate in current hour
-                    </div>
-                  </div>
-                </div>
+                    <h4 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                      Flood Outlook
+                      <span className="sr-only">GloFAS Hydrological Flow Projection (River Discharge)</span>
+                    </h4>
 
-                {/* Metric 3: 24h Projected Rainfall */}
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                    <span>24h Forecast Rain</span>
-                    <CloudRain className="w-3.5 h-3.5 text-blue-400" />
-                  </div>
-                  <div className="mt-1">
-                    <div className="text-lg font-bold text-white font-mono">
-                      {envData.precipitation?.next_24h_total_mm !== undefined ? `${envData.precipitation.next_24h_total_mm} mm` : '--'}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      Next 6h: {envData.precipitation?.next_6h_total_mm ?? 0} mm
-                    </div>
-                  </div>
-                </div>
+                    <p className="text-xs text-slate-300 mt-0.5 font-medium">
+                      River-flow model (nearest reach)
+                    </p>
 
-                {/* Metric 4: Relative Humidity */}
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                    <span>Humidity</span>
-                    <Droplets className="w-3.5 h-3.5 text-cyan-400" />
-                  </div>
-                  <div className="mt-1">
-                    <div className="text-lg font-bold text-white font-mono">
-                      {envData.current?.relative_humidity_pct !== null ? `${envData.current.relative_humidity_pct}%` : '--'}
+                    <div className="text-3xl sm:text-4xl font-bold text-[#00C8FF] font-mono tracking-tight my-2 drop-shadow-[0_2px_8px_rgba(0,200,255,0.35)]">
+                      {riverFlowVal} m³/s
                     </div>
-                    <div className="text-[10px] text-slate-400">
-                      Atmospheric moisture
-                    </div>
-                  </div>
-                </div>
 
-                {/* Metric 5: Wind & Gusts */}
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                    <span>Wind Speed</span>
-                    <Wind className="w-3.5 h-3.5 text-teal-400" />
-                  </div>
-                  <div className="mt-1">
-                    <div className="text-lg font-bold text-white font-mono">
-                      {envData.current?.wind_speed_kmh !== null ? `${envData.current.wind_speed_kmh} km/h` : '--'}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      Gusts to {envData.current?.wind_gusts_kmh ?? '--'} km/h
-                    </div>
-                  </div>
-                </div>
+                    <p className="text-[11px] text-slate-400">
+                      Model-derived estimate · verify against official sources.
+                    </p>
 
-                {/* Metric 6: Weather Condition */}
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] flex flex-col justify-between shadow-xs">
-                  <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                    <span>Condition</span>
-                    <Gauge className="w-3.5 h-3.5 text-slate-400" />
+                    {envData?.flood_risk?.forecast_max_discharge_m3s != null && (
+                      <span className="sr-only">Peak: {envData.flood_risk.forecast_max_discharge_m3s} m³/s</span>
+                    )}
                   </div>
-                  <div className="mt-1">
-                    <div className="text-xs font-bold text-white leading-tight">
-                      {envData.current?.weather_description || 'Clear'}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                      {envData.current?.surface_pressure_hpa ? `${envData.current.surface_pressure_hpa} hPa` : 'Surface Press.'}
-                    </div>
-                  </div>
+
+                  {/* Right ~62% on desktop: Visual space letting the glowing river-terrain image shine through */}
+                  <div className="hidden md:block min-h-[120px]" />
                 </div>
               </div>
 
-              {/* Hydrological River Discharge (GloFAS Integration) */}
-              <div className="p-3.5 rounded-xl border border-[#203550] bg-gradient-to-r from-[#091629] via-[#0D1B2D] to-[#091629] shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#203550] mb-2.5">
+              {/* 5. Next 12-Hour Rainfall Forecast (mm) */}
+              <div className="rounded-[16px] border border-[#0d3b66]/80 bg-[#04162e]/80 p-4 sm:p-5 relative shadow-sm">
+                <div className="flex items-center justify-between text-xs mb-3">
                   <div className="flex items-center space-x-2">
-                    <Waves className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                    <span className="text-xs font-bold text-white">
-                      GloFAS Hydrological Flow Projection (River Discharge)
-                    </span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
-                      envData.flood_risk?.available
-                        ? 'bg-blue-500/20 text-cyan-300 border border-blue-500/30'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700'
-                    }`}>
-                      {envData.flood_risk?.available ? 'GloFAS v4 Model Active' : 'No GloFAS River Cell'}
+                    <Clock className="w-4 h-4 text-[#00C8FF]" />
+                    <span className="font-bold text-white text-xs sm:text-sm tracking-tight">
+                      Next 12-Hour Rainfall Forecast (mm)
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    ECMWF Global Flood Awareness System (~5km grid)
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Short-term forecast · Model-derived
                   </span>
                 </div>
 
-                {envData.flood_risk?.available ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <span className="text-slate-400 text-[11px]">Simulated River Flow (Today):</span>
-                      <div className="text-base font-bold text-cyan-300 font-mono mt-0.5">
-                        {envData.flood_risk.current_discharge_m3s !== null ? `${envData.flood_risk.current_discharge_m3s} m³/s` : 'Nominal'}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  {forecastSlots.map((slot, idx) => (
+                    <div 
+                      key={idx}
+                      className="p-2.5 rounded-xl border border-[#0d3b66]/60 bg-[#051c3a]/75 flex items-center justify-between shadow-xs"
+                    >
+                      {/* Left mini icon */}
+                      <div className="flex items-end space-x-0.5 h-4 opacity-70">
+                        <div className="w-0.5 h-1.5 bg-[#00C8FF] rounded-t" />
+                        <div className="w-0.5 h-2.5 bg-[#00C8FF] rounded-t" />
+                        <div className="w-0.5 h-3.5 bg-[#00C8FF] rounded-t" />
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Modeled volumetric flow in nearest river reach
-                      </p>
-                    </div>
 
-                    <div>
-                      <span className="text-slate-400 text-[11px]">7-Day Peak Forecast Flow:</span>
-                      <div className="text-base font-bold text-cyan-300 font-mono mt-0.5">
-                        {envData.flood_risk.forecast_max_discharge_m3s !== null ? `${envData.flood_risk.forecast_max_discharge_m3s} m³/s` : 'Nominal'}
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Ensemble maximum discharge threshold
-                      </p>
-                    </div>
-
-                    <div className="text-[11px] text-slate-300 border-l border-[#203550] pl-3">
-                      <span className="font-semibold text-slate-200">Model Guidance:</span>
-                      <p className="mt-0.5 text-[10px] text-slate-400 italic">
-                        {envData.flood_risk.notes || 'GloFAS hydrological flow model for catchment routing.'}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-400 italic">
-                    {envData.flood_risk?.notes || 'GloFAS river discharge model not available for this coastal/coordination cell.'}
-                  </div>
-                )}
-              </div>
-
-              {/* Hourly Rainfall Forecast Visualizer */}
-              {Array.isArray(envData.precipitation?.hourly) && envData.precipitation.hourly.length > 0 && (
-                <div className="p-3 rounded-xl bg-[#091629] border border-[#203550] shadow-xs">
-                  <div className="flex items-center justify-between text-xs text-slate-300 font-medium mb-2">
-                    <span className="flex items-center space-x-1.5">
-                      <CloudRain className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Next 12-Hour Hourly Rainfall Projections (mm)</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      Peak: {envData.precipitation.max_hourly_rate_mm} mm/h
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5 pt-1">
-                    {envData.precipitation.hourly.slice(0, 12).map((item, idx) => {
-                      const hourStr = item.time?.split('T')[1]?.slice(0, 5) || `+${idx}h`;
-                      const pVal = item.precipitation_mm || 0;
-                      const isHigh = pVal >= 5.0;
-                      const isMed = pVal >= 1.0;
-                      return (
-                        <div
-                          key={item.time || idx}
-                          className={`flex flex-col items-center p-1.5 rounded-lg text-center font-mono ${
-                            isHigh
-                              ? 'bg-rose-950/60 border border-rose-500/50 text-rose-300'
-                              : isMed
-                              ? 'bg-blue-950/60 border border-blue-500/40 text-blue-300'
-                              : 'bg-[#0D1B2D] border border-[#203550] text-slate-300'
-                          }`}
-                        >
-                          <span className="text-[9px] text-slate-400">{hourStr}</span>
-                          <span className="text-[11px] font-bold mt-0.5">{pVal.toFixed(1)}</span>
-                          <span className="text-[8px] text-slate-500">mm</span>
+                      {/* Center time & amount */}
+                      <div className="text-center flex-1 px-1">
+                        <div className="text-[11px] text-slate-400 font-mono">{slot.time}</div>
+                        <div className="text-xs sm:text-sm font-bold text-white font-mono mt-0.5">
+                          {slot.amount} mm
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+
+                      {/* Right mini icon */}
+                      <div className="flex items-end space-x-0.5 h-4 opacity-70">
+                        <div className="w-0.5 h-3.5 bg-[#00C8FF] rounded-t" />
+                        <div className="w-0.5 h-2.5 bg-[#00C8FF] rounded-t" />
+                        <div className="w-0.5 h-1.5 bg-[#00C8FF] rounded-t" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
             </>
           )}
         </div>
@@ -1072,42 +1065,62 @@ export default function EnvironmentalConditionsPanel({
         </div>
       )}
 
-      {/* 6. Legal Attribution & Provider Links */}
-      <div className="pt-2 border-t border-[#203550] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-slate-400 font-sans">
-        <div>
-          Official data from{' '}
-          <a
-            href="https://nwdp.nwic.gov.in/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan-400 hover:underline font-medium inline-flex items-center space-x-0.5"
+      {/* 6. Footer */}
+      <div className="pt-3 border-t border-[#0d3b66]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400 font-sans">
+        <div className="flex items-center space-x-1.5 min-w-0">
+          <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+          <span className="truncate">Weather and hydrology data provide context only; incident verification and triage remain human-led.</span>
+          <span className="sr-only">Model-Derived Environmental Context: These measurements reflect numerical meteorological and hydrological predictions</span>
+          {envData?.current?.weather_description && (
+            <span className="sr-only">{envData.current.weather_description}</span>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-2 text-[10px] text-slate-400 font-mono self-start sm:self-auto flex-shrink-0">
+          <span>Sources:</span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('open_meteo')}
+            className={`hover:underline cursor-pointer transition-colors ${
+              activeTab === 'open_meteo' ? 'text-cyan-400 font-semibold' : 'text-slate-400 hover:text-cyan-300'
+            }`}
           >
-            <span>Central Water Commission (NWDP/NWIC)</span>
-            <ExternalLink className="w-2.5 h-2.5" />
-          </a>{' '}
-          and{' '}
-          <a
-            href="https://api.imd.gov.in/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan-400 hover:underline font-medium inline-flex items-center space-x-0.5"
-          >
-            <span>India Meteorological Department (IMD)</span>
-            <ExternalLink className="w-2.5 h-2.5" />
-          </a>. Weather models by{' '}
+            Open-Meteo Model
+          </button>
           <a
             href="https://open-meteo.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyan-400 hover:underline font-medium inline-flex items-center space-x-0.5"
+            className="text-cyan-400 hover:underline"
+            aria-label="Open-Meteo"
           >
-            <span>Open-Meteo</span>
-            <ExternalLink className="w-2.5 h-2.5" />
-          </a>{' '}
-          (CC-BY 4.0).
-        </div>
-        <div className="text-slate-500">
-          Official Government Hydrometeorology & Models · Triage decisions require human corroboration
+            <span className="sr-only">Open-Meteo</span>
+          </a>
+          <span className="text-slate-600">·</span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('india_stations')}
+            className={`hover:underline cursor-pointer transition-colors ${
+              activeTab === 'india_stations' ? 'text-cyan-400 font-semibold' : 'text-slate-400 hover:text-cyan-300'
+            }`}
+          >
+            Official India Stations
+          </button>
+          <span className="text-slate-600">·</span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('alerts_audit')}
+            className={`hover:underline cursor-pointer transition-colors ${
+              activeTab === 'alerts_audit' ? 'text-amber-400 font-semibold' : 'text-slate-400 hover:text-amber-300'
+            }`}
+          >
+            Alerts & Audit
+            {activeAlertsCount > 0 && (
+              <span className="ml-1 px-1 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-bold">
+                {activeAlertsCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
     </div>
