@@ -210,3 +210,44 @@
 .leaflet-control-attribution a:hover {
   text-decoration: underline !important;
 }
+
+/* Disaster-Response Radar / Contour Grid Texture */
+.command-center-grid-bg {
+  background-color: #031329;
+  background-image: 
+    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(0, 200, 255, 0.09), transparent 75%),
+    linear-gradient(rgba(0, 200, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  background-position: center top, 0 0, 0 0;
+}
+
+/* Luminous Command Box */
+.luminous-command-box {
+  border: 2px solid rgba(0, 200, 255, 0.65);
+  box-shadow: 0 0 25px rgba(0, 200, 255, 0.18), inset 0 0 20px rgba(0, 200, 255, 0.03);
+}
+
+/* Card Entrance Stagger Animation */
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-card-entrance {
+  animation: cardEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-entrance {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

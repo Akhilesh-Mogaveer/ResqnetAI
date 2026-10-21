@@ -98,7 +98,7 @@ export default function EquityCoverageMonitor({
       <div 
         className="rounded-[16px] border border-[#0d3b66]/80 p-3.5 sm:p-4 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 shadow-sm"
         style={{
-          backgroundImage: "linear-gradient(to right, rgba(3, 19, 41, 0.90) 0%, rgba(3, 25, 54, 0.75) 50%, rgba(3, 19, 41, 0.90) 100%), url('/images/disaster-bg-2.png')",
+          backgroundImage: "linear-gradient(to right, rgba(3, 19, 41, 0.90) 0%, rgba(3, 25, 54, 0.75) 50%, rgba(3, 19, 41, 0.90) 100%), url('/images/equity-header-bg.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'

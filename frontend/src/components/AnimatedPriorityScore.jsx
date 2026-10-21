@@ -31,7 +31,7 @@ export default function AnimatedPriorityScore({
       return {
         stroke: '#FF4566',
         text: 'text-[#FF4566]',
-        glow: 'filter drop-shadow-[0_0_5px_rgba(255,69,102,0.45)]',
+        glow: 'filter drop-shadow-[0_0_8px_rgba(255,69,102,0.6)]',
         track: '#2A1520',
         badgeBg: 'bg-rose-950/40 border-rose-500/30 text-rose-300'
       };
@@ -40,7 +40,7 @@ export default function AnimatedPriorityScore({
       return {
         stroke: '#FFB547',
         text: 'text-[#FFB547]',
-        glow: 'filter drop-shadow-[0_0_4px_rgba(255,181,71,0.35)]',
+        glow: 'filter drop-shadow-[0_0_7px_rgba(255,181,71,0.5)]',
         track: '#2A2012',
         badgeBg: 'bg-amber-950/40 border-amber-500/30 text-amber-300'
       };
@@ -49,7 +49,7 @@ export default function AnimatedPriorityScore({
       return {
         stroke: '#21D4FD',
         text: 'text-[#21D4FD]',
-        glow: 'filter drop-shadow-[0_0_3px_rgba(33,212,253,0.3)]',
+        glow: 'filter drop-shadow-[0_0_6px_rgba(33,212,253,0.45)]',
         track: '#0D2238',
         badgeBg: 'bg-sky-950/40 border-sky-500/30 text-sky-300'
       };
@@ -57,7 +57,7 @@ export default function AnimatedPriorityScore({
     return {
       stroke: '#25D6A2',
       text: 'text-[#25D6A2]',
-      glow: '',
+      glow: 'filter drop-shadow-[0_0_5px_rgba(37,214,162,0.4)]',
       track: '#0C261E',
       badgeBg: 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
     };
@@ -160,7 +160,7 @@ export default function AnimatedPriorityScore({
           </span>
           {showDenominator && (
             <span className={`font-mono text-slate-400 leading-none mt-0.5 ${config.denomSize}`}>
-              /100
+              
             </span>
           )}
         </div>
