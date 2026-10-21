@@ -103,7 +103,7 @@ export default function SummaryCards({
         tabIndex={0}
         onClick={() => onFilterClick?.('active')}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFilterClick?.('active')}
-        className="bg-[#081326] border border-blue-900/50 hover:border-blue-500/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(33,212,253,0.3)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[102px] relative overflow-hidden"
+        className="bg-[#081326] border border-blue-900/50 hover:border-blue-500/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(33,212,253,0.3)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[104px] relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/5 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100" />
         
@@ -149,7 +149,7 @@ export default function SummaryCards({
         tabIndex={0}
         onClick={() => onFilterClick?.('critical')}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFilterClick?.('critical')}
-        className="bg-[#170C16] border border-rose-950/60 hover:border-[#FF2E56]/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(255,46,86,0.35)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[102px] relative overflow-hidden"
+        className="bg-[#170C16] border border-rose-950/60 hover:border-[#FF2E56]/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(255,46,86,0.35)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[104px] relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/5 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100" />
 
@@ -195,7 +195,7 @@ export default function SummaryCards({
         tabIndex={0}
         onClick={() => onFilterClick?.('unverified')}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFilterClick?.('unverified')}
-        className="bg-[#181309] border border-amber-950/60 hover:border-amber-500/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(245,158,11,0.35)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[102px] relative overflow-hidden"
+        className="bg-[#181309] border border-amber-950/60 hover:border-amber-500/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(245,158,11,0.35)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[104px] relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/5 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100" />
 
@@ -241,7 +241,7 @@ export default function SummaryCards({
         tabIndex={0}
         onClick={() => onFilterClick?.('zones')}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFilterClick?.('zones')}
-        className="bg-[#130E24] border border-purple-950/60 hover:border-purple-500/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(168,85,247,0.35)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[102px] relative overflow-hidden"
+        className="bg-[#130E24] border border-purple-950/60 hover:border-purple-500/70 rounded-xl p-3.5 shadow-md hover:shadow-[0_4px_22px_-2px_rgba(168,85,247,0.35)] transition-all duration-200 cursor-pointer group flex flex-col justify-between h-[104px] relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-28 h-28 bg-purple-500/5 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100" />
 
@@ -261,8 +261,8 @@ export default function SummaryCards({
                 <span className="text-2xl font-black font-mono tracking-tight text-[#C084FC] leading-none">
                   {formatNumber(attentionZonesCount)}
                 </span>
-                <span className="text-[11px] font-medium text-purple-300/80 leading-none">
-                  signal gaps
+                <span className="inline-flex items-center text-[10px] font-bold text-purple-300 bg-purple-950/70 border border-purple-800/50 px-1.5 py-0.5 rounded-full leading-none shadow-xs">
+                  Signal Gaps
                 </span>
               </div>
             </div>

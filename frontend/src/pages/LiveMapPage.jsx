@@ -148,23 +148,31 @@ export default function LiveMapPage({
   return (
     <div className="space-y-4 flex flex-col h-[calc(100vh-140px)] min-h-[650px]">
       {/* Top Header & Map Controls */}
-      <div className="bg-[#0D1B2D] p-4 rounded-xl border border-[#203550] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
-        <div>
+      <div 
+        className="relative bg-[#0D1B2D] p-4 rounded-xl border border-[#203550] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0 overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.90) 0%, rgba(7, 17, 31, 0.72) 50%, rgba(9, 22, 41, 0.40) 100%), url('/images/header-live-map.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="relative z-10">
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
               Live Geospatial Operations Map
             </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#091629] text-[#21D4FD] border border-[#203550] shadow-xs">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#091629]/90 text-[#21D4FD] border border-[#2878FF]/50 shadow-xs">
               Tactical Geospatial · Leaflet
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-200 mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
             Real-time geospatial distribution of active incident clusters and reporting void perimeters.
           </p>
         </div>
 
         {/* Filters and Layer Toggles */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs relative z-10">
           {/* Severity filter */}
           <div className="flex items-center bg-[#091629] rounded-lg border border-[#203550] p-0.5">
             <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">

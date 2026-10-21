@@ -285,29 +285,29 @@ export default function EnvironmentalConditionsPanel({
   const riverFlowVal = envData?.flood_risk?.current_discharge_m3s != null ? envData.flood_risk.current_discharge_m3s : 1.45;
 
   return (
-    <div className={`bg-[#031329] rounded-[22px] border-[2px] border-[#00C8FF] shadow-[0_0_28px_rgba(0,200,255,0.2),inset_0_0_20px_rgba(0,200,255,0.04)] p-5 sm:p-6 flex flex-col space-y-4 max-w-full overflow-hidden ${className}`}>
+    <div className={`bg-[#031329] rounded-[22px] border-[2px] border-[#00C8FF] shadow-[0_0_28px_rgba(0,200,255,0.2),inset_0_0_20px_rgba(0,200,255,0.04)] p-4 sm:p-5 flex flex-col space-y-3 sm:space-y-3.5 max-w-full overflow-hidden ${className}`}>
       {/* 1. Header Hero with Topographic Wave Backdrop behind Title & Location Controls */}
       <div 
-        className="rounded-[16px] border border-[#0d3b66]/80 p-4 sm:p-5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
+        className="rounded-[16px] border border-[#00C8FF]/35 p-3.5 sm:px-5 sm:py-3.5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-[0_0_16px_rgba(0,200,255,0.10)] min-h-[85px] md:h-[94px]"
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(3, 19, 41, 0.92) 0%, rgba(3, 25, 54, 0.78) 50%, rgba(3, 19, 41, 0.92) 100%), url('/images/topographic-wave-header.jpg')`,
+          backgroundImage: `linear-gradient(to right, rgba(3, 19, 41, 0.92) 0%, rgba(3, 25, 54, 0.72) 48%, rgba(3, 19, 41, 0.90) 100%), url('/images/header.png')`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center 35%',
+          backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
         }}
       >
         {/* Left: Icon Tile + Title + LIVE WEATHER DATA Pill + Subtitle */}
-        <div className="relative z-10 flex items-center space-x-3.5">
+        <div className="relative z-10 flex items-center space-x-3 sm:space-x-3.5">
           {/* Glowing cyan square with cloud/rain icon */}
-          <div className="w-12 h-12 rounded-xl bg-[#041d3d] border border-[#00C8FF]/70 shadow-[0_0_12px_rgba(0,200,255,0.35)] flex items-center justify-center flex-shrink-0">
-            <CloudRain className="w-6 h-6 text-[#00C8FF]" />
+          <div className="w-11 h-11 rounded-xl bg-[#041d3d] border border-[#00C8FF]/70 shadow-[0_0_12px_rgba(0,200,255,0.35)] flex items-center justify-center flex-shrink-0 text-[#00C8FF]">
+            <CloudRain className="w-5.5 h-5.5 text-[#00C8FF]" />
           </div>
 
           <div>
-            <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+            <div className="flex items-center space-x-2.5 sm:space-x-3 flex-wrap gap-y-1">
               <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center space-x-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                 <span>Environmental </span>
-                <span className="text-[#00C8FF]">Intelligence</span>
+                <span className="text-[#00C8FF] drop-shadow-[0_0_8px_rgba(0,200,255,0.4)]">Intelligence</span>
                 <span className="sr-only">Environmental Conditions & Hydrology</span>
               </h3>
 
@@ -325,10 +325,10 @@ export default function EnvironmentalConditionsPanel({
         </div>
 
         {/* Right: Location selector & refresh button */}
-        <div className="relative z-10 flex items-center space-x-2.5 self-start md:self-auto flex-shrink-0">
+        <div className="relative z-10 flex items-center space-x-2 sm:space-x-2.5 self-start md:self-auto flex-shrink-0">
           <div className="relative flex items-center">
-            <div className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-[#062142] border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-all text-xs font-medium text-white shadow-md">
-              <MapPin className="w-4 h-4 text-[#00C8FF] flex-shrink-0" />
+            <div className="flex items-center space-x-2 px-3 py-1.5 sm:py-2 rounded-xl bg-[#062142]/90 border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-all text-xs font-medium text-white shadow-md">
+              <MapPin className="w-3.5 h-3.5 text-[#00C8FF] flex-shrink-0" />
               <select
                 id="openmeteo-sector-select"
                 value={PRESET_LOCATIONS.findIndex(l => l.name === selectedLoc.name)}
@@ -354,7 +354,7 @@ export default function EnvironmentalConditionsPanel({
               type="button"
               onClick={handleUseIncidentLocation}
               title="Inspect weather for currently selected incident coordinates"
-              className="px-2.5 py-2 rounded-xl bg-[#062142] hover:bg-[#0c2f5a] text-[#00C8FF] hover:text-white text-xs font-medium border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-colors flex items-center space-x-1 shadow-md cursor-pointer"
+              className="px-2.5 py-1.5 sm:py-2 rounded-xl bg-[#062142]/90 hover:bg-[#0c2f5a] text-[#00C8FF] hover:text-white text-xs font-medium border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-colors flex items-center space-x-1 shadow-md cursor-pointer"
             >
               <MapPin className="w-3.5 h-3.5 text-rose-500" />
               <span className="hidden xl:inline">Incident Pin</span>
@@ -368,7 +368,7 @@ export default function EnvironmentalConditionsPanel({
             disabled={isRefreshingMeteo || isLoadingMeteo}
             title="Refresh Environmental Data"
             aria-label="Refresh Environmental Data"
-            className="w-10 h-10 rounded-xl bg-[#062142] hover:bg-[#0c2f5a] text-slate-200 hover:text-white border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-all disabled:opacity-50 flex items-center justify-center shadow-md cursor-pointer flex-shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#062142]/90 hover:bg-[#0c2f5a] text-slate-200 hover:text-white border border-[#0e3b68] hover:border-[#00C8FF]/60 transition-all disabled:opacity-50 flex items-center justify-center shadow-md cursor-pointer flex-shrink-0"
           >
             <RefreshCw className={`w-4 h-4 text-[#00C8FF] ${isRefreshingMeteo ? 'animate-spin' : ''}`} />
           </button>
@@ -379,7 +379,7 @@ export default function EnvironmentalConditionsPanel({
       {/* TAB 1: OPEN-METEO & GLOFAS NUMERICAL MODEL LAYER (Primary Redesign View)  */}
       {/* ========================================================================= */}
       {activeTab === 'open_meteo' && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-3.5">
           {/* Error Banner */}
           {meteoError && (
             <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-center justify-between gap-2 shadow-sm">
@@ -414,7 +414,7 @@ export default function EnvironmentalConditionsPanel({
           {envData && (
             <>
               {/* Four Weather Metric Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
                 {/* 1. Temperature Card (Warm Amber) */}
                 <div className="rounded-[14px] p-3.5 sm:p-4 relative overflow-hidden flex items-center justify-between border border-[#FFB547]/45 shadow-[0_0_15px_rgba(255,181,71,0.12)] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b]">
                   <div className="flex items-center space-x-3 min-w-0">
@@ -560,51 +560,50 @@ export default function EnvironmentalConditionsPanel({
 
               {/* 4. Flood Outlook Hero Card */}
               <div 
-                className="rounded-[18px] border border-[#00C8FF]/50 shadow-[0_0_22px_rgba(0,200,255,0.18)] relative overflow-hidden bg-[#031329]"
+                className="rounded-[18px] border border-[#00C8FF]/50 shadow-[0_0_22px_rgba(0,200,255,0.18)] relative overflow-hidden bg-[#031329] min-h-[140px] md:h-[155px] max-h-[175px] flex items-center"
                 style={{
-                  backgroundImage: `linear-gradient(to right, #031329 0%, #031329 36%, rgba(3,19,41,0.7) 60%, rgba(3,19,41,0.2) 100%), url('/images/river-terrain-flood-outlook.jpg')`,
+                  backgroundImage: `linear-gradient(to right, #031329 0%, #031329 28%, rgba(3,19,41,0.65) 50%, rgba(3,19,41,0.15) 100%), url('/images/flow.png')`,
                   backgroundSize: 'cover',
-                  backgroundPosition: 'right center',
+                  backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat'
                 }}
               >
-                <div className="relative z-10 p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {/* Left ~38%: icon + Flood Outlook title + River-flow model (nearest reach) + Large metric + Disclaimer */}
-                  <div className="max-w-md">
-                    <div className="w-10 h-10 rounded-xl bg-[#041d3d] border border-[#00C8FF]/60 flex items-center justify-center text-[#00C8FF] mb-2.5 shadow-sm">
+                <div className="relative z-10 p-4 sm:p-5 flex flex-col justify-between h-full w-full max-w-sm sm:max-w-md">
+                  {/* Left: icon + Flood Outlook title + River-flow model (nearest reach) */}
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#041d3d] border border-[#00C8FF]/60 flex items-center justify-center text-[#00C8FF] flex-shrink-0 shadow-sm">
                       <Waves className="w-5 h-5 text-[#00C8FF]" />
                     </div>
 
-                    <h4 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                      Flood Outlook
-                      <span className="sr-only">GloFAS Hydrological Flow Projection (River Discharge)</span>
-                    </h4>
+                    <div>
+                      <h4 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                        Flood Outlook
+                        <span className="sr-only">GloFAS Hydrological Flow Projection (River Discharge)</span>
+                      </h4>
 
-                    <p className="text-xs text-slate-300 mt-0.5 font-medium">
-                      River-flow model (nearest reach)
-                    </p>
-
-                    <div className="text-3xl sm:text-4xl font-bold text-[#00C8FF] font-mono tracking-tight my-2 drop-shadow-[0_2px_8px_rgba(0,200,255,0.35)]">
-                      {riverFlowVal} m³/s
+                      <p className="text-[11px] sm:text-xs text-slate-300 font-medium">
+                        River-flow model (nearest reach)
+                      </p>
                     </div>
-
-                    <p className="text-[11px] text-slate-400">
-                      Model-derived estimate · verify against official sources.
-                    </p>
-
-                    {envData?.flood_risk?.forecast_max_discharge_m3s != null && (
-                      <span className="sr-only">Peak: {envData.flood_risk.forecast_max_discharge_m3s} m³/s</span>
-                    )}
                   </div>
 
-                  {/* Right ~62% on desktop: Visual space letting the glowing river-terrain image shine through */}
-                  <div className="hidden md:block min-h-[120px]" />
+                  <div className="text-2xl sm:text-3xl font-bold text-[#00C8FF] font-mono tracking-tight my-1 drop-shadow-[0_2px_8px_rgba(0,200,255,0.35)]">
+                    {riverFlowVal} m³/s
+                  </div>
+
+                  <p className="text-[10.5px] sm:text-[11px] text-slate-400">
+                    Model-derived estimate · verify against official sources.
+                  </p>
+
+                  {envData?.flood_risk?.forecast_max_discharge_m3s != null && (
+                    <span className="sr-only">Peak: {envData.flood_risk.forecast_max_discharge_m3s} m³/s</span>
+                  )}
                 </div>
               </div>
 
               {/* 5. Next 12-Hour Rainfall Forecast (mm) */}
-              <div className="rounded-[16px] border border-[#0d3b66]/80 bg-[#04162e]/80 p-4 sm:p-5 relative shadow-sm">
-                <div className="flex items-center justify-between text-xs mb-3">
+              <div className="rounded-[16px] border border-[#0d3b66]/80 bg-[#04162e]/80 p-3.5 sm:p-4 relative shadow-sm">
+                <div className="flex items-center justify-between text-xs mb-2.5">
                   <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4 text-[#00C8FF]" />
                     <span className="font-bold text-white text-xs sm:text-sm tracking-tight">

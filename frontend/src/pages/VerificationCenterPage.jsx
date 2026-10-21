@@ -53,27 +53,35 @@ export default function VerificationCenterPage({
   return (
     <div className="space-y-5">
       {/* Page Title & Stats */}
-      <div className="bg-[#0D1B2D] p-5 rounded-xl border border-[#203550] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <div 
+        className="relative bg-[#0D1B2D] p-5 rounded-xl border border-[#203550] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.90) 0%, rgba(7, 17, 31, 0.72) 50%, rgba(9, 22, 41, 0.40) 100%), url('/images/header-verification.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="relative z-10">
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
               Verification Center & Duplicate Resolution
             </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
               Human-in-the-Loop Hub
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-200 mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
             Corroborate civilian report authenticity, examine semantic duplicate candidates, and authorize database merges.
           </p>
         </div>
 
         {/* Verification Summary Counts */}
-        <div className="flex items-center space-x-2 text-xs font-mono">
-          <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300">
+        <div className="flex items-center space-x-2 text-xs font-mono relative z-10">
+          <div className="px-3 py-1.5 rounded-lg bg-[#07111F]/80 border border-amber-500/40 text-amber-300 backdrop-blur-xs">
             Awaiting Verification: <strong>{incidents.filter(i => i.verificationStatus === 'unverified').length}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+          <div className="px-3 py-1.5 rounded-lg bg-[#07111F]/80 border border-emerald-500/40 text-emerald-300 backdrop-blur-xs">
             Verified Ground Truth: <strong>{incidents.filter(i => i.verificationStatus === 'verified').length}</strong>
           </div>
         </div>

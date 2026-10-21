@@ -92,21 +92,21 @@ export default function EquityCoverageMonitor({
   return (
     <div 
       data-testid="equity-coverage-monitor"
-      className={`relative rounded-[22px] bg-[#031329] border-[2px] border-[#00C8FF] p-5 sm:p-6 shadow-[0_0_28px_rgba(0,200,255,0.2),inset_0_0_18px_rgba(0,200,255,0.03)] overflow-hidden space-y-4 sm:space-y-5 ${className}`}
+      className={`relative rounded-[22px] bg-[#031329] border-[2px] border-[#00C8FF] p-4 sm:p-5 shadow-[0_0_28px_rgba(0,200,255,0.2),inset_0_0_18px_rgba(0,200,255,0.03)] overflow-hidden space-y-3.5 sm:space-y-4 ${className}`}
     >
       {/* 1. Header with Wave Grid Background */}
       <div 
-        className="rounded-[16px] border border-[#0d3b66]/80 p-4 sm:p-5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
+        className="rounded-[16px] border border-[#0d3b66]/80 p-3.5 sm:p-4 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 shadow-sm"
         style={{
-          backgroundImage: "linear-gradient(to right, rgba(3, 19, 41, 0.90) 0%, rgba(3, 25, 54, 0.75) 50%, rgba(3, 19, 41, 0.90) 100%), url('/images/equity-header-bg.png')",
+          backgroundImage: "linear-gradient(to right, rgba(3, 19, 41, 0.90) 0%, rgba(3, 25, 54, 0.75) 50%, rgba(3, 19, 41, 0.90) 100%), url('/images/disaster-bg-2.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
         }}
       >
         <div className="flex items-center space-x-3.5 relative z-10">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1a123f] to-[#0c1635] border border-[#8B5CF6]/60 shadow-[0_0_12px_rgba(139,92,246,0.35)] flex items-center justify-center flex-shrink-0 text-[#A78BFA]">
-            <Scale className="w-6 h-6 text-[#A78BFA]" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1a123f] to-[#0c1635] border border-[#8B5CF6]/60 shadow-[0_0_12px_rgba(139,92,246,0.35)] flex items-center justify-center flex-shrink-0 text-[#A78BFA]">
+            <Scale className="w-5 h-5 text-[#A78BFA]" />
           </div>
           <div>
             <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
@@ -121,7 +121,7 @@ export default function EquityCoverageMonitor({
                 Fair Prioritization Layer
               </span>
             </div>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
               Protects low-information, sparse-reporting, and unverified incidents from being deprioritized or overlooked.
             </p>
           </div>
@@ -129,7 +129,7 @@ export default function EquityCoverageMonitor({
 
         {/* Live Active Surveillance Status Pill */}
         <div className="flex items-center text-xs font-mono self-start md:self-auto flex-shrink-0 relative z-10">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#032035]/90 border border-[#00C8FF]/50 text-xs font-medium text-white shadow-[0_0_10px_rgba(0,200,255,0.2)]">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#032035]/90 border border-[#00C8FF]/50 text-xs font-medium text-white shadow-[0_0_10px_rgba(0,200,255,0.2)]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
             <span>Active Surveillance</span>
           </span>
@@ -137,12 +137,12 @@ export default function EquityCoverageMonitor({
       </div>
 
       {/* 2. Four Real-Data Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         {/* Metric 1: Equity-Review Flags (Amber) */}
         <button
           type="button"
           onClick={() => setSelectedEquityFilter(selectedEquityFilter === 'equity_flags' ? null : 'equity_flags')}
-          className={`rounded-[14px] p-4 sm:p-4.5 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[148px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
+          className={`rounded-[14px] p-3.5 sm:p-4 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[142px] h-[142px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
             selectedEquityFilter === 'equity_flags'
               ? 'border-2 border-[#FFB547] shadow-[0_0_22px_rgba(255,181,71,0.3)] ring-1 ring-[#FFB547]/60'
               : 'border border-[#FFB547]/45 shadow-[0_0_15px_rgba(255,181,71,0.12)] hover:border-[#FFB547] hover:shadow-[0_0_20px_rgba(255,181,71,0.22)]'
@@ -150,17 +150,17 @@ export default function EquityCoverageMonitor({
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#221504] border border-[#FFB547]/50 flex items-center justify-center text-[#FFB547] flex-shrink-0 shadow-xs">
-                  <Scale className="w-5 h-5 text-[#FFB547]" />
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#221504] border border-[#FFB547]/50 flex items-center justify-center text-[#FFB547] flex-shrink-0 shadow-xs">
+                  <Scale className="w-4.5 h-4.5 text-[#FFB547]" />
                 </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-[#FFB547] block">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-[#FFB547] block truncate leading-tight">
                     Equity-Review Flags
                   </span>
                   <span 
                     data-testid="equity-review-flag-count"
-                    className="text-2xl sm:text-3xl font-bold font-mono text-white leading-tight block mt-0.5"
+                    className="text-2xl font-bold font-mono text-white leading-tight block mt-0.5"
                   >
                     {equityFlaggedCount}
                   </span>
@@ -168,7 +168,7 @@ export default function EquityCoverageMonitor({
               </div>
 
               {/* Amber SVG Sparkline Graphic */}
-              <svg viewBox="0 0 100 40" className="w-16 sm:w-20 h-9 overflow-visible flex-shrink-0" preserveAspectRatio="none">
+              <svg viewBox="0 0 100 40" className="w-16 h-8 overflow-visible flex-shrink-0" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="eqAmberGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#FFB547" stopOpacity="0.4" />
@@ -189,17 +189,17 @@ export default function EquityCoverageMonitor({
               </svg>
             </div>
 
-            <p className="text-[11px] text-slate-300 mt-2.5 leading-snug">
+            <p className="text-[11px] text-slate-300 mt-2 leading-snug line-clamp-1">
               Serious emergencies flagged for coordinator review.
             </p>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-[#FFB547]">
+          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-medium text-[#FFB547]">
             <span className="text-[10px] text-amber-300/80">
               {selectedEquityFilter === 'equity_flags' ? 'Filtering Active' : 'Inspect flagged incidents'}
             </span>
-            <div className="w-6 h-6 rounded-full border border-[#FFB547]/60 flex items-center justify-center text-[#FFB547] group-hover:bg-[#FFB547]/20 transition-colors shadow-xs">
-              <ArrowRight className="w-3 h-3" />
+            <div className="w-5.5 h-5.5 rounded-full border border-[#FFB547]/60 flex items-center justify-center text-[#FFB547] group-hover:bg-[#FFB547]/20 transition-colors shadow-xs">
+              <ArrowRight className="w-2.5 h-2.5" />
             </div>
           </div>
         </button>
@@ -208,7 +208,7 @@ export default function EquityCoverageMonitor({
         <button
           type="button"
           onClick={() => setSelectedEquityFilter(selectedEquityFilter === 'unresolved_coords' ? null : 'unresolved_coords')}
-          className={`rounded-[14px] p-4 sm:p-4.5 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[148px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
+          className={`rounded-[14px] p-3.5 sm:p-4 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[142px] h-[142px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
             selectedEquityFilter === 'unresolved_coords'
               ? 'border-2 border-[#00C8FF] shadow-[0_0_22px_rgba(0,200,255,0.3)] ring-1 ring-[#00C8FF]/60'
               : 'border border-[#00C8FF]/45 shadow-[0_0_15px_rgba(0,200,255,0.12)] hover:border-[#00C8FF] hover:shadow-[0_0_20px_rgba(0,200,255,0.22)]'
@@ -216,17 +216,17 @@ export default function EquityCoverageMonitor({
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#031d3a] border border-[#00C8FF]/50 flex items-center justify-center text-[#00C8FF] flex-shrink-0 shadow-xs">
-                  <MapPinOff className="w-5 h-5 text-[#00C8FF]" />
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#031d3a] border border-[#00C8FF]/50 flex items-center justify-center text-[#00C8FF] flex-shrink-0 shadow-xs">
+                  <MapPinOff className="w-4.5 h-4.5 text-[#00C8FF]" />
                 </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-[#00C8FF] block">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-[#00C8FF] block truncate leading-tight">
                     Unresolved Location
                   </span>
                   <span 
                     data-testid="unresolved-location-count"
-                    className="text-2xl sm:text-3xl font-bold font-mono text-white leading-tight block mt-0.5"
+                    className="text-2xl font-bold font-mono text-white leading-tight block mt-0.5"
                   >
                     {unresolvedCount}
                   </span>
@@ -234,7 +234,7 @@ export default function EquityCoverageMonitor({
               </div>
 
               {/* Cyan SVG Sparkline Graphic */}
-              <svg viewBox="0 0 100 40" className="w-16 sm:w-20 h-9 overflow-visible flex-shrink-0" preserveAspectRatio="none">
+              <svg viewBox="0 0 100 40" className="w-16 h-8 overflow-visible flex-shrink-0" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="eqCyanGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#00C8FF" stopOpacity="0.4" />
@@ -255,17 +255,17 @@ export default function EquityCoverageMonitor({
               </svg>
             </div>
 
-            <p className="text-[11px] text-slate-300 mt-2.5 leading-snug">
+            <p className="text-[11px] text-slate-300 mt-2 leading-snug line-clamp-1">
               Incidents lacking verified coordinates.
             </p>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-[#00C8FF]">
+          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-medium text-[#00C8FF]">
             <span className="text-[10px] text-cyan-300/80">
               {selectedEquityFilter === 'unresolved_coords' ? 'Filtering Active' : 'View unmapped incidents'}
             </span>
-            <div className="w-6 h-6 rounded-full border border-[#00C8FF]/60 flex items-center justify-center text-[#00C8FF] group-hover:bg-[#00C8FF]/20 transition-colors shadow-xs">
-              <ArrowRight className="w-3 h-3" />
+            <div className="w-5.5 h-5.5 rounded-full border border-[#00C8FF]/60 flex items-center justify-center text-[#00C8FF] group-hover:bg-[#00C8FF]/20 transition-colors shadow-xs">
+              <ArrowRight className="w-2.5 h-2.5" />
             </div>
           </div>
         </button>
@@ -274,7 +274,7 @@ export default function EquityCoverageMonitor({
         <button
           type="button"
           onClick={() => setSelectedEquityFilter(selectedEquityFilter === 'serious_unverified' ? null : 'serious_unverified')}
-          className={`rounded-[14px] p-4 sm:p-4.5 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[148px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
+          className={`rounded-[14px] p-3.5 sm:p-4 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[142px] h-[142px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
             selectedEquityFilter === 'serious_unverified'
               ? 'border-2 border-[#FF4566] shadow-[0_0_22px_rgba(255,69,102,0.3)] ring-1 ring-[#FF4566]/60'
               : 'border border-[#FF4566]/45 shadow-[0_0_15px_rgba(255,69,102,0.12)] hover:border-[#FF4566] hover:shadow-[0_0_20px_rgba(255,69,102,0.22)]'
@@ -282,17 +282,17 @@ export default function EquityCoverageMonitor({
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#280a12] border border-[#FF4566]/50 flex items-center justify-center text-[#FF4566] flex-shrink-0 shadow-xs">
-                  <ShieldAlert className="w-5 h-5 text-[#FF4566]" />
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#280a12] border border-[#FF4566]/50 flex items-center justify-center text-[#FF4566] flex-shrink-0 shadow-xs">
+                  <ShieldAlert className="w-4.5 h-4.5 text-[#FF4566]" />
                 </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-[#FF4566] block">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-[#FF4566] block truncate leading-tight">
                     Serious Unverified
                   </span>
                   <span 
                     data-testid="serious-unverified-count"
-                    className="text-2xl sm:text-3xl font-bold font-mono text-white leading-tight block mt-0.5"
+                    className="text-2xl font-bold font-mono text-white leading-tight block mt-0.5"
                   >
                     {seriousUnverifiedCount}
                   </span>
@@ -300,7 +300,7 @@ export default function EquityCoverageMonitor({
               </div>
 
               {/* Red/Pink SVG Sparkline Graphic */}
-              <svg viewBox="0 0 100 40" className="w-16 sm:w-20 h-9 overflow-visible flex-shrink-0" preserveAspectRatio="none">
+              <svg viewBox="0 0 100 40" className="w-16 h-8 overflow-visible flex-shrink-0" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="eqRedGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#FF4566" stopOpacity="0.4" />
@@ -321,17 +321,17 @@ export default function EquityCoverageMonitor({
               </svg>
             </div>
 
-            <p className="text-[11px] text-slate-300 mt-2.5 leading-snug">
+            <p className="text-[11px] text-slate-300 mt-2 leading-snug line-clamp-1">
               Critical/High reports awaiting field corroboration.
             </p>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-[#FF4566]">
+          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-medium text-[#FF4566]">
             <span className="text-[10px] text-rose-300/80">
               {selectedEquityFilter === 'serious_unverified' ? 'Filtering Active' : 'Review ground truth'}
             </span>
-            <div className="w-6 h-6 rounded-full border border-[#FF4566]/60 flex items-center justify-center text-[#FF4566] group-hover:bg-[#FF4566]/20 transition-colors shadow-xs">
-              <ArrowRight className="w-3 h-3" />
+            <div className="w-5.5 h-5.5 rounded-full border border-[#FF4566]/60 flex items-center justify-center text-[#FF4566] group-hover:bg-[#FF4566]/20 transition-colors shadow-xs">
+              <ArrowRight className="w-2.5 h-2.5" />
             </div>
           </div>
         </button>
@@ -340,7 +340,7 @@ export default function EquityCoverageMonitor({
         <button
           type="button"
           onClick={() => setSelectedEquityFilter(selectedEquityFilter === 'high_urgency' ? null : 'high_urgency')}
-          className={`rounded-[14px] p-4 sm:p-4.5 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[148px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
+          className={`rounded-[14px] p-3.5 sm:p-4 text-left transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[142px] h-[142px] bg-gradient-to-br from-[#07192f] via-[#051426] to-[#040e1b] ${
             selectedEquityFilter === 'high_urgency'
               ? 'border-2 border-[#9875FF] shadow-[0_0_22px_rgba(152,117,255,0.3)] ring-1 ring-[#9875FF]/60'
               : 'border border-[#9875FF]/45 shadow-[0_0_15px_rgba(152,117,255,0.12)] hover:border-[#9875FF] hover:shadow-[0_0_20px_rgba(152,117,255,0.22)]'
@@ -348,17 +348,17 @@ export default function EquityCoverageMonitor({
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#1d0a33] border border-[#9875FF]/50 flex items-center justify-center text-[#9875FF] flex-shrink-0 shadow-xs">
-                  <Clock className="w-5 h-5 text-[#9875FF]" />
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#1d0a33] border border-[#9875FF]/50 flex items-center justify-center text-[#9875FF] flex-shrink-0 shadow-xs">
+                  <Clock className="w-4.5 h-4.5 text-[#9875FF]" />
                 </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-[#9875FF] block">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-[#9875FF] block truncate leading-tight">
                     High-Urgency Triage
                   </span>
                   <span 
                     data-testid="high-urgency-pending-count"
-                    className="text-2xl sm:text-3xl font-bold font-mono text-white leading-tight block mt-0.5"
+                    className="text-2xl font-bold font-mono text-white leading-tight block mt-0.5"
                   >
                     {highUrgencyCount}
                   </span>
@@ -366,7 +366,7 @@ export default function EquityCoverageMonitor({
               </div>
 
               {/* Violet SVG Sparkline Graphic */}
-              <svg viewBox="0 0 100 40" className="w-16 sm:w-20 h-9 overflow-visible flex-shrink-0" preserveAspectRatio="none">
+              <svg viewBox="0 0 100 40" className="w-16 h-8 overflow-visible flex-shrink-0" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="eqVioletGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#9875FF" stopOpacity="0.4" />
@@ -387,17 +387,17 @@ export default function EquityCoverageMonitor({
               </svg>
             </div>
 
-            <p className="text-[11px] text-slate-300 mt-2.5 leading-snug">
+            <p className="text-[11px] text-slate-300 mt-2 leading-snug line-clamp-1">
               Reports with priority &ge; 70 or critical severity.
             </p>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-[#9875FF]">
+          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-medium text-[#9875FF]">
             <span className="text-[10px] text-purple-300/80">
               {selectedEquityFilter === 'high_urgency' ? 'Filtering Active' : 'Inspect triage items'}
             </span>
-            <div className="w-6 h-6 rounded-full border border-[#9875FF]/60 flex items-center justify-center text-[#9875FF] group-hover:bg-[#9875FF]/20 transition-colors shadow-xs">
-              <ArrowRight className="w-3 h-3" />
+            <div className="w-5.5 h-5.5 rounded-full border border-[#9875FF]/60 flex items-center justify-center text-[#9875FF] group-hover:bg-[#9875FF]/20 transition-colors shadow-xs">
+              <ArrowRight className="w-2.5 h-2.5" />
             </div>
           </div>
         </button>
@@ -405,7 +405,7 @@ export default function EquityCoverageMonitor({
 
       {/* 3. Coverage Methodology & Transparency Panel */}
       <div 
-        className="rounded-[16px] border border-[#00C8FF]/40 bg-[#04162e]/90 p-4 sm:p-5 relative overflow-hidden shadow-[0_0_20px_rgba(0,200,255,0.08)]"
+        className="rounded-[16px] border border-[#00C8FF]/40 bg-[#04162e]/90 p-3 sm:px-4 sm:py-3 relative overflow-hidden shadow-[0_0_20px_rgba(0,200,255,0.08)]"
         style={{
           backgroundImage: "linear-gradient(to right, rgba(3, 19, 41, 0.94) 0%, rgba(3, 25, 54, 0.82) 50%, rgba(3, 19, 41, 0.94) 100%), url('/images/equity-panel-bg.png')",
           backgroundSize: 'cover',
@@ -413,40 +413,40 @@ export default function EquityCoverageMonitor({
           backgroundRepeat: 'no-repeat'
         }}
       >
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-[#F1F7FF] relative z-10">
-          <div className="flex items-start space-x-3.5">
-            <div className="w-11 h-11 rounded-full bg-[#00C8FF]/15 border border-[#00C8FF]/50 flex items-center justify-center text-[#00C8FF] shadow-[0_0_12px_rgba(0,200,255,0.25)] flex-shrink-0">
-              <Info className="w-5 h-5 text-[#00C8FF]" />
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 text-xs text-[#F1F7FF] relative z-10">
+          <div className="flex items-start sm:items-center space-x-3">
+            <div className="w-9 h-9 rounded-full bg-[#00C8FF]/15 border border-[#00C8FF]/50 flex items-center justify-center text-[#00C8FF] shadow-[0_0_12px_rgba(0,200,255,0.25)] flex-shrink-0">
+              <Info className="w-4.5 h-4.5 text-[#00C8FF]" />
             </div>
             <div>
               <div className="flex items-center space-x-2 flex-wrap">
-                <strong className="text-white text-sm font-bold">
-                  Coverage Methodology & Transparency:
+                <strong className="text-white text-xs sm:text-sm font-bold">
+                  Coverage Methodology &amp; Transparency:
                 </strong>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4c1d95]/40 border border-[#8B5CF6]/50 text-[#C4B5FD] font-semibold">
                   <span>Fair Prioritization</span> <span>Layer</span>
                 </span>
               </div>
-              <span className="text-xs text-slate-300 leading-relaxed mt-1 block">
-                <strong className="text-[#00C8FF] font-semibold">Measured Telemetry:</strong> Zone RF deviations are tracked from real cellular & utility telemetry.{' '}
+              <span className="text-xs text-slate-300 leading-relaxed mt-0.5 block">
+                <strong className="text-[#00C8FF] font-semibold">Measured Telemetry:</strong> Zone RF deviations are tracked from real cellular &amp; utility telemetry.{' '}
                 <strong className="text-[#00C8FF] font-semibold">Reporting Proxy:</strong> Single-source reports are labeled as a proxy where sensor telemetry is unavailable.{' '}
                 <span className="text-slate-400">No connectivity or population data is invented.</span>
               </span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5 flex-shrink-0 self-start md:self-auto">
+          <div className="flex items-center space-x-2 flex-shrink-0 self-start md:self-auto">
             <button
               type="button"
               onClick={() => onNavigateTab?.('verification')}
-              className="text-xs font-semibold px-3.5 py-2 rounded-xl bg-[#00C8FF]/15 hover:bg-[#00C8FF]/25 border border-[#00C8FF]/50 text-[#00C8FF] hover:text-white transition-all shadow-[0_0_10px_rgba(0,200,255,0.15)] flex items-center space-x-1 cursor-pointer whitespace-nowrap"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#00C8FF]/15 hover:bg-[#00C8FF]/25 border border-[#00C8FF]/50 text-[#00C8FF] hover:text-white transition-all shadow-[0_0_10px_rgba(0,200,255,0.15)] flex items-center space-x-1 cursor-pointer whitespace-nowrap"
             >
               <span>Review Pending Verification &rarr;</span>
             </button>
             <button
               type="button"
               onClick={() => onNavigateTab?.('priority')}
-              className="text-xs font-semibold px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-[#FFB547]/50 text-[#FFB547] hover:text-white transition-all shadow-[0_0_10px_rgba(255,181,71,0.15)] flex items-center space-x-1 cursor-pointer whitespace-nowrap"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-[#FFB547]/50 text-[#FFB547] hover:text-white transition-all shadow-[0_0_10px_rgba(255,181,71,0.15)] flex items-center space-x-1 cursor-pointer whitespace-nowrap"
             >
               <span>Priority Queue &rarr;</span>
             </button>
@@ -455,7 +455,7 @@ export default function EquityCoverageMonitor({
       </div>
 
       {/* 4. Active Incidents Requiring Equity Review Inner Panel */}
-      <div className="rounded-[16px] border border-[#00C8FF]/40 bg-[#031329] p-4 sm:p-5 shadow-lg relative overflow-hidden">
+      <div className="rounded-[16px] border border-[#00C8FF]/40 bg-[#031329] p-3.5 sm:p-4 shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#163a60]">
           <div className="flex items-center space-x-2.5">
             <FileText className="w-4 h-4 text-rose-400 drop-shadow-[0_0_6px_rgba(255,69,102,0.5)]" />

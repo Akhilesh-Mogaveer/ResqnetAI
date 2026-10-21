@@ -7,6 +7,7 @@ import EquityCoverageMonitor from '../components/EquityCoverageMonitor';
 import { 
   AlertTriangle, 
   ShieldAlert, 
+  Shield,
   MapPin, 
   ArrowRight, 
   CheckCircle2, 
@@ -83,6 +84,14 @@ export default function OverviewPage({
     ).length;
   }, [incidents]);
 
+  const totalIndependentCount = useMemo(() => {
+    return incidents.filter(i => !i.is_duplicate && i.responseStatus !== 'merged_duplicate').length;
+  }, [incidents]);
+
+  const verifyPercent = totalIndependentCount > 0 ? Math.min(100, Math.round((unverifiedCount / totalIndependentCount) * 100)) : 0;
+  const unmappedPercent = totalIndependentCount > 0 ? Math.min(100, Math.round((unmappedCount / totalIndependentCount) * 100)) : 0;
+  const unassignedPercent = totalIndependentCount > 0 ? Math.min(100, Math.round((unassignedCount / totalIndependentCount) * 100)) : 0;
+
   // Filter and sort urgent incidents
   const urgentIncidents = useMemo(() => {
     return [...incidents]
@@ -112,9 +121,9 @@ export default function OverviewPage({
     <div className="space-y-6">
       {/* 1. Page Header Hero Banner with Flood / Disaster Backdrop */}
       <div 
-        className="relative rounded-2xl border border-[#203550] p-6 shadow-xl overflow-hidden bg-[#0D1B2D]"
+        className="relative rounded-2xl border border-[#203550] hover:border-[#2878FF]/50 transition-colors p-4.5 sm:p-5 shadow-xl overflow-hidden bg-[#0D1B2D]"
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.88) 0%, rgba(7, 17, 31, 0.65) 50%, rgba(9, 22, 41, 0.35) 100%), url('/images/flood-bg-1.png')`,
+          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.94) 0%, rgba(7, 17, 31, 0.78) 50%, rgba(9, 22, 41, 0.45) 100%), url('/images/flood-bg-1.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 35%',
           backgroundRepeat: 'no-repeat'
@@ -129,7 +138,7 @@ export default function OverviewPage({
               Live SitRep
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-100 font-medium mt-2 leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
+          <p className="text-xs sm:text-sm text-slate-100 font-medium mt-1.5 leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
             Real-time multi-hazard coordination dashboard. Review urgent incidents, verify incoming civilian reports, and dispatch teams.
           </p>
         </div>
@@ -567,116 +576,270 @@ export default function OverviewPage({
       </div>
 
       {/* 3b. Actions Requiring Coordinator Attention — Full-Width Dashboard Panel */}
-      <div className="bg-[#0D1B2D] rounded-xl border border-[#203550] shadow-md p-5 sm:p-6 w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-[#203550] mb-4 gap-2">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-950/60 border border-blue-500/40 flex items-center justify-center flex-shrink-0 shadow-xs">
-              <ShieldAlert className="w-4.5 h-4.5 text-[#21D4FD]" />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                Actions Requiring Coordinator Attention
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Key actions to validate reports, inspect gaps, and dispatch response teams
-              </p>
-            </div>
+      <div className="bg-[#031329] rounded-[20px] border border-[#0d2a4a] p-5 sm:p-6 w-full shadow-lg">
+        {/* Header matching reference image */}
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-xl bg-[#031d38] border border-[#00C8FF]/70 shadow-[0_0_18px_rgba(0,200,255,0.4)] flex items-center justify-center flex-shrink-0 text-[#00C8FF]">
+            <ShieldAlert className="w-5 h-5 text-[#00C8FF]" />
           </div>
-          <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 self-start sm:self-auto">
-            <span className="w-2 h-2 rounded-full bg-[#21D4FD] animate-pulse" />
-            <span>Operational Triage Triggers</span>
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+              Actions Requiring Coordinator <span className="text-[#00C8FF] drop-shadow-[0_0_10px_rgba(0,200,255,0.4)]">Attention</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+              Validate reports, resolve location gaps, and coordinate response teams
+            </p>
           </div>
         </div>
 
         {/* Responsive 3-Column Grid across full dashboard width */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {/* Action 1: Ground Truth Verification (Amber) */}
-          <div className="p-4 sm:p-5 rounded-xl bg-amber-950/20 border border-amber-900/50 flex flex-col justify-between h-full hover:border-amber-600/60 transition-all">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mt-5">
+          {/* Card 1: Ground Truth Verification (Amber) */}
+          <div className="rounded-[16px] bg-[#071322] border border-amber-500/40 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:border-amber-500 hover:shadow-[0_0_24px_rgba(255,181,71,0.2)] group">
+            {/* Top Amber Glowing Border Accent */}
+            <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-amber-400/80 to-transparent pointer-events-none" />
+
             <div>
-              <div className="flex items-center space-x-3.5 pb-3 border-b border-amber-900/30">
-                <div className="w-11 h-11 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <ShieldAlert className="w-5 h-5 text-[#FFB547]" />
+              {/* Top Row: Icon + Title/Badge (Left) & Illustrated Graphic (Right) */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-center justify-center text-[#FFB547] flex-shrink-0 shadow-xs">
+                    <Shield className="w-5 h-5 text-[#FFB547]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                      Ground Truth Verification
+                    </h3>
+                    <span className="inline-block mt-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-600/50 text-amber-300">
+                      Needs review
+                    </span>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-xs font-bold text-amber-300 block truncate">
-                    Ground Truth Verification
-                  </span>
-                  <span className="text-2xl sm:text-3xl font-black font-mono text-[#FFB547] leading-tight block">
-                    {unverifiedCount}
-                  </span>
-                </div>
+
+                {/* Checklist Document + Magnifying Glass SVG Illustration */}
+                <svg width="60" height="60" viewBox="0 0 64 64" fill="none" className="flex-shrink-0 opacity-85 group-hover:opacity-100 transition-opacity">
+                  <rect x="8" y="6" width="36" height="46" rx="6" fill="#181309" stroke="#FFB547" strokeWidth="1.5" strokeOpacity="0.45" />
+                  <circle cx="16" cy="18" r="2" fill="#FFB547" />
+                  <line x1="22" y1="18" x2="36" y2="18" stroke="#FFB547" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.7" />
+                  <circle cx="16" cy="26" r="2" fill="#FFB547" />
+                  <line x1="22" y1="26" x2="36" y2="26" stroke="#FFB547" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.7" />
+                  <circle cx="16" cy="34" r="2" fill="#FFB547" />
+                  <line x1="22" y1="34" x2="30" y2="34" stroke="#FFB547" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.7" />
+                  <g filter="url(#amberGlow)">
+                    <circle cx="40" cy="38" r="9" fill="#181309" stroke="#FFB547" strokeWidth="2.5" />
+                    <line x1="47" y1="45" x2="56" y2="54" stroke="#FFB547" strokeWidth="3" strokeLinecap="round" />
+                  </g>
+                  <defs>
+                    <filter id="amberGlow" x="25" y="23" width="38" height="38" filterUnits="userSpaceOnUse">
+                      <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#FFB547" floodOpacity="0.8" />
+                    </filter>
+                  </defs>
+                </svg>
               </div>
-              <p className="text-xs text-amber-200/80 mt-3 leading-relaxed">
-                {unverifiedCount} incoming reports awaiting human verification before dispatch.
-              </p>
+
+              {/* Big Count & Description */}
+              <div className="mt-3">
+                <span className="text-3xl sm:text-4xl font-extrabold font-mono text-[#FFB547] leading-none block">
+                  {unverifiedCount}
+                </span>
+                <p className="text-xs text-slate-300 mt-1.5 leading-snug">
+                  Incoming reports awaiting human verification.
+                  <span className="sr-only"> {unverifiedCount} incoming reports awaiting human verification</span>
+                </p>
+              </div>
+
+              {/* Real-Data Supported Progress Bar */}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                  <div 
+                    className="h-full rounded-full bg-[#FFB547] shadow-[0_0_8px_rgba(255,181,71,0.6)] transition-all duration-500"
+                    style={{ width: `${verifyPercent}%` }}
+                  />
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-200 flex-shrink-0">
+                  {unverifiedCount} <span className="text-slate-500 font-normal">/ {totalIndependentCount}</span>
+                </span>
+              </div>
             </div>
+
+            {/* Action Button */}
             <button
               type="button"
               onClick={() => onNavigateTab('verification')}
-              className="mt-4 w-full h-9 text-xs font-bold px-3 rounded-lg bg-[#FFB547] hover:bg-amber-400 text-slate-950 transition-colors flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+              aria-label="Open verification (Verification Center)"
+              className="mt-4 w-full py-2.5 px-4 rounded-xl border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 text-[#FFB547] hover:text-white font-semibold text-xs sm:text-sm transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             >
-              <span>Verification Center</span>
-              <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Open verification</span>
+              <span className="text-sm leading-none ml-1">&rarr;</span>
             </button>
           </div>
 
-          {/* Action 2: Unmapped Reports (Cyan / Blue) */}
-          <div className="p-4 sm:p-5 rounded-xl bg-sky-950/20 border border-sky-900/50 flex flex-col justify-between h-full hover:border-sky-600/60 transition-all">
+          {/* Card 2: Unmapped Reports (Cyan / Blue) */}
+          <div className="rounded-[16px] bg-[#071322] border border-[#00C8FF]/40 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:border-[#00C8FF] hover:shadow-[0_0_24px_rgba(0,200,255,0.2)] group">
+            {/* Top Cyan Glowing Border Accent */}
+            <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-[#00C8FF]/80 to-transparent pointer-events-none" />
+
             <div>
-              <div className="flex items-center space-x-3.5 pb-3 border-b border-sky-900/30">
-                <div className="w-11 h-11 rounded-lg bg-blue-500/20 border border-[#2878FF]/50 flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Compass className="w-5 h-5 text-[#21D4FD]" />
+              {/* Top Row: Icon + Title/Badge (Left) & Illustrated Graphic (Right) */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-950/60 border border-[#00C8FF]/50 flex items-center justify-center text-[#00C8FF] flex-shrink-0 shadow-xs">
+                    <MapPin className="w-5 h-5 text-[#00C8FF]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                      Unmapped Reports
+                    </h3>
+                    <span className="inline-block mt-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-blue-950/80 border border-blue-600/50 text-cyan-300">
+                      Location gaps
+                    </span>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-xs font-bold text-[#21D4FD] block truncate">
-                    Unmapped Reports
-                  </span>
-                  <span className="text-2xl sm:text-3xl font-black font-mono text-[#21D4FD] leading-tight block">
-                    {unmappedCount}
-                  </span>
-                </div>
+
+                {/* Perspective 3D Map Grid + Radar Pin SVG Illustration */}
+                <svg width="64" height="60" viewBox="0 0 68 64" fill="none" className="flex-shrink-0 opacity-85 group-hover:opacity-100 transition-opacity">
+                  <path d="M 6,38 L 48,16 L 64,28 L 22,50 Z" stroke="#00C8FF" strokeWidth="1" strokeOpacity="0.3" fill="#00C8FF" fillOpacity="0.04" />
+                  <line x1="20" y1="31" x2="35" y2="42" stroke="#00C8FF" strokeWidth="1" strokeOpacity="0.25" />
+                  <line x1="34" y1="24" x2="49" y2="35" stroke="#00C8FF" strokeWidth="1" strokeOpacity="0.25" />
+                  <circle cx="28" cy="32" r="2.5" fill="#00C8FF" fillOpacity="0.6" />
+                  <circle cx="50" cy="24" r="2" fill="#00C8FF" fillOpacity="0.6" />
+                  <ellipse cx="44" cy="42" rx="10" ry="4" stroke="#00C8FF" strokeWidth="1.5" strokeDasharray="3 2" fill="none" />
+                  <g filter="url(#cyanGlow)">
+                    <path d="M 44,20 C 40,20 37,23 37,27 C 37,32 44,40 44,40 C 44,40 51,32 51,27 C 51,23 48,20 44,20 Z" fill="#00C8FF" />
+                    <circle cx="44" cy="26" r="2.5" fill="#031329" />
+                  </g>
+                  <defs>
+                    <filter id="cyanGlow" x="27" y="10" width="34" height="40" filterUnits="userSpaceOnUse">
+                      <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00C8FF" floodOpacity="0.9" />
+                    </filter>
+                  </defs>
+                </svg>
               </div>
-              <p className="text-xs text-sky-200/80 mt-3 leading-relaxed">
-                {unmappedCount} incidents lack confirmed coordinates and require location resolution.
-              </p>
+
+              {/* Big Count & Description */}
+              <div className="mt-3">
+                <span className="text-3xl sm:text-4xl font-extrabold font-mono text-[#00C8FF] leading-none block">
+                  {unmappedCount}
+                </span>
+                <p className="text-xs text-slate-300 mt-1.5 leading-snug">
+                  Incidents without confirmed coordinates.
+                  <span className="sr-only"> {unmappedCount} incidents lack confirmed coordinates</span>
+                </p>
+              </div>
+
+              {/* Real-Data Supported Progress Bar */}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                  <div 
+                    className="h-full rounded-full bg-[#00C8FF] shadow-[0_0_8px_rgba(0,200,255,0.6)] transition-all duration-500"
+                    style={{ width: `${unmappedPercent}%` }}
+                  />
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-200 flex-shrink-0">
+                  {unmappedCount} <span className="text-slate-500 font-normal">/ {totalIndependentCount}</span>
+                </span>
+              </div>
             </div>
+
+            {/* Action Button */}
             <button
               type="button"
               onClick={() => onNavigateTab('map')}
-              className="mt-4 w-full h-9 text-xs font-bold px-3 rounded-lg bg-[#2878FF] hover:bg-blue-600 text-white transition-colors flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+              aria-label="Resolve locations (Resolve on Map)"
+              className="mt-4 w-full py-2.5 px-4 rounded-xl border border-[#00C8FF]/60 bg-[#00C8FF]/10 hover:bg-[#00C8FF]/20 text-[#00C8FF] hover:text-white font-semibold text-xs sm:text-sm transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             >
-              <span>Resolve on Map</span>
-              <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Resolve locations</span>
+              <span className="text-sm leading-none ml-1">&rarr;</span>
             </button>
           </div>
 
-          {/* Action 3: Squad Dispatch (Green / Emerald) */}
-          <div className="p-4 sm:p-5 rounded-xl bg-emerald-950/20 border border-emerald-900/50 flex flex-col justify-between h-full hover:border-emerald-600/60 transition-all sm:col-span-2 lg:col-span-1">
+          {/* Card 3: Squad Dispatch (Green / Emerald) */}
+          <div className="rounded-[16px] bg-[#071322] border border-emerald-500/40 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:border-emerald-500 hover:shadow-[0_0_24px_rgba(16,185,129,0.2)] group">
+            {/* Top Emerald Glowing Border Accent */}
+            <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent pointer-events-none" />
+
             <div>
-              <div className="flex items-center space-x-3.5 pb-3 border-b border-emerald-900/30">
-                <div className="w-11 h-11 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Users className="w-5 h-5 text-[#25D6A2]" />
+              {/* Top Row: Icon + Title/Badge (Left) & Illustrated Graphic (Right) */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-center text-emerald-400 flex-shrink-0 shadow-xs">
+                    <Users className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                      Squad Dispatch
+                    </h3>
+                    <span className="inline-block mt-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-600/50 text-emerald-300">
+                      Unassigned
+                    </span>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-xs font-bold text-emerald-300 block truncate">
-                    Squad Dispatch
-                  </span>
-                  <span className="text-2xl sm:text-3xl font-black font-mono text-[#25D6A2] leading-tight block">
-                    {unassignedCount}
-                  </span>
-                </div>
+
+                {/* Radar Dispatch Network with Responder Squad SVG Illustration */}
+                <svg width="64" height="60" viewBox="0 0 68 64" fill="none" className="flex-shrink-0 opacity-85 group-hover:opacity-100 transition-opacity">
+                  <path d="M 8,36 A 28,28 0 0,1 60,36" stroke="#10B981" strokeWidth="1.2" strokeDasharray="3 3" strokeOpacity="0.4" fill="none" />
+                  <line x1="34" y1="34" x2="34" y2="16" stroke="#10B981" strokeWidth="1" strokeOpacity="0.4" />
+                  <line x1="34" y1="34" x2="16" y2="28" stroke="#10B981" strokeWidth="1" strokeOpacity="0.4" />
+                  <line x1="34" y1="34" x2="52" y2="28" stroke="#10B981" strokeWidth="1" strokeOpacity="0.4" />
+                  <circle cx="34" cy="16" r="7" fill="#042018" stroke="#10B981" strokeWidth="1.2" />
+                  <rect x="30" y="14" width="6" height="4" rx="1" fill="#10B981" />
+                  <circle cx="31.5" cy="18.5" r="0.8" fill="#042018" />
+                  <circle cx="34.5" cy="18.5" r="0.8" fill="#042018" />
+                  <circle cx="16" cy="28" r="5" fill="#042018" stroke="#10B981" strokeWidth="1.2" />
+                  <circle cx="16" cy="28" r="2" fill="#10B981" />
+                  <circle cx="52" cy="28" r="5" fill="#042018" stroke="#10B981" strokeWidth="1.2" />
+                  <line x1="50" y1="28" x2="54" y2="28" stroke="#10B981" strokeWidth="1.2" />
+                  <line x1="52" y1="26" x2="52" y2="30" stroke="#10B981" strokeWidth="1.2" />
+                  <g filter="url(#emeraldGlow)">
+                    <circle cx="34" cy="34" r="5" fill="#10B981" />
+                    <path d="M 26,48 C 26,42 30,40 34,40 C 38,40 42,42 42,48 Z" fill="#10B981" />
+                    <circle cx="24" cy="38" r="3.5" fill="#10B981" fillOpacity="0.7" />
+                    <path d="M 18,48 C 18,44 21,43 24,43 C 25.5,43 27,43.5 28,44.5 Z" fill="#10B981" fillOpacity="0.7" />
+                    <circle cx="44" cy="38" r="3.5" fill="#10B981" fillOpacity="0.7" />
+                    <path d="M 40,44.5 C 41,43.5 42.5,43 44,43 C 47,43 50,44 50,48 Z" fill="#10B981" fillOpacity="0.7" />
+                  </g>
+                  <defs>
+                    <filter id="emeraldGlow" x="12" y="24" width="44" height="30" filterUnits="userSpaceOnUse">
+                      <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor="#10B981" floodOpacity="0.8" />
+                    </filter>
+                  </defs>
+                </svg>
               </div>
-              <p className="text-xs text-emerald-200/80 mt-3 leading-relaxed">
-                {unassignedCount} active emergencies currently have no response team assigned.
-              </p>
+
+              {/* Big Count & Description */}
+              <div className="mt-3">
+                <span className="text-3xl sm:text-4xl font-extrabold font-mono text-[#10B981] leading-none block">
+                  {unassignedCount}
+                </span>
+                <p className="text-xs text-slate-300 mt-1.5 leading-snug">
+                  Active emergencies without a response team.
+                  <span className="sr-only"> {unassignedCount} active emergencies currently have no response team assigned</span>
+                </p>
+              </div>
+
+              {/* Real-Data Supported Progress Bar */}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                  <div 
+                    className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)] transition-all duration-500"
+                    style={{ width: `${unassignedPercent}%` }}
+                  />
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-200 flex-shrink-0">
+                  {unassignedCount} <span className="text-slate-500 font-normal">/ {totalIndependentCount}</span>
+                </span>
+              </div>
             </div>
+
+            {/* Action Button */}
             <button
               type="button"
               onClick={() => onNavigateTab('response')}
-              className="mt-4 w-full h-9 text-xs font-bold px-3 rounded-lg bg-[#132238] hover:bg-emerald-950/80 border border-emerald-700/60 hover:border-emerald-500 text-emerald-300 hover:text-white transition-colors flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+              aria-label="Manage dispatch (Fleet & Dispatch)"
+              className="mt-4 w-full py-2.5 px-4 rounded-xl border border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 hover:text-white font-semibold text-xs sm:text-sm transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             >
-              <span>Fleet & Dispatch</span>
-              <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Manage dispatch</span>
+              <span className="text-sm leading-none ml-1">&rarr;</span>
             </button>
           </div>
         </div>

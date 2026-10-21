@@ -85,28 +85,36 @@ export default function IncidentsPage({
   return (
     <div className="space-y-5">
       {/* Page Title & Intake Bar */}
-      <div className="bg-[#0D1B2D] p-5 rounded-xl border border-[#203550] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <div 
+        className="relative bg-[#0D1B2D] p-5 rounded-xl border border-[#203550] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(7, 17, 31, 0.90) 0%, rgba(7, 17, 31, 0.72) 50%, rgba(9, 22, 41, 0.40) 100%), url('/images/header-incidents.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="relative z-10">
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
               Incident Management & Tactical Triage
             </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-950/60 text-cyan-300 border border-blue-500/40">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-950/80 text-cyan-300 border border-blue-500/50 shadow-xs">
               {activeCanonicalCount} Active Canonical
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-200 mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
             Review incoming civilian and sensor reports, examine HumAID NLP predictions, and execute operational status transitions.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 relative z-10">
           <button
             onClick={onOpenNewIncidentModal}
-            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-sm transition-colors"
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Report New Incident</span>
+            <span> Report New Incident</span>
           </button>
         </div>
       </div>
