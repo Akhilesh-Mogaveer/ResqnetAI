@@ -13,3 +13,4 @@ torch>=2.0.0
 transformers>=4.36.0,<4.57.0
 accelerate>=0.26.0
 tf-keras>=2.14.0
+PyJWT>=2.0.0
