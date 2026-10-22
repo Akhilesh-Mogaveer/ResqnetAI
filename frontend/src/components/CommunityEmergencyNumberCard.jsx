@@ -45,28 +45,28 @@ function getStatusBadge(status) {
     case 'connected':
       return {
         label: 'Connected',
-        className: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        className: 'bg-severity-success/15 text-[#1C8C5A] shadow-clay-pill',
         icon: CheckCircle2,
         desc: 'Gateway active. Forwarded emergency SMS packets reaching backend.',
       };
     case 'testing':
       return {
         label: 'Testing',
-        className: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+        className: 'bg-brand-primary/15 text-brand-primary shadow-clay-pill',
         icon: RefreshCw,
         desc: 'Connectivity test or handshake verification in progress.',
       };
     case 'setup_required':
       return {
         label: 'Setup required',
-        className: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        className: 'bg-severity-high/15 text-[#B26A00] shadow-clay-pill',
         icon: AlertTriangle,
         desc: 'Phone number saved. Volunteer Android app needs configuration.',
       };
     case 'unavailable':
       return {
         label: 'Unavailable',
-        className: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+        className: 'bg-severity-critical/15 text-[#C0292E] shadow-clay-pill',
         icon: XCircle,
         desc: 'SMS intake unavailable. Number was deactivated or deleted.',
       };
@@ -74,7 +74,7 @@ function getStatusBadge(status) {
     default:
       return {
         label: 'Not configured',
-        className: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+        className: 'bg-severity-low/15 text-[#52606D] shadow-clay-pill',
         icon: Smartphone,
         desc: 'No shared community emergency number is currently assigned.',
       };
@@ -237,17 +237,17 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
     : `${currentHost}/api/v1/sms/forwarded`;
 
   return (
-    <div className="bg-[#0D1B2D] rounded-xl border border-[#203550] shadow-sm p-5 space-y-5">
+    <div className="bg-surface-card rounded-clay-card shadow-clay-card p-5 space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#203550] gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
         <div>
           <div className="flex items-center space-x-2">
-            <Smartphone className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-base font-bold text-white tracking-tight">
+            <Smartphone className="w-5 h-5 text-brand-primary" />
+            <h2 className="text-base font-bold text-text-primary tracking-tight">
               Dynamic Community Emergency Number & Android SMS Gateway
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-text-secondary mt-1">
             Configure a volunteer-supplied phone number. An Android SMS-forwarding app on that phone forwards citizen SMS to RESQNET AI.
           </p>
         </div>
@@ -255,7 +255,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
         {/* Current Status Pill */}
         <div className="flex items-center space-x-2">
           <span
-            className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusMeta.className}`}
+            className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-clay-pill text-xs font-semibold ${statusMeta.className}`}
             data-testid="community-number-status-badge"
           >
             <StatusIcon className="w-3.5 h-3.5" />
@@ -265,7 +265,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
             onClick={fetchNumberConfig}
             title="Refresh status"
             disabled={isLoading}
-            className="p-1.5 rounded-lg bg-[#091629] border border-[#203550] text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-clay-button bg-surface-card shadow-clay-button active:shadow-clay-inset text-text-secondary hover:text-text-primary transition-all cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -273,23 +273,23 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
       </div>
 
       {/* Status Explanatory Banner */}
-      <div className={`p-3.5 rounded-lg border text-xs flex items-start space-x-3 ${
+      <div className={`p-4 rounded-clay-card text-xs flex items-start space-x-3 ${
         config?.status === 'connected'
-          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+          ? 'bg-severity-success/10 text-text-primary shadow-clay-card'
           : config?.status === 'setup_required'
-          ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+          ? 'bg-severity-high/10 text-text-primary shadow-clay-card'
           : config?.status === 'unavailable'
-          ? 'bg-rose-950/20 border-rose-500/30 text-rose-200'
-          : 'bg-[#132238] border-[#203550] text-slate-300'
+          ? 'bg-severity-critical/10 text-text-primary shadow-clay-card'
+          : 'bg-surface-inset shadow-clay-inset text-text-secondary'
       }`}>
-        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-brand-primary" />
         <div className="space-y-1">
-          <p className="font-semibold text-white">
+          <p className="font-semibold text-text-primary">
             Connection Status: {statusMeta.label}
           </p>
-          <p className="text-[11px] leading-relaxed text-slate-300">
+          <p className="text-[11px] leading-relaxed text-text-secondary">
             {statusMeta.desc}{' '}
-            <strong className="text-white">Adding a number does not itself enable SMS reception.</strong> The volunteer must install an Android forwarding app and link this webhook.
+            <strong className="text-text-primary">Adding a number does not itself enable SMS reception.</strong> The volunteer must install an Android forwarding app and link this webhook.
           </p>
         </div>
       </div>
@@ -298,26 +298,26 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
       {config && config.is_active && !isEditing ? (
         /* Active Number Display */
         <div className="space-y-4">
-          <div className="bg-[#091629] p-4 rounded-xl border border-[#203550] space-y-3">
+          <div className="bg-surface-inset p-4 rounded-clay-card shadow-clay-inset space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
                   Shared Community Emergency Line
                 </span>
                 <div className="flex items-center space-x-2 mt-0.5">
-                  <span className="text-xl font-mono font-bold text-white tracking-wide">
+                  <span className="text-xl font-mono font-bold text-text-primary tracking-wide">
                     {config.phone_number}
                   </span>
                   <button
                     onClick={() => handleCopy(config.phone_number, 'phone')}
                     title="Copy phone number"
-                    className="text-slate-400 hover:text-cyan-300 transition-colors p-1"
+                    className="text-text-muted hover:text-brand-primary transition-colors p-1 cursor-pointer"
                   >
-                    {copiedKey === 'phone' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiedKey === 'phone' ? <Check className="w-4 h-4 text-[#1C8C5A]" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
                 {config.volunteer_notes && (
-                  <p className="text-xs text-slate-400 mt-1 italic">
+                  <p className="text-xs text-text-secondary mt-1 italic">
                     Volunteer notes: {config.volunteer_notes}
                   </p>
                 )}
@@ -327,15 +327,15 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#132238] hover:bg-[#1c3252] text-slate-200 border border-[#203550] text-xs font-semibold transition-colors"
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-clay-button bg-surface-card hover:bg-surface-card/80 text-text-primary shadow-clay-button active:shadow-clay-inset text-xs font-semibold transition-all cursor-pointer"
                 >
-                  <Edit2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <Edit2 className="w-3.5 h-3.5 text-brand-primary" />
                   <span>Change Number</span>
                 </button>
 
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold transition-colors"
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-clay-button bg-severity-critical/10 hover:bg-severity-critical/20 text-[#C0292E] shadow-clay-button active:shadow-clay-inset text-xs font-semibold transition-all cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete Number</span>
@@ -344,54 +344,54 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
             </div>
 
             {/* Webhook Configuration Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-[#203550]/70 text-xs font-mono">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 text-xs font-mono">
               {/* Webhook Path */}
               <div className="space-y-1">
-                <span className="text-slate-400 text-[11px] block font-sans">
+                <span className="text-text-muted text-[11px] block font-sans">
                   Target Webhook Path (HTTPS)
                 </span>
-                <div className="flex items-center justify-between bg-[#07111F] px-2.5 py-1.5 rounded border border-[#203550]">
-                  <span className="text-cyan-300 truncate">/api/v1/sms/forwarded</span>
+                <div className="flex items-center justify-between bg-surface-card px-3 py-2 rounded-clay-input shadow-clay-card">
+                  <span className="text-brand-primary truncate font-bold">/api/v1/sms/forwarded</span>
                   <button
                     onClick={() => handleCopy('/api/v1/sms/forwarded', 'path')}
-                    className="text-slate-400 hover:text-white ml-2 flex-shrink-0"
+                    className="text-text-muted hover:text-text-primary ml-2 flex-shrink-0 cursor-pointer"
                   >
-                    {copiedKey === 'path' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedKey === 'path' ? <Check className="w-3.5 h-3.5 text-[#1C8C5A]" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
 
               {/* Forwarding Secret */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-slate-400 text-[11px] font-sans">
+                <div className="flex items-center justify-between text-text-muted text-[11px] font-sans">
                   <span>Authentication Secret Token</span>
                   <button
                     type="button"
                     onClick={() => setShowSecret(!showSecret)}
-                    className="text-cyan-400 hover:underline text-[10px] flex items-center space-x-1"
+                    className="text-brand-primary hover:underline text-[10px] flex items-center space-x-1 cursor-pointer"
                   >
                     {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                     <span>{showSecret ? 'Hide' : 'Reveal'}</span>
                   </button>
                 </div>
-                <div className="flex items-center justify-between bg-[#07111F] px-2.5 py-1.5 rounded border border-[#203550]">
-                  <span className="text-amber-300 truncate font-mono">
+                <div className="flex items-center justify-between bg-surface-card px-3 py-2 rounded-clay-input shadow-clay-card">
+                  <span className="text-[#B26A00] truncate font-mono font-bold">
                     {showSecret ? config.forwarding_secret : '••••••••••••••••••••••••••••'}
                   </span>
                   <button
                     onClick={() => handleCopy(config.forwarding_secret, 'secret')}
-                    className="text-slate-400 hover:text-white ml-2 flex-shrink-0"
+                    className="text-text-muted hover:text-text-primary ml-2 flex-shrink-0 cursor-pointer"
                   >
-                    {copiedKey === 'secret' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedKey === 'secret' ? <Check className="w-3.5 h-3.5 text-[#1C8C5A]" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Last Ping Footer */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-[#203550]/40 font-mono">
+            <div className="flex items-center justify-between text-[11px] text-text-muted pt-2 font-mono">
               <span className="flex items-center space-x-1">
-                <Clock className="w-3 h-3 text-slate-500" />
+                <Clock className="w-3 h-3 text-text-muted" />
                 <span>
                   Last Heartbeat / SMS:{' '}
                   {config.last_ping_at
@@ -403,7 +403,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
               <button
                 onClick={handleTestPing}
                 disabled={isSubmitting}
-                className="text-cyan-400 hover:underline font-sans text-xs flex items-center space-x-1"
+                className="text-brand-primary hover:underline font-sans text-xs flex items-center space-x-1 cursor-pointer"
               >
                 <span>Ping Handshake</span>
               </button>
@@ -414,17 +414,17 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowTester(!showTester)}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#132238] hover:bg-[#1a2f4c] text-white font-semibold text-xs border border-[#203550] shadow-sm transition-colors"
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-clay-button bg-surface-card hover:bg-surface-card/80 text-text-primary font-semibold text-xs shadow-clay-button active:shadow-clay-inset transition-all cursor-pointer"
             >
-              <Send className="w-3.5 h-3.5 text-emerald-400" />
+              <Send className="w-3.5 h-3.5 text-[#1C8C5A]" />
               <span>{showTester ? 'Hide Test Gateway' : 'Test Forwarded SMS Intake'}</span>
             </button>
 
             <button
               onClick={() => setShowGuide(!showGuide)}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#091629] hover:bg-[#132238] text-slate-300 hover:text-white font-semibold text-xs border border-[#203550] transition-colors"
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-clay-button bg-surface-card hover:bg-surface-card/80 text-text-secondary hover:text-text-primary font-semibold text-xs shadow-clay-button active:shadow-clay-inset transition-all cursor-pointer"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+              <HelpCircle className="w-3.5 h-3.5 text-brand-primary" />
               <span>Android Forwarder App Setup Guide</span>
               {showGuide ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
             </button>
@@ -432,16 +432,16 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
         </div>
       ) : (
         /* Configuration Form (Add or Edit) */
-        <form onSubmit={handleSave} className="bg-[#091629] p-4 rounded-xl border border-[#203550] space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-[#203550]">
-            <h3 className="text-sm font-bold text-white">
+        <form onSubmit={handleSave} className="bg-surface-inset p-4 rounded-clay-card shadow-clay-inset space-y-4">
+          <div className="flex items-center justify-between pb-2">
+            <h3 className="text-sm font-bold text-text-primary">
               {config?.is_active ? 'Change Community Emergency Number' : 'Configure Shared Community Emergency Number'}
             </h3>
             {config?.is_active && (
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="text-xs text-slate-400 hover:text-white"
+                className="text-xs text-text-muted hover:text-text-primary cursor-pointer"
               >
                 Cancel
               </button>
@@ -449,7 +449,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
           </div>
 
           {formError && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
+            <div className="p-3 rounded-clay-card bg-severity-critical/10 text-[#C0292E] text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{formError}</span>
             </div>
@@ -458,13 +458,13 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             {/* Country Code Selector */}
             <div className="md:col-span-4 space-y-1">
-              <label className="block text-xs font-medium text-slate-300">
+              <label className="block text-xs font-medium text-text-secondary">
                 Country Dial Code
               </label>
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
-                className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-surface-card shadow-clay-card rounded-clay-input px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all cursor-pointer"
               >
                 {COUNTRY_CODES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -476,7 +476,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
             {/* Raw Phone Number Input */}
             <div className="md:col-span-8 space-y-1">
-              <label className="block text-xs font-medium text-slate-300">
+              <label className="block text-xs font-medium text-text-secondary">
                 Volunteer Mobile / SIM Number
               </label>
               <input
@@ -484,7 +484,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
                 placeholder="e.g. 98765 43210"
                 value={rawNumber}
                 onChange={(e) => setRawNumber(e.target.value)}
-                className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full bg-surface-card shadow-clay-card rounded-clay-input px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-mono transition-all"
                 required
               />
             </div>
@@ -492,7 +492,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
           {/* Volunteer Notes */}
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-300">
+            <label className="block text-xs font-medium text-text-secondary">
               Volunteer Operator / Device Notes (Optional)
             </label>
             <input
@@ -500,7 +500,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
               placeholder="e.g. Shift Lead Priya (Samsung Galaxy A14, Airtel SIM 1)"
               value={volunteerNotes}
               onChange={(e) => setVolunteerNotes(e.target.value)}
-              className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-surface-card shadow-clay-card rounded-clay-input px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all"
             />
           </div>
 
@@ -510,7 +510,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-3 py-2 rounded-lg bg-[#132238] hover:bg-[#1c3252] text-slate-300 text-xs font-semibold border border-[#203550]"
+                className="px-3.5 py-2 rounded-clay-button bg-surface-card hover:bg-surface-card/80 text-text-secondary hover:text-text-primary text-xs font-semibold shadow-clay-button active:shadow-clay-inset cursor-pointer"
               >
                 Cancel
               </button>
@@ -518,7 +518,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5"
+              className="px-4 py-2 rounded-clay-button bg-brand-primary hover:bg-brand-hover text-white text-xs font-bold shadow-clay-primary active:shadow-clay-inset transition-all flex items-center space-x-1.5 cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>{isSubmitting ? 'Saving...' : 'Add / Save Number'}</span>
@@ -529,45 +529,45 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
       {/* Test Simulator Drawer */}
       {showTester && config?.is_active && (
-        <div className="bg-[#091629] p-4 rounded-xl border border-emerald-500/30 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-[#203550]">
+        <div className="bg-surface-inset p-4 rounded-clay-card shadow-clay-inset space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-black/5">
             <div className="flex items-center space-x-2">
-              <Radio className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-xs font-bold text-white">
+              <Radio className="w-4 h-4 text-[#1C8C5A]" />
+              <h3 className="text-xs font-bold text-text-primary">
                 Test Real Forwarded SMS Ingestion (Simulate Volunteer Android App)
               </h3>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-clay-pill bg-severity-success/15 text-[#1C8C5A] shadow-clay-pill font-bold">
               Authenticated Webhook Test
             </span>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            Simulates an incoming HTTP POST to <code className="text-cyan-300">/api/v1/sms/forwarded</code> using your active secret. Confirms HumAID classification, priority scoring, deduplication, and notification creation.
+          <p className="text-[11px] text-text-secondary">
+            Simulates an incoming HTTP POST to <code className="text-brand-primary font-bold">/api/v1/sms/forwarded</code> using your active secret. Confirms HumAID classification, priority scoring, deduplication, and notification creation.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="block text-slate-300 text-[11px] font-medium mb-1">
+              <label className="block text-text-secondary text-[11px] font-medium mb-1">
                 Citizen Sender Number
               </label>
               <input
                 type="text"
                 value={testSender}
                 onChange={(e) => setTestSender(e.target.value)}
-                className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                className="w-full bg-surface-card shadow-clay-card rounded-clay-input px-3 py-2 text-xs text-text-primary font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-slate-300 text-[11px] font-medium mb-1">
+              <label className="block text-text-secondary text-[11px] font-medium mb-1">
                 SMS Distress Message Body
               </label>
               <input
                 type="text"
                 value={testBody}
                 onChange={(e) => setTestBody(e.target.value)}
-                className="w-full bg-[#0D1B2D] border border-[#203550] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-surface-card shadow-clay-card rounded-clay-input px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all"
               />
             </div>
           </div>
@@ -576,7 +576,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
             <button
               onClick={handleSendTestForward}
               disabled={isSendingTest}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm transition-colors"
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-clay-button bg-[#1C8C5A] hover:bg-emerald-700 text-white font-semibold text-xs shadow-clay-button active:shadow-clay-inset transition-all cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isSendingTest ? 'Forwarding...' : 'Dispatch Forwarded SMS'}</span>
@@ -587,47 +587,47 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
       {/* Provider-Independent Android Forwarding Integration Guide */}
       {showGuide && (
-        <div className="bg-[#091629] p-5 rounded-xl border border-cyan-500/30 space-y-4 text-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[#203550]">
+        <div className="bg-surface-inset p-5 rounded-clay-card shadow-clay-inset space-y-4 text-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-black/5">
             <div className="flex items-center space-x-2">
-              <Smartphone className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-bold text-white">
+              <Smartphone className="w-4 h-4 text-brand-primary" />
+              <h3 className="text-sm font-bold text-text-primary">
                 Volunteer Android SMS-Forwarding App Setup Guide
               </h3>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+            <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-clay-pill bg-brand-primary/10 text-brand-primary shadow-clay-pill font-bold">
               Provider-Independent
             </span>
           </div>
 
           {/* Alert: Real phone requires public HTTPS */}
-          <div className="bg-[#132238] p-3 rounded-lg border border-amber-500/30 text-amber-200 text-[11px] space-y-1">
-            <div className="flex items-center space-x-1.5 font-bold text-amber-300">
+          <div className="bg-severity-high/10 p-3.5 rounded-clay-card shadow-clay-card text-text-primary text-[11px] space-y-1">
+            <div className="flex items-center space-x-1.5 font-bold text-[#B26A00]">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>Public Webhook Requirement Notice</span>
             </div>
-            <p className="leading-relaxed">
-              External physical phones cannot reach <code className="text-white font-mono">http://localhost</code>. For live field testing from a real smartphone, your RESQNET backend must be hosted on a public domain with HTTPS, or exposed locally via a secure tunnel (e.g. <strong className="text-white">Cloudflare Tunnel</strong> or <strong className="text-white">ngrok</strong>: <code className="text-cyan-300 font-mono">ngrok http 8000</code>).
+            <p className="leading-relaxed text-text-secondary">
+              External physical phones cannot reach <code className="text-text-primary font-mono">http://localhost</code>. For live field testing from a real smartphone, your RESQNET backend must be hosted on a public domain with HTTPS, or exposed locally via a secure tunnel (e.g. <strong className="text-text-primary">Cloudflare Tunnel</strong> or <strong className="text-text-primary">ngrok</strong>: <code className="text-brand-primary font-mono font-bold">ngrok http 8000</code>).
             </p>
           </div>
 
           {/* Step 1 */}
           <div className="space-y-1.5">
-            <h4 className="font-bold text-white flex items-center space-x-1.5">
-              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-mono font-bold">1</span>
+            <h4 className="font-bold text-text-primary flex items-center space-x-1.5">
+              <span className="w-5 h-5 rounded-full bg-brand-primary text-white flex items-center justify-center text-[11px] font-mono font-bold shadow-clay-pill">1</span>
               <span>Install a Compatible Android SMS Forwarder App</span>
             </h4>
-            <p className="text-slate-300 text-[11px] pl-6 leading-relaxed">
+            <p className="text-text-secondary text-[11px] pl-6 leading-relaxed">
               Any Android app capable of sending incoming SMS to a configurable HTTPS Webhook via JSON POST is supported (e.g., open-source <strong>SMS Forwarder (开源短信转发器)</strong>, <strong>Macrodroid</strong>, or <strong>IFTTT</strong>).
             </p>
-            <div className="pl-6 space-y-1 text-slate-400 text-[11px]">
-              <p><strong>Required Android Permissions:</strong></p>
-              <ul className="list-disc list-inside space-y-0.5 text-slate-300">
-                <li><code className="text-cyan-300">RECEIVE_SMS</code> & <code className="text-cyan-300">READ_SMS</code> (to detect incoming emergency messages)</li>
-                <li><code className="text-cyan-300">INTERNET</code> (to POST payloads to RESQNET)</li>
-                <li><code className="text-cyan-300">POST_NOTIFICATIONS</code> (required on Android 13+ to keep foreground service alive)</li>
+            <div className="pl-6 space-y-1 text-text-secondary text-[11px]">
+              <p><strong className="text-text-primary">Required Android Permissions:</strong></p>
+              <ul className="list-disc list-inside space-y-0.5 text-text-secondary">
+                <li><code className="text-brand-primary font-mono font-bold">RECEIVE_SMS</code> & <code className="text-brand-primary font-mono font-bold">READ_SMS</code> (to detect incoming emergency messages)</li>
+                <li><code className="text-brand-primary font-mono font-bold">INTERNET</code> (to POST payloads to RESQNET)</li>
+                <li><code className="text-brand-primary font-mono font-bold">POST_NOTIFICATIONS</code> (required on Android 13+ to keep foreground service alive)</li>
               </ul>
-              <p className="pt-1 text-amber-300">
+              <p className="pt-1 text-[#B26A00]">
                 ⚠️ <strong>Battery Optimization Exemption:</strong> Whitelist the app under Android Settings → Apps → Battery → "Unrestricted / Don't Optimize". Enable Autostart on Xiaomi/Oppo/Samsung devices to prevent OS from killing background forwarding.
               </p>
             </div>
@@ -635,27 +635,27 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
           {/* Step 2 */}
           <div className="space-y-1.5">
-            <h4 className="font-bold text-white flex items-center space-x-1.5">
-              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-mono font-bold">2</span>
+            <h4 className="font-bold text-text-primary flex items-center space-x-1.5">
+              <span className="w-5 h-5 rounded-full bg-brand-primary text-white flex items-center justify-center text-[11px] font-mono font-bold shadow-clay-pill">2</span>
               <span>Configure Public Webhook Destination</span>
             </h4>
             <div className="pl-6 space-y-2 text-[11px]">
-              <div className="bg-[#07111F] p-2.5 rounded border border-[#203550] font-mono text-slate-300 space-y-1">
-                <div><span className="text-slate-500">Method:</span> <strong className="text-emerald-300">POST</strong></div>
-                <div><span className="text-slate-500">URL:</span> <span className="text-cyan-300">{sampleWebhookUrl}</span></div>
-                <div><span className="text-slate-500">Header:</span> <span className="text-amber-300">X-RESQNET-FORWARDING-SECRET: {config?.forwarding_secret || 'YOUR_SECRET'}</span></div>
+              <div className="bg-surface-card p-3 rounded-clay-input shadow-clay-card font-mono text-text-primary space-y-1">
+                <div><span className="text-text-muted">Method:</span> <strong className="text-[#1C8C5A]">POST</strong></div>
+                <div><span className="text-text-muted">URL:</span> <span className="text-brand-primary font-bold">{sampleWebhookUrl}</span></div>
+                <div><span className="text-text-muted">Header:</span> <span className="text-[#B26A00] font-bold">X-RESQNET-FORWARDING-SECRET: {config?.forwarding_secret || 'YOUR_SECRET'}</span></div>
               </div>
             </div>
           </div>
 
           {/* Step 3 */}
           <div className="space-y-1.5">
-            <h4 className="font-bold text-white flex items-center space-x-1.5">
-              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-mono font-bold">3</span>
+            <h4 className="font-bold text-text-primary flex items-center space-x-1.5">
+              <span className="w-5 h-5 rounded-full bg-brand-primary text-white flex items-center justify-center text-[11px] font-mono font-bold shadow-clay-pill">3</span>
               <span>JSON Webhook Payload Template</span>
             </h4>
             <div className="pl-6">
-              <pre className="bg-[#07111F] p-2.5 rounded border border-[#203550] font-mono text-[11px] text-slate-300 overflow-x-auto">
+              <pre className="bg-surface-card p-3 rounded-clay-input shadow-clay-card font-mono text-[11px] text-text-primary overflow-x-auto">
 {`{
   "from": "[from]",
   "text": "[sms_content]",
@@ -668,22 +668,22 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
           {/* Step 4 */}
           <div className="space-y-1.5">
-            <h4 className="font-bold text-white flex items-center space-x-1.5">
-              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-mono font-bold">4</span>
+            <h4 className="font-bold text-text-primary flex items-center space-x-1.5">
+              <span className="w-5 h-5 rounded-full bg-brand-primary text-white flex items-center justify-center text-[11px] font-mono font-bold shadow-clay-pill">4</span>
               <span>Security, Privacy & Sender Identity Safeguards</span>
             </h4>
-            <div className="pl-6 space-y-1 text-slate-300 text-[11px] leading-relaxed">
+            <div className="pl-6 space-y-1 text-text-secondary text-[11px] leading-relaxed">
               <p>
-                • <strong>Dedicated SIM Recommendation:</strong> We strongly recommend using a dedicated mobile number or secondary SIM for emergency response to avoid accidental forwarding of private civilian messages.
+                • <strong className="text-text-primary">Dedicated SIM Recommendation:</strong> We strongly recommend using a dedicated mobile number or secondary SIM for emergency response to avoid accidental forwarding of private civilian messages.
               </p>
               <p>
-                • <strong>Keyword Rule Filters:</strong> You can configure the Android app to only forward SMS messages containing keywords such as <code className="text-cyan-300">HELP</code>, <code className="text-cyan-300">SOS</code>, <code className="text-cyan-300">EMERGENCY</code>, <code className="text-cyan-300">FLOOD</code>, or <code className="text-cyan-300">FIRE</code>.
+                • <strong className="text-text-primary">Keyword Rule Filters:</strong> You can configure the Android app to only forward SMS messages containing keywords such as <code className="text-brand-primary font-mono font-bold">HELP</code>, <code className="text-brand-primary font-mono font-bold">SOS</code>, <code className="text-brand-primary font-mono font-bold">EMERGENCY</code>, <code className="text-brand-primary font-mono font-bold">FLOOD</code>, or <code className="text-brand-primary font-mono font-bold">FIRE</code>.
               </p>
               <p>
-                • <strong>Sender Authentication Limitations:</strong> Cellular SMS does not cryptographically authenticate caller ID. Treat all SMS reports as unverified until confirmed by ground coordinators.
+                • <strong className="text-text-primary">Sender Authentication Limitations:</strong> Cellular SMS does not cryptographically authenticate caller ID. Treat all SMS reports as unverified until confirmed by ground coordinators.
               </p>
               <p>
-                • <strong>No End-to-End Emergency Guarantee:</strong> SMS is a best-effort telecommunications protocol without SLA guarantees during cellular grid outages.
+                • <strong className="text-text-primary">No End-to-End Emergency Guarantee:</strong> SMS is a best-effort telecommunications protocol without SLA guarantees during cellular grid outages.
               </p>
             </div>
           </div>
@@ -692,24 +692,24 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-[#0D1B2D] border border-rose-500/40 rounded-xl p-5 max-w-md w-full space-y-4 shadow-xl">
-            <div className="flex items-center space-x-2.5 text-rose-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F2A3C]/35 backdrop-blur-xs">
+          <div className="bg-surface-elevated rounded-clay-modal p-6 max-w-md w-full space-y-4 shadow-clay-modal">
+            <div className="flex items-center space-x-2.5 text-[#C0292E]">
               <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              <h3 className="text-sm font-bold text-white">
+              <h3 className="text-sm font-bold text-text-primary">
                 Delete Community Emergency Number?
               </h3>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Are you sure you want to delete the active emergency number <strong className="text-white font-mono">{config?.phone_number}</strong>?
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Are you sure you want to delete the active emergency number <strong className="text-text-primary font-mono">{config?.phone_number}</strong>?
             </p>
 
-            <div className="bg-[#091629] p-3 rounded-lg border border-[#203550] text-[11px] text-slate-300 space-y-1">
-              <p>• <strong>SMS intake will become Unavailable</strong> until a new number is configured.</p>
+            <div className="bg-surface-inset p-3.5 rounded-clay-input shadow-clay-inset text-[11px] text-text-secondary space-y-1">
+              <p>• <strong className="text-text-primary">SMS intake will become Unavailable</strong> until a new number is configured.</p>
               <p>• The forwarding secret token will be immediately invalidated.</p>
-              <p>• <strong>Previously created incidents and audit history are PRESERVED</strong> and will not be deleted.</p>
-              <p className="text-amber-300 pt-1">
+              <p>• <strong className="text-text-primary">Previously created incidents and audit history are PRESERVED</strong> and will not be deleted.</p>
+              <p className="text-[#B26A00] pt-1">
                 • <strong>Action Required:</strong> The volunteer must also turn off or uninstall the forwarding app on their Android device.
               </p>
             </div>
@@ -717,14 +717,14 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
             <div className="flex items-center justify-end space-x-2 pt-2">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-3 py-2 rounded-lg bg-[#132238] hover:bg-[#1c3252] text-slate-300 text-xs font-semibold border border-[#203550]"
+                className="px-3.5 py-2 rounded-clay-button clay-button text-text-secondary hover:text-text-primary text-xs font-semibold transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={isSubmitting}
-                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-sm transition-colors flex items-center space-x-1.5"
+                className="px-4 py-2 rounded-clay-button clay-button-critical text-white text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{isSubmitting ? 'Deleting...' : 'Confirm Deletion'}</span>

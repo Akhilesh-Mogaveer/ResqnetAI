@@ -175,33 +175,54 @@ Duplicate emergency reports often inundate emergency dispatch centers during dis
 
 ## 🧪 Automated Test Suite
 
-Both backend and NLP test suites execute cleanly and independently (51 total tests):
+Both backend, NLP, and frontend test suites execute cleanly and independently (**306 total automated tests** across the full stack):
 
 ```powershell
-# Run backend API, persistence, and duplicate workflow tests (22 tests)
+# 1. Run all backend REST API, persistence, duplicate & security tests (168 tests)
 python -m pytest backend/tests/ -v
 
-# Run NLP preprocessing, tokenizer, metric, and inference tests (29 tests)
+# 2. Run NLP preprocessing, tokenizer, metric, and inference tests (29 tests)
 python -m pytest data/nlp/tests/ -v
 
-# Test frontend production bundle build
+# 3. Run frontend Vitest component & user-flow suite (109 tests across 15 test files)
 cd frontend
+npm test
+
+# 4. Build frontend production bundle
 npm run build
+
+# 5. Run end-to-end live incident, duplicate & triage workflow probe
+cd ..
+python scripts/verify_live_workflow.py
+
+# 6. Verify offline HumAID DistilBERT model load and inference
+python scripts/test_model.py
 ```
 
 ---
 
 ## ⚙️ Environment Configuration
 
-### Backend (`backend/.env`)
+Refer to the project's `.env.example` templates for all configurable settings without real secrets.
+
+### Backend (`backend/.env` or root `.env`)
 
 ```bash
+ENV=development
+DEBUG=True
 HOST=127.0.0.1
 PORT=8000
-DEBUG=false
-ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
 DATABASE_URL=sqlite:///./resqnet.db
-MODEL_DIR=../data/nlp/models/resqnet_distilbert
+MODEL_DIR=./data/nlp/models/resqnet_distilbert_full
+SECRET_KEY=replace-with-a-secure-random-secret-key-in-production
+
+# Optional external API credentials (leave empty for 100% offline local operation)
+HF_TOKEN=
+MAPS_API_KEY=
+IMD_API_KEY=
+IMD_AUTH_TOKEN=
+ENABLE_DEMO_SIMULATED_FEEDS=true
 ```
 
 ### Frontend (`frontend/.env`)
@@ -209,3 +230,4 @@ MODEL_DIR=../data/nlp/models/resqnet_distilbert
 ```bash
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
+

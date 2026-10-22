@@ -88,3 +88,6 @@ From `backend/`:
 ```powershell
 python -m pytest tests/ -v
 ```
+
+All 168 unit and integration tests run against an in-memory SQLite database and test client fixtures.
+

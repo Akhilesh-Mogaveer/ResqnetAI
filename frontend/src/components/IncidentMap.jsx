@@ -108,16 +108,6 @@ const BASEMAP_TILES = {
     maxZoom: 19,
     description: 'Detailed street and infrastructure cartography'
   },
-  // dark: {
-  //   id: 'dark',
-  //   name: 'CartoDB Dark Matter',
-  //   label: 'Dark Map',
-  //   url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
-  //   subdomains: 'abcd',
-  //   maxZoom: 19,
-  //   description: 'High-contrast dark operations map'
-  // },
   terrain: {
     id: 'terrain',
     name: 'Esri World Topo (Terrain)',
@@ -147,6 +137,7 @@ export default function IncidentMap({
   onInspectIncident,
   attentionZones = [],
   defaultShowLegend = true,
+  defaultBasemap = 'satellite',
   className = "h-[540px]"
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -154,7 +145,7 @@ export default function IncidentMap({
   const [showLegend, setShowLegend] = useState(defaultShowLegend);
   const [severityFilter, setSeverityFilter] = useState('all');
   const [verificationFilter, _setVerificationFilter] = useState('all');
-  const [basemapId, setBasemapId] = useState('satellite');
+  const [basemapId, setBasemapId] = useState(defaultBasemap);
   const [tileError, setTileError] = useState(false);
 
   const [userSelectedId, setUserSelectedId] = useState(null);
@@ -232,10 +223,10 @@ export default function IncidentMap({
 
   const getSeverityColor = (severity) => {
     switch (severity) {
-      case 'critical': return { bg: '#FF4566', border: '#FFFFFF', ping: '#FF4566' };
-      case 'high': return { bg: '#FFB547', border: '#FFFFFF', ping: '#FFB547' };
-      case 'moderate': return { bg: '#21D4FD', border: '#FFFFFF', ping: '#21D4FD' };
-      default: return { bg: '#25D6A2', border: '#FFFFFF', ping: '#25D6A2' };
+      case 'critical': return { bg: '#E5484D', border: '#FFFFFF', ping: '#E5484D' };
+      case 'high': return { bg: '#F5A524', border: '#FFFFFF', ping: '#F5A524' };
+      case 'moderate': return { bg: '#4F6BED', border: '#FFFFFF', ping: '#4F6BED' };
+      default: return { bg: '#2FB67C', border: '#FFFFFF', ping: '#2FB67C' };
     }
   };
 
@@ -296,25 +287,25 @@ export default function IncidentMap({
   return (
     <div
       ref={mapContainerRef}
-      className={`bg-[#0D1B2D] border border-[#203550] rounded-xl overflow-hidden shadow-md flex flex-col relative transition-all duration-300 ${
+      className={`bg-surface-card rounded-[28px] overflow-hidden shadow-clay-card flex flex-col relative transition-all duration-200 ${
         isFullscreen ? 'fixed inset-4 z-50 h-[calc(100vh-2rem)]' : className
       }`}
     >
-      {/* Map Control Bar Header */}
-      <div className="px-4 py-2.5 bg-[#091629] border-b border-[#203550] flex flex-wrap items-center justify-between gap-2 z-20">
+      {/* Map Control Bar Header as Floating Clay Panel */}
+      <div className="px-4 py-3 bg-surface-card flex flex-wrap items-center justify-between gap-2 z-20">
         <div className="flex items-center space-x-2">
-          <MapPin className="w-4 h-4 text-[#2878FF]" />
-          <h3 className="text-xs font-bold text-slate-200 tracking-wide uppercase">
+          <MapPin className="w-4 h-4 text-brand-primary" />
+          <h3 className="text-xs font-bold text-text-primary tracking-wide uppercase">
             Live Incident Map
           </h3>
-          <span className="text-[11px] text-slate-400 font-mono">
+          <span className="text-[11px] text-text-muted font-mono font-semibold">
             ({mapIncidents.length} on map)
           </span>
           {mapBounds && (
             <button
               type="button"
               onClick={handleFitAll}
-              className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#132238] hover:bg-[#203550] text-[#21D4FD] border border-[#203550] transition-colors"
+              className="px-2.5 py-1 rounded-clay-button text-[10px] font-semibold bg-surface-card hover:bg-white text-brand-primary shadow-clay-button active:shadow-clay-inset transition-all"
               title="Fit map view to all plotted incident markers"
             >
               Fit View
@@ -323,16 +314,16 @@ export default function IncidentMap({
         </div>
 
         {/* Severity Filters & Basemap Selector */}
-        <div className="flex items-center space-x-1.5 text-xs flex-wrap gap-y-1">
-          <span className="text-slate-400 text-[11px] hidden sm:inline font-mono">Filter:</span>
+        <div className="flex items-center space-x-2 text-xs flex-wrap gap-y-1">
+          <span className="text-text-muted text-[11px] hidden sm:inline font-mono">Filter:</span>
           {['all', 'critical', 'high', 'moderate'].map((sev) => (
             <button
               key={sev}
               onClick={() => setSeverityFilter(sev)}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium capitalize transition-colors ${
+              className={`px-2.5 py-1 rounded-clay-button text-[11px] font-semibold capitalize transition-all active:shadow-clay-inset ${
                 severityFilter === sev
-                  ? 'bg-[#2878FF] text-white shadow-xs font-semibold'
-                  : 'bg-[#0D1B2D] border border-[#203550] text-slate-300 hover:bg-[#132238] hover:text-white'
+                  ? 'bg-brand-primary text-white shadow-clay-button'
+                  : 'bg-surface-card text-text-secondary shadow-clay-button hover:bg-white hover:text-text-primary'
               }`}
             >
               {sev}
@@ -342,26 +333,25 @@ export default function IncidentMap({
           {/* Underreported Zones Toggle */}
           <button
             onClick={() => setShowUnderreported(!showUnderreported)}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium border flex items-center space-x-1 transition-colors ${
+            className={`px-2.5 py-1 rounded-clay-button text-[11px] font-semibold flex items-center space-x-1.5 transition-all active:shadow-clay-inset ${
               showUnderreported
-                ? 'bg-[#132238] text-amber-300 border-amber-800/60'
-                : 'bg-[#0D1B2D] text-slate-400 border-[#203550] hover:bg-[#132238]'
+                ? 'bg-amber-100/90 text-amber-900 shadow-clay-button'
+                : 'bg-surface-card text-text-muted shadow-clay-button hover:text-text-primary hover:bg-white'
             }`}
             title="Toggle underreported signal gap zone overlays"
           >
-            <Radio className="w-3 h-3 text-[#FFB547]" />
+            <Radio className="w-3.5 h-3.5 text-amber-600" />
             <span className="hidden md:inline">Signal Gaps</span>
           </button>
 
           {/* Basemap Style Switcher */}
-          <div className="flex items-center space-x-0.5 bg-[#0D1B2D] border border-[#203550] p-0.5 rounded text-[11px]">
-            <span className="px-1 text-slate-400" title="Basemap Layer">
-              <Layers className="w-3 h-3 text-[#21D4FD]" />
+          <div className="flex items-center space-x-1 bg-surface-inset p-1 rounded-clay-button shadow-clay-inset text-[11px]">
+            <span className="px-1 text-text-muted" title="Basemap Layer">
+              <Layers className="w-3.5 h-3.5 text-brand-primary" />
             </span>
             {[
-              { id: 'satellite', label: 'Satellite', icon: Globe },
+              { id: 'satellite', label: 'Satellite' },
               { id: 'streets', label: 'Streets' },
-              // { id: 'dark', label: 'Dark' },
               { id: 'terrain', label: 'Terrain' }
             ].map(b => {
               const IconComponent = b.icon;
@@ -373,10 +363,10 @@ export default function IncidentMap({
                     setBasemapId(b.id);
                     setTileError(false);
                   }}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center space-x-1 ${
+                  className={`px-2 py-0.5 rounded-clay-button text-[10px] font-semibold transition-all flex items-center space-x-1 active:shadow-clay-inset ${
                     basemapId === b.id
-                      ? 'bg-[#2878FF] text-white shadow-xs font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-[#132238]'
+                      ? 'bg-brand-primary text-white shadow-clay-button'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/60'
                   }`}
                   title={`Switch basemap to ${BASEMAP_TILES[b.id]?.name || b.label}`}
                 >
@@ -390,7 +380,7 @@ export default function IncidentMap({
           {/* Fullscreen toggle */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1 rounded bg-[#0D1B2D] border border-[#203550] text-slate-300 hover:text-white hover:bg-[#132238] transition-colors ml-1"
+            className="p-1.5 rounded-clay-button bg-surface-card shadow-clay-button text-text-secondary hover:text-text-primary hover:bg-white transition-all active:shadow-clay-inset ml-1"
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -400,24 +390,23 @@ export default function IncidentMap({
 
       {/* Unmapped Incidents Callout Bar */}
       {unmappedIncidents.length > 0 && (
-        <div className="bg-amber-950/40 border-b border-amber-900/60 px-4 py-1.5 text-[11px] text-amber-200 flex items-center justify-between z-20">
-          <div className="flex items-center space-x-1.5 truncate">
-            <AlertTriangle className="w-3.5 h-3.5 text-[#FFB547] flex-shrink-0" />
+        <div className="bg-amber-50/90 border-b border-amber-200/80 px-4 py-2 text-[11px] text-amber-900 flex items-center justify-between z-20">
+          <div className="flex items-center space-x-2 truncate">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <span className="truncate">
-              <strong>{unmappedIncidents.length} incident{unmappedIncidents.length > 1 ? 's' : ''}</strong> with unconfirmed location not pinned to arbitrary coordinates.
+              <strong className="text-amber-950">{unmappedIncidents.length} incident{unmappedIncidents.length > 1 ? 's' : ''}</strong> with unconfirmed location not pinned to arbitrary coordinates.
             </span>
           </div>
-          <span className="text-[10px] text-amber-300 font-medium whitespace-nowrap ml-2 font-mono">
+          <span className="text-[10px] text-amber-800 font-semibold bg-amber-100/80 px-2 py-0.5 rounded-full whitespace-nowrap ml-2 font-mono">
             No synthetic placement
           </span>
         </div>
       )}
-
       {/* Main Map Canvas (with subtle map-bg-4.jpg backdrop as visual fallback) */}
       <div 
-        className="flex-1 relative w-full h-full min-h-0 bg-[#07111F]"
+        className="flex-1 relative w-full h-full min-h-0 bg-surface-inset"
         style={{
-          backgroundImage: `linear-gradient(rgba(7, 17, 31, 0.55), rgba(9, 22, 41, 0.55)), url('/images/map-bg-4.jpg')`,
+          backgroundImage: `linear-gradient(rgba(238, 241, 246, 0.75), rgba(245, 247, 251, 0.75)), url('/images/map-bg-4.jpg')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -425,11 +414,11 @@ export default function IncidentMap({
       >
         {/* Layer Tile Error Fallback Banner */}
         {tileError && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-rose-950/95 border border-rose-600/80 text-rose-100 px-3.5 py-2 rounded-lg shadow-2xl flex items-center space-x-3 text-xs max-w-lg backdrop-blur-xs">
-            <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-rose-50 border border-rose-200 text-rose-900 px-3.5 py-2 rounded-clay-card shadow-clay-card flex items-center space-x-3 text-xs max-w-lg backdrop-blur-xs">
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="font-semibold block text-[11px] text-rose-200">{activeBasemap.name} Unavailable</span>
-              <span className="text-[10px] text-rose-300 leading-tight block">Tiles could not be loaded from tile server. Switch to another layer:</span>
+              <span className="font-semibold block text-[11px] text-rose-950">{activeBasemap.name} Unavailable</span>
+              <span className="text-[10px] text-rose-800 leading-tight block">Tiles could not be loaded from tile server. Switch to another layer:</span>
             </div>
             <div className="flex items-center space-x-1">
               {['satellite', 'streets', 'terrain']
@@ -443,7 +432,7 @@ export default function IncidentMap({
                       setTileError(false);
                       setBasemapId(id);
                     }}
-                    className="px-2 py-1 bg-rose-900 hover:bg-rose-800 text-rose-100 rounded text-[10px] font-medium transition-colors"
+                    className="px-2 py-1 bg-white hover:bg-rose-100 text-rose-800 shadow-clay-button rounded-clay-button text-[10px] font-medium transition-all"
                   >
                     {BASEMAP_TILES[id]?.label || id}
                   </button>
@@ -452,7 +441,7 @@ export default function IncidentMap({
               <button
                 type="button"
                 onClick={() => setTileError(false)}
-                className="px-1.5 py-1 text-rose-300 hover:text-white text-[10px] transition-colors ml-1"
+                className="px-1.5 py-1 text-rose-600 hover:text-rose-950 text-[10px] transition-colors ml-1"
                 aria-label="Dismiss tile error banner"
               >
                 ✕
@@ -501,23 +490,23 @@ export default function IncidentMap({
                 center={zone.centerCoordinates}
                 radius={zone.radiusMeters || 1200}
                 pathOptions={{
-                  color: '#d97706',
-                  fillColor: '#f59e0b',
+                  color: '#F5A524',
+                  fillColor: '#F5A524',
                   fillOpacity: 0.12,
                   weight: 1.5,
                   dashArray: '4 4'
                 }}
               >
                 <Popup>
-                  <div className="p-2.5 max-w-xs text-xs">
-                    <div className="flex items-center space-x-1.5 font-bold text-amber-400 mb-1">
-                      <Radio className="w-3.5 h-3.5" />
+                  <div className="p-3 max-w-xs text-xs space-y-1.5 bg-white rounded-[20px]">
+                    <div className="flex items-center space-x-1.5 font-bold text-[#B26A00]">
+                      <Radio className="w-3.5 h-3.5 text-severity-high" />
                       <span>{zone.name} (Signal Void)</span>
                     </div>
-                    <div className="text-slate-300 text-[11px] mb-1">
-                      Deviation: <strong className="text-white">{zone.signalDeviation}</strong> vs normal baseline
+                    <div className="text-text-secondary text-[11px]">
+                      Deviation: <strong className="text-text-primary font-mono">{zone.signalDeviation}</strong> vs normal baseline
                     </div>
-                    <div className="text-[10px] text-amber-200 bg-amber-950/50 p-1.5 rounded border border-amber-900/60">
+                    <div className="text-[10px] text-[#B26A00] bg-severity-high/10 p-2.5 rounded-clay-button shadow-clay-inset">
                       Lack of calls does NOT confirm safety. Field recon recommended.
                     </div>
                   </div>
@@ -542,39 +531,39 @@ export default function IncidentMap({
                 }}
               >
                 <Popup>
-                  <div className="p-3 text-xs space-y-2 min-w-[220px]">
-                    <div className="flex items-center justify-between border-b border-[#203550] pb-1.5">
-                      <span className="font-mono font-bold text-[#21D4FD]">{inc.id}</span>
+                  <div className="p-3.5 text-xs space-y-2 min-w-[220px] bg-white rounded-[20px]">
+                    <div className="flex items-center justify-between pb-1.5">
+                      <span className="font-mono font-bold text-brand-primary">{inc.id}</span>
                       <div className="flex items-center space-x-1">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                        <span className={`px-2 py-0.5 rounded-clay-pill text-[9px] font-bold uppercase shadow-clay-pill ${
                           inc.verificationStatus === 'verified'
-                            ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'
-                            : 'bg-amber-950/60 text-[#FFB547] border border-amber-800/60'
+                            ? 'bg-severity-success/15 text-[#1C8C5A]'
+                            : 'bg-severity-high/15 text-[#B26A00]'
                         }`}>
                           {inc.verificationStatus}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-[#091629] text-slate-300 border border-[#203550]">
+                        <span className="px-2 py-0.5 rounded-clay-pill text-[10px] font-bold uppercase bg-surface-inset text-text-secondary shadow-clay-inset">
                           {inc.severity}
                         </span>
                       </div>
                     </div>
-                    <h4 className="font-semibold text-white leading-snug">
+                    <h4 className="font-semibold text-text-primary leading-snug">
                       {inc.title}
                     </h4>
-                    <div className="text-[11px] text-slate-300 flex items-center space-x-1">
-                      <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                    <div className="text-[11px] text-text-secondary flex items-center space-x-1">
+                      <MapPin className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
                       <span className="truncate">{inc.sector} · {inc.locationName}</span>
                     </div>
-                    <div className="text-[10px] font-mono text-slate-400 bg-[#091629] p-1.5 rounded border border-[#203550]">
+                    <div className="text-[10px] font-mono text-text-muted bg-surface-inset p-2 rounded-xl shadow-clay-inset">
                       Coords: [{inc.coordinates[0].toFixed(4)}, {inc.coordinates[1].toFixed(4)}]
                       {inc.location_resolution_status && (
-                        <div className="text-slate-300 text-[9px] mt-0.5 font-sans">
+                        <div className="text-text-secondary text-[9px] mt-0.5 font-sans">
                           Resolution: <strong>{inc.location_resolution_status.replace(/_/g, ' ')}</strong>
                         </div>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-300">
-                      Priority Score: <strong className="text-white font-mono">{inc.priorityScore}/100</strong>
+                    <div className="text-[11px] text-text-secondary">
+                      Priority Score: <strong className="text-text-primary font-mono">{inc.priorityScore}/100</strong>
                     </div>
                     <button
                       type="button"
@@ -587,11 +576,11 @@ export default function IncidentMap({
                           onSelectIncident?.(inc);
                         }
                       }}
-                      className="w-full mt-2 py-1.5 px-2 rounded bg-[#2878FF] hover:bg-blue-600 text-white font-medium text-[11px] transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+                      className="w-full mt-2 py-2 px-3 rounded-clay-button bg-brand-primary hover:bg-brand-hover text-white font-medium text-[11px] shadow-clay-primary transition-all active:shadow-clay-inset flex items-center justify-center space-x-1 cursor-pointer"
                       aria-label={`Inspect details for incident ${inc.id}`}
                     >
                       <span>Inspect Incident Details</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </Popup>
@@ -602,82 +591,82 @@ export default function IncidentMap({
 
         {/* Accessible Map Legend */}
         <div
-          className={`absolute bottom-4 left-4 z-20 bg-[#0D1B2D]/95 backdrop-blur-xs rounded-lg shadow-xl border border-[#203550] transition-all ${
-            showLegend ? 'p-2.5 max-w-[210px]' : 'p-1.5'
+          className={`absolute bottom-4 left-4 z-20 bg-surface-elevated/95 backdrop-blur-xs rounded-clay-card shadow-clay-card transition-all ${
+            showLegend ? 'p-3 max-w-[220px]' : 'p-2'
           }`}
           aria-label="Map Legend"
         >
-          <div className={`flex items-center justify-between font-bold text-slate-200 ${showLegend ? 'pb-1 mb-1.5 border-b border-[#203550]' : ''}`}>
+          <div className={`flex items-center justify-between font-bold text-text-primary ${showLegend ? 'pb-1.5 mb-2 border-b border-black/5' : ''}`}>
             <button
               type="button"
               onClick={() => setShowLegend(!showLegend)}
-              className="flex items-center space-x-1 text-[10px] uppercase font-mono tracking-wider text-slate-300 hover:text-white transition-colors"
+              className="flex items-center space-x-1.5 text-[10px] uppercase font-mono tracking-wider text-text-secondary hover:text-text-primary transition-colors"
               aria-label={showLegend ? "Collapse map legend" : "Expand map legend"}
             >
-              <Layers className="w-3 h-3 text-[#2878FF]" />
+              <Layers className="w-3.5 h-3.5 text-brand-primary" />
               <span>Map Legend</span>
-              <span className="text-[10px] text-slate-400 font-sans normal-case ml-0.5">
+              <span className="text-[10px] text-text-muted font-sans normal-case ml-0.5">
                 {showLegend ? '▾' : '▸'}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setShowLegend(!showLegend)}
-              className="text-slate-400 hover:text-slate-200 p-0.5 text-[10px] underline ml-2"
+              className="text-text-muted hover:text-text-primary p-0.5 text-[10px] underline ml-2"
               aria-label={showLegend ? "Hide legend items" : "Show legend items"}
             >
               {showLegend ? 'Hide' : 'Show'}
             </button>
           </div>
           {showLegend && (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div>
-                <span className="text-[9px] uppercase font-mono text-slate-400 block font-semibold mb-0.5">Priority / Severity</span>
-                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                <span className="text-[9px] uppercase font-mono text-text-muted block font-semibold mb-1">Priority / Severity</span>
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#FF4566] flex-shrink-0" />
-                    <span className="text-slate-300">Critical</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#E5484D] flex-shrink-0" />
+                    <span className="text-text-secondary">Critical</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#FFB547] flex-shrink-0" />
-                    <span className="text-slate-300">High</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#F5A524] flex-shrink-0" />
+                    <span className="text-text-secondary">High</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#2878FF] flex-shrink-0" />
-                    <span className="text-slate-300">Moderate</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#4F6BED] flex-shrink-0" />
+                    <span className="text-text-secondary">Moderate</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#25D6A2] flex-shrink-0" />
-                    <span className="text-slate-300">Low</span>
-                  </div>
-                </div>
-              </div>
-              <div className="pt-1 border-t border-[#203550]">
-                <span className="text-[9px] uppercase font-mono text-slate-400 block font-semibold mb-0.5">Verification</span>
-                <div className="space-y-1 text-[10px]">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 bg-[#091629] flex items-center justify-center text-[7px] font-bold text-emerald-400">✓</span>
-                    <span className="text-slate-300">Verified (Solid)</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-amber-500 bg-[#091629] flex items-center justify-center text-[7px] font-bold text-amber-400">?</span>
-                    <span className="text-slate-300">Unverified (Dashed)</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2FB67C] flex-shrink-0" />
+                    <span className="text-text-secondary">Low</span>
                   </div>
                 </div>
               </div>
-              <div className="pt-1 border-t border-[#203550] flex items-center space-x-1.5 text-[10px]">
-                <span className="w-3.5 h-3.5 rounded-full border border-dashed border-amber-500 bg-amber-500/10 flex-shrink-0" />
-                <span className="text-slate-300">Signal Gap Void</span>
+              <div className="pt-1.5 border-t border-black/5">
+                <span className="text-[9px] uppercase font-mono text-text-muted block font-semibold mb-1">Verification</span>
+                <div className="space-y-1.5 text-[10px]">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-[8px] font-bold text-emerald-700">✓</span>
+                    <span className="text-text-secondary">Verified (Solid)</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-4 h-4 rounded-full border border-dashed border-amber-500 bg-amber-50 flex items-center justify-center text-[8px] font-bold text-amber-700">?</span>
+                    <span className="text-text-secondary">Unverified (Dashed)</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-1.5 border-t border-black/5 flex items-center space-x-1.5 text-[10px]">
+                <span className="w-3.5 h-3.5 rounded-full border border-dashed border-amber-500 bg-amber-100 flex-shrink-0" />
+                <span className="text-text-secondary">Signal Gap Void</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Floating Zoom & Recenter Controls */}
-        <div className="absolute bottom-4 right-4 z-20 flex flex-col space-y-1.5 bg-[#0D1B2D] rounded-lg shadow-xl border border-[#203550] p-1">
+        <div className="absolute bottom-4 right-4 z-20 flex flex-col space-y-1.5 bg-surface-card rounded-clay-card shadow-clay-card p-1.5">
           <button
             onClick={handleZoomIn}
-            className="p-1.5 hover:bg-[#132238] rounded text-slate-300 hover:text-white transition-colors"
+            className="p-2 rounded-clay-button bg-surface-card hover:bg-white text-text-secondary hover:text-text-primary shadow-clay-button active:shadow-clay-inset transition-all"
             title="Zoom In"
             aria-label="Zoom In"
           >
@@ -685,7 +674,7 @@ export default function IncidentMap({
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-1.5 hover:bg-[#132238] rounded text-slate-300 hover:text-white transition-colors"
+            className="p-2 rounded-clay-button bg-surface-card hover:bg-white text-text-secondary hover:text-text-primary shadow-clay-button active:shadow-clay-inset transition-all"
             title="Zoom Out"
             aria-label="Zoom Out"
           >
@@ -694,7 +683,7 @@ export default function IncidentMap({
           {mapBounds && (
             <button
               onClick={handleFitAll}
-              className="p-1.5 hover:bg-[#132238] rounded text-[#21D4FD] border-t border-[#203550] transition-colors"
+              className="p-2 rounded-clay-button bg-surface-card hover:bg-white text-brand-primary shadow-clay-button active:shadow-clay-inset transition-all"
               title="Fit All Markers to Viewport"
               aria-label="Fit All Markers"
             >
@@ -703,7 +692,7 @@ export default function IncidentMap({
           )}
           <button
             onClick={handleRecenter}
-            className={`p-1.5 hover:bg-[#132238] rounded text-slate-300 hover:text-white transition-colors ${!mapBounds ? 'border-t border-[#203550]' : ''}`}
+            className="p-2 rounded-clay-button bg-surface-card hover:bg-white text-text-secondary hover:text-text-primary shadow-clay-button active:shadow-clay-inset transition-all"
             title="Recenter Map"
             aria-label="Recenter Map"
           >

@@ -48,33 +48,35 @@ export default function Sidebar({
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-[#1F2A3C]/35 backdrop-blur-xs z-40 lg:hidden"
           aria-hidden="true"
         />
       )}
 
       <aside className={`
         fixed lg:static top-0 bottom-0 left-0 z-50
-        w-64 flex-shrink-0 bg-[#091629] border-r border-[#203550]
-        flex flex-col justify-between select-none
-        transition-transform duration-200 ease-in-out
+        w-64 flex-shrink-0 bg-surface-card
+        lg:my-3 lg:ml-3 lg:h-[calc(100dvh-1.5rem)]
+        rounded-r-2xl lg:rounded-[28px]
+        flex flex-col justify-between select-none shadow-clay-card
+        transition-all duration-200 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div>
+        <div className="overflow-y-auto flex-1">
           {/* Brand Header */}
-          <div className="p-4 border-b border-[#203550] flex items-center justify-between">
+          <div className="p-4 flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-black shadow-md shadow-blue-500/20">
+              <div className="flex items-center justify-center w-9 h-9 rounded-clay-button bg-brand-primary text-white font-black shadow-clay-button">
                 <span className="text-base tracking-wider font-mono">R</span>
               </div>
               <div>
                 <div className="flex items-center space-x-1.5">
-                  <span className="font-extrabold text-white tracking-tight text-base">RESQNET</span>
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-cyan-400 border border-cyan-500/30">
+                  <span className="font-extrabold text-text-primary tracking-tight text-base">RESQNET</span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-clay-pill bg-brand-50 text-brand-primary shadow-clay-pill">
                     AI
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">
+                <p className="text-[10px] text-text-muted uppercase tracking-widest font-mono font-semibold">
                   Mission Control
                 </p>
               </div>
@@ -83,7 +85,7 @@ export default function Sidebar({
             {/* Mobile close button */}
             <button
               onClick={onCloseMobile}
-              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#132238]"
+              className="lg:hidden p-1.5 rounded-clay-button text-text-muted hover:text-text-primary clay-button"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -91,13 +93,13 @@ export default function Sidebar({
           </div>
 
           {/* Navigation Section */}
-          <div className="px-3 pt-4 pb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 font-mono">
+          <div className="px-4 pt-3 pb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 font-mono">
               Command Navigation
             </span>
           </div>
 
-          <nav className="px-2 space-y-1" aria-label="Main Navigation">
+          <nav className="px-3 space-y-2" aria-label="Main Navigation">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id ||
@@ -110,22 +112,20 @@ export default function Sidebar({
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`
-                    w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all
+                    w-full flex items-center justify-between px-3 py-2.5 rounded-clay-button text-xs font-semibold group transition-all duration-150
                     ${isActive
-                      ? 'bg-[#132238] text-white font-semibold border-l-4 border-blue-500 shadow-sm shadow-blue-950/50'
-                      : 'text-slate-300 hover:text-white hover:bg-[#132238]/60'
+                      ? 'bg-brand-primary text-white font-bold shadow-clay-button'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated hover:shadow-clay-button hover:-translate-y-0.5'
                     }
                   `}
                 >
                   <div className="flex items-center space-x-2.5 truncate">
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary'}`} />
                     <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-mono font-bold ${
-                      isActive 
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    <span className={`text-[10px] px-2 py-0.5 rounded-clay-pill font-mono font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-severity-high text-[#111A2B]'
                     }`}>
                       {item.badge}
                     </span>
@@ -136,56 +136,56 @@ export default function Sidebar({
           </nav>
 
           {/* Telemetry & Sensor Stream (Preserves exact strings for Priority 4 Audits test!) */}
-          <div className="px-3 pt-5 pb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 font-mono">
+          <div className="px-4 pt-5 pb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 font-mono">
               Signal Feed (Telemetry Simulation)
             </span>
           </div>
           <div className="px-3 space-y-2 text-xs">
             <div
               onClick={() => handleNavClick('health')}
-              className="p-2.5 rounded-lg bg-[#0D1B2D] border border-[#203550] flex items-center justify-between cursor-pointer hover:border-cyan-500/50 hover:bg-[#132238] transition-all shadow-xs"
+              className="p-2.5 rounded-clay-button bg-[#EEF1F6] shadow-clay-inset flex items-center justify-between cursor-pointer transition-all"
               title="Simulated IoT telemetry heartbeat for interface demonstration"
             >
               <div className="flex items-center space-x-2 truncate">
                 <span className="relative flex h-2 w-2 flex-shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-severity-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-severity-success"></span>
                 </span>
-                <span className="text-slate-200 text-[11px] font-medium truncate">Simulated Sensor Stream</span>
+                <span className="text-text-primary text-[11px] font-medium truncate">Simulated Sensor Stream</span>
               </div>
-              <span className="text-[9px] font-mono font-bold text-cyan-300 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-700/50">
+              <span className="clay-pill text-[9px] font-mono font-bold text-brand-primary bg-surface-card px-1.5 py-0.5 rounded-clay-pill shadow-clay-pill">
                 SIMULATED
               </span>
             </div>
 
             <div
               onClick={() => handleNavClick('verification')}
-              className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/30 flex items-center justify-between cursor-pointer hover:bg-amber-950/30 hover:border-amber-500/50 transition-all shadow-xs"
+              className="p-2.5 rounded-clay-button bg-severity-high-soft text-severity-high shadow-clay-pill flex items-center justify-between cursor-pointer transition-all hover:-translate-y-0.5"
             >
               <div className="flex items-center space-x-2 truncate">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                <span className="text-amber-200 text-[11px] font-medium truncate">Awaiting Verification</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-severity-high flex-shrink-0" />
+                <span className="text-severity-high text-[11px] font-semibold truncate">Awaiting Verification</span>
               </div>
-              <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-700/60">
+              <span className="clay-pill text-[10px] font-mono font-bold text-severity-high bg-surface-card px-2 py-0.5 rounded-clay-pill shadow-clay-pill">
                 {unverifiedCount}
               </span>
             </div>
           </div>
         </div>
 
-        {/* System Status Footer */}
-        <div className="p-3 border-t border-[#203550] bg-[#07111F]/90 text-[11px] space-y-1.5">
-          <div className="flex items-center justify-between text-slate-300">
-            <div className="flex items-center space-x-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-              <span className="text-slate-200 font-medium text-[11px]">Core systems online</span>
+        {/* System Status Footer (Connection status footer = small clay-inset chip with a green/amber dot) */}
+        <div className="p-3 bg-surface-card text-[11px] space-y-2 flex-shrink-0">
+          <div className="clay-inset p-2.5 rounded-clay-button flex items-center justify-between text-text-secondary shadow-clay-inset bg-[#EEF1F6]">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-severity-success shadow-clay-pill" />
+              <span className="text-text-primary font-medium text-[11px]">Core systems online</span>
             </div>
-            <span className="font-mono text-[10px] text-slate-400">v1.0.0</span>
+            <span className="font-mono text-[10px] text-text-muted">v1.0.0</span>
           </div>
-          <div className="text-[10px] text-slate-400 flex items-center justify-between">
+          <div className="text-[10px] text-text-muted flex items-center justify-between px-1">
             <span>HumAID DistilBERT</span>
-            <span className="text-cyan-400 font-medium font-mono">Ready</span>
+            <span className="text-brand-primary font-semibold font-mono">Ready</span>
           </div>
         </div>
       </aside>

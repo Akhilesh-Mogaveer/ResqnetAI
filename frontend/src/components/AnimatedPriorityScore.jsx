@@ -24,42 +24,42 @@ export default function AnimatedPriorityScore({
   const numericScore = typeof score === 'number' ? score : parseFloat(score) || 0;
   const clampedScore = Math.min(100, Math.max(0, Math.round(numericScore)));
 
-  // Severity-aware color mapping matching RESQNET design system
+  // Severity-aware color mapping matching RESQNET clay design tokens
   const getColor = (val, sev) => {
     const s = (sev || '').toLowerCase();
     if (s === 'critical' || val >= 85) {
       return {
-        stroke: '#FF4566',
-        text: 'text-[#FF4566]',
-        glow: 'filter drop-shadow-[0_0_8px_rgba(255,69,102,0.6)]',
-        track: '#2A1520',
-        badgeBg: 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+        stroke: '#E5484D',
+        text: 'text-severity-critical',
+        glow: 'filter drop-shadow-[0_1px_2px_rgba(229,72,77,0.25)]',
+        track: '#EEF1F6',
+        badgeBg: 'bg-severity-critical-soft text-severity-critical'
       };
     }
     if (s === 'high' || val >= 70) {
       return {
-        stroke: '#FFB547',
-        text: 'text-[#FFB547]',
-        glow: 'filter drop-shadow-[0_0_7px_rgba(255,181,71,0.5)]',
-        track: '#2A2012',
-        badgeBg: 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+        stroke: '#F5A524',
+        text: 'text-severity-high',
+        glow: '',
+        track: '#EEF1F6',
+        badgeBg: 'bg-severity-high-soft text-[#B45309]'
       };
     }
     if (s === 'moderate' || s === 'medium' || val >= 50) {
       return {
-        stroke: '#21D4FD',
-        text: 'text-[#21D4FD]',
-        glow: 'filter drop-shadow-[0_0_6px_rgba(33,212,253,0.45)]',
-        track: '#0D2238',
-        badgeBg: 'bg-sky-950/40 border-sky-500/30 text-sky-300'
+        stroke: '#4F6BED',
+        text: 'text-brand-primary',
+        glow: '',
+        track: '#EEF1F6',
+        badgeBg: 'bg-brand-50 text-brand-primary'
       };
     }
     return {
-      stroke: '#25D6A2',
-      text: 'text-[#25D6A2]',
-      glow: 'filter drop-shadow-[0_0_5px_rgba(37,214,162,0.4)]',
-      track: '#0C261E',
-      badgeBg: 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+      stroke: '#2FB67C',
+      text: 'text-severity-success',
+      glow: '',
+      track: '#EEF1F6',
+      badgeBg: 'bg-severity-success-soft text-severity-success'
     };
   };
 
@@ -107,62 +107,64 @@ export default function AnimatedPriorityScore({
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       {showLabel && (
-        <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-semibold mb-1 select-none">
+        <span className="text-[9px] font-mono text-text-muted uppercase tracking-wider font-semibold mb-1 select-none">
           {label}
         </span>
       )}
 
-      <div
-        role="progressbar"
-        aria-valuenow={clampedScore}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`Priority score: ${clampedScore} out of 100`}
-        className={`relative flex items-center justify-center ${color.glow}`}
-        style={{ width: config.size, height: config.size }}
-      >
-        <svg
-          width={config.size}
-          height={config.size}
-          viewBox={`0 0 ${config.size} ${config.size}`}
-          className="transform -rotate-90"
+      <div className="p-1 rounded-full bg-[#EEF1F6] shadow-clay-inset flex items-center justify-center">
+        <div
+          role="progressbar"
+          aria-valuenow={clampedScore}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Priority score: ${clampedScore} out of 100`}
+          className={`relative flex items-center justify-center rounded-full ${color.glow}`}
+          style={{ width: config.size, height: config.size }}
         >
-          {/* Background track circle */}
-          <circle
-            cx={config.size / 2}
-            cy={config.size / 2}
-            r={config.radius}
-            fill="transparent"
-            stroke={color.track}
-            strokeWidth={config.strokeWidth}
-          />
-          {/* Animated progress circle */}
-          <circle
-            cx={config.size / 2}
-            cy={config.size / 2}
-            r={config.radius}
-            fill="transparent"
-            stroke={color.stroke}
-            strokeWidth={config.strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            style={{
-              transition: isReducedMotion() ? 'none' : 'stroke-dashoffset 750ms cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-          />
-        </svg>
+          <svg
+            width={config.size}
+            height={config.size}
+            viewBox={`0 0 ${config.size} ${config.size}`}
+            className="transform -rotate-90"
+          >
+            {/* Background track circle */}
+            <circle
+              cx={config.size / 2}
+              cy={config.size / 2}
+              r={config.radius}
+              fill="transparent"
+              stroke={color.track}
+              strokeWidth={config.strokeWidth}
+            />
+            {/* Animated progress circle */}
+            <circle
+              cx={config.size / 2}
+              cy={config.size / 2}
+              r={config.radius}
+              fill="transparent"
+              stroke={color.stroke}
+              strokeWidth={config.strokeWidth}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              style={{
+                transition: isReducedMotion() ? 'none' : 'stroke-dashoffset 750ms cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            />
+          </svg>
 
-        {/* Centered numeric score and denominator */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none leading-none">
-          <span className={`font-black font-mono tracking-tight leading-none ${config.textSize} ${color.text}`}>
-            {clampedScore}
-          </span>
-          {showDenominator && (
-            <span className={`font-mono text-slate-400 leading-none mt-0.5 ${config.denomSize}`}>
-              
+          {/* Centered numeric score and denominator */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none leading-none">
+            <span className={`font-black font-mono tracking-tight leading-none ${config.textSize} ${color.text}`}>
+              {clampedScore}
             </span>
-          )}
+            {showDenominator && (
+              <span className={`font-mono text-text-muted leading-none mt-0.5 ${config.denomSize}`}>
+                /100
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

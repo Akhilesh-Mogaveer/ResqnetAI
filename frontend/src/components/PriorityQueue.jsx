@@ -44,51 +44,57 @@ export default function PriorityQueue({
   const getSeverityBadge = (severity) => {
     switch (severity) {
       case 'critical':
-        return 'bg-rose-950/60 text-rose-300 border-rose-500/40 font-bold';
+        return 'bg-severity-critical text-white font-bold';
       case 'high':
-        return 'bg-amber-950/60 text-amber-300 border-amber-500/40 font-medium';
+        return 'bg-severity-high text-text-primary font-bold';
       case 'moderate':
-        return 'bg-cyan-950/60 text-cyan-300 border-cyan-500/40 font-medium';
+      case 'medium':
+        return 'bg-severity-medium text-white font-bold';
       default:
-        return 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40 font-medium';
+        return 'bg-severity-low text-white font-bold';
     }
   };
 
   const getVerificationBadge = (status) => {
     switch (status) {
       case 'verified':
-        return { text: 'VERIFIED', cls: 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' };
+        return { text: 'VERIFIED', cls: 'bg-severity-success/20 text-[#166534] font-bold' };
       case 'under_review':
-        return { text: 'REVIEWING', cls: 'bg-blue-950/60 text-blue-300 border-blue-500/40' };
+        return { text: 'REVIEWING', cls: 'bg-brand-primary/20 text-brand-primary font-bold' };
       case 'disputed':
-        return { text: 'DISPUTED', cls: 'bg-purple-950/60 text-purple-300 border-purple-500/40' };
+        return { text: 'DISPUTED', cls: 'bg-purple-500/20 text-purple-700 font-bold' };
       default:
-        return { text: 'UNVERIFIED', cls: 'bg-amber-950/60 text-amber-300 border-amber-500/40' };
+        return { text: 'UNVERIFIED', cls: 'bg-severity-high/20 text-[#9A3412] font-bold' };
     }
   };
 
   return (
-    <div className="bg-[#0D1B2D] border border-[#203550] rounded-xl p-4 shadow-sm flex flex-col h-[520px]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#203550] mb-3">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-sm font-bold text-white tracking-wide">Priority queue</h2>
-            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-            <span className="text-[10px] font-mono font-bold text-cyan-300 bg-blue-950/60 px-1.5 py-0.2 rounded border border-blue-500/40">
-              Scored
-            </span>
+    <div className="clay-card p-5 flex flex-col h-[520px]">
+      {/* Header with Section Icon Chip */}
+      <div className="flex items-center justify-between pb-3.5 border-b border-[#A3B1C6]/20 mb-3.5">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-full bg-brand-primary shadow-clay-button flex items-center justify-center text-white flex-shrink-0">
+            <Filter className="w-4 h-4 text-white" />
           </div>
-          <p className="text-[11px] text-slate-400">Ranked using transparent scoring signals · Updated just now</p>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-sm font-bold text-text-primary tracking-wide">Priority queue</h2>
+              <span className="w-2 h-2 rounded-full bg-severity-success" />
+              <span className="text-[10px] font-mono font-bold text-brand-primary bg-brand-primary/15 px-2 py-0.5 rounded-clay-pill">
+                Scored
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary mt-0.5 font-medium">Ranked using transparent scoring signals · Updated live</p>
+          </div>
         </div>
 
         {/* Sort Select */}
-        <div className="flex items-center space-x-1.5 text-xs text-slate-400 font-mono">
-          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center space-x-1.5 text-xs text-text-secondary font-mono">
+          <ArrowUpDown className="w-3.5 h-3.5 text-text-muted" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-[#091629] border border-[#203550] rounded-lg px-2.5 py-1 text-slate-300 text-xs focus:outline-none focus:border-cyan-500 font-sans"
+            className="bg-surface-elevated rounded-clay-button px-2.5 py-1 text-text-primary text-xs shadow-clay-pill focus:outline-none focus:ring-1 focus:ring-brand-primary font-sans cursor-pointer"
           >
             <option value="priority">Priority Score</option>
             <option value="reliability">Reliability</option>
@@ -100,18 +106,18 @@ export default function PriorityQueue({
       {/* Search and Filters */}
       <div className="space-y-2 mb-3">
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search incidents by name, sector, or ID (e.g. RQN-0427)..."
-            className="w-full pl-9 pr-7 py-2 bg-[#091629] border border-[#203550] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-[#0D1B2D] transition-colors"
+            className="w-full pl-9 pr-7 py-2 bg-surface-elevated rounded-clay-input text-xs text-text-primary placeholder:text-text-muted shadow-clay-inset focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-200"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-text-primary"
             >
               ✕
             </button>
@@ -130,10 +136,10 @@ export default function PriorityQueue({
             <button
               key={pill.id}
               onClick={() => setFilterSeverity(pill.id)}
-              className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
+              className={`px-3 py-1 rounded-clay-pill transition-all whitespace-nowrap text-xs font-semibold ${
                 filterSeverity === pill.id
-                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                  : 'bg-[#091629] text-slate-400 border border-[#203550] hover:bg-[#132238] hover:text-slate-200'
+                  ? 'bg-brand-primary text-white shadow-clay-button'
+                  : 'bg-surface-elevated text-text-secondary shadow-clay-pill hover:text-text-primary'
               }`}
             >
               {pill.label}
@@ -145,8 +151,8 @@ export default function PriorityQueue({
       {/* Queue Items List */}
       <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
         {sortedIncidents.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs py-8">
-            <Filter className="w-8 h-8 text-slate-500 mb-2" />
+          <div className="h-full flex flex-col items-center justify-center text-text-muted text-xs py-8">
+            <Filter className="w-8 h-8 text-text-muted mb-2 opacity-60" />
             <p>No incidents match the active search or filters.</p>
           </div>
         ) : (
@@ -159,79 +165,74 @@ export default function PriorityQueue({
               <div
                 key={incident.id}
                 onClick={() => onSelectIncident(incident)}
-                className={`p-3 rounded-lg border transition-all cursor-pointer relative overflow-hidden group ${
+                className={`p-3 rounded-clay-button transition-all cursor-pointer relative overflow-hidden group select-none ${
                   isSelected
-                    ? 'bg-[#132238] border-cyan-500/60 shadow-sm'
-                    : 'bg-[#091629] border-[#203550] hover:bg-[#0D1B2D] hover:border-slate-600'
+                    ? 'clay-card border-l-4 border-l-brand-primary shadow-clay-card'
+                    : 'bg-surface-elevated shadow-clay-pill hover:shadow-clay-card'
                 }`}
               >
-                {/* Active Left Indicator Bar */}
-                {isSelected && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                )}
-
                 <div className="flex items-center justify-between">
                   {/* Left: Rank & Title */}
                   <div className="flex items-center space-x-3 truncate">
-                    <span className="font-mono text-xs font-bold text-slate-500 group-hover:text-cyan-400 transition-colors w-5">
+                    <span className="font-mono text-xs font-bold text-text-muted group-hover:text-brand-primary transition-colors w-5">
                       {rank}
                     </span>
 
                     <div className="truncate">
                       <div className="flex items-center space-x-2 truncate">
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
+                        <span className="text-xs font-semibold text-text-primary group-hover:text-brand-primary truncate transition-colors">
                           {incident.title}
                         </span>
 
                         {/* Severity Tag */}
-                        <span className={`text-[9px] font-mono uppercase px-1.5 py-0.2 rounded border ${getSeverityBadge(incident.severity)}`}>
+                        <span className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-clay-pill ${getSeverityBadge(incident.severity)}`}>
                           {incident.severity}
                         </span>
 
                         {/* Verification Tag */}
-                        <span className={`text-[9px] font-mono uppercase px-1.5 py-0.2 rounded border ${verif.cls}`}>
+                        <span className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-clay-pill ${verif.cls}`}>
                           {verif.text}
                         </span>
 
                         {/* Merged Duplicate Tag */}
                         {(incident.is_duplicate || incident.responseStatus === 'merged_duplicate') && (
-                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded border bg-purple-950/60 text-purple-300 border-purple-500/40 font-semibold">
+                          <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-clay-pill bg-purple-500/20 text-purple-700 font-bold">
                             MERGED DUPLICATE
                           </span>
                         )}
 
                         {incident.duplicate_count > 0 && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-amber-950/60 text-amber-300 border-amber-500/40">
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-clay-pill bg-severity-high/20 text-[#9A3412] font-bold">
                             +{incident.duplicate_count} CORROBORATED
                           </span>
                         )}
 
                         {(!incident.coordinates || !Array.isArray(incident.coordinates) || incident.coordinates.length !== 2 || incident.coordinates[0] == null) && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-amber-950/60 text-amber-300 border-amber-500/40 font-semibold" title="Coordinates are unknown / unmapped">
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-clay-pill bg-severity-high/20 text-[#9A3412] font-bold" title="Coordinates are unknown / unmapped">
                             COORDS UNKNOWN
                           </span>
                         )}
 
                         {incident.is_synthetic_location && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-slate-800 text-slate-300 border-slate-700" title="Synthetic demo coordinates (SF Bay Simulation)">
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-clay-pill bg-surface-inset text-text-secondary font-medium" title="Synthetic demo coordinates (SF Bay Simulation)">
                             DEMO COORDS
                           </span>
                         )}
 
                         {incident.location_source && incident.location_source.startsWith('geocoded') && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border bg-emerald-950/60 text-emerald-300 border-emerald-500/40" title={incident.location_source}>
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-clay-pill bg-severity-success/20 text-[#166534] font-bold" title={incident.location_source}>
                             GEOCODED
                           </span>
                         )}
                       </div>
 
                       {/* Location & Time */}
-                      <div className="text-[11px] text-slate-400 mt-1 flex items-center space-x-1.5 font-mono">
-                        <span className="font-semibold text-slate-300">{incident.id}</span>
-                        <span>·</span>
-                        <span className="text-slate-400">{incident.sector}</span>
-                        <span>·</span>
-                        <span>{incident.timeAgo}</span>
+                      <div className="text-[11px] text-text-secondary mt-1 flex items-center space-x-1.5 font-mono">
+                        <span className="font-semibold text-brand-primary">{incident.id}</span>
+                        <span className="text-text-muted">·</span>
+                        <span className="text-text-secondary font-sans">{incident.sector}</span>
+                        <span className="text-text-muted">·</span>
+                        <span className="text-text-muted">{incident.timeAgo}</span>
                       </div>
                     </div>
                   </div>
@@ -240,29 +241,29 @@ export default function PriorityQueue({
                   <div className="flex items-center space-x-3 flex-shrink-0 pl-2">
                     {/* Reliability */}
                     <div className="text-right hidden sm:block">
-                      <div className="text-[9px] font-mono text-slate-400 uppercase">
+                      <div className="text-[9px] font-mono text-text-muted uppercase">
                         Reliability
                       </div>
-                      <div className="text-xs font-mono font-semibold text-slate-300">
+                      <div className="text-xs font-mono font-bold text-text-primary">
                         {incident.reportReliability}%
                       </div>
                     </div>
 
                     {/* Priority Score with Chevron */}
-                    <div className="text-right flex items-center space-x-1.5 pl-2 border-l border-[#203550]">
+                    <div className="text-right flex items-center space-x-2 pl-2 border-l border-[#A3B1C6]/20">
                       <div>
-                        <div className="text-[9px] font-mono text-slate-400 uppercase">
+                        <div className="text-[9px] font-mono text-text-muted uppercase">
                           Priority
                         </div>
-                        <div className={`text-sm font-mono font-bold ${
-                          incident.priorityScore >= 85 ? 'text-rose-400' :
-                          incident.priorityScore >= 70 ? 'text-amber-400' : 'text-cyan-400'
+                        <div className={`text-sm font-mono font-black ${
+                          incident.priorityScore >= 85 ? 'text-severity-critical' :
+                          incident.priorityScore >= 70 ? 'text-severity-high' : 'text-brand-primary'
                         }`}>
                           {incident.priorityScore}
                         </div>
                       </div>
                       <ChevronRight className={`w-4 h-4 transition-transform ${
-                        isSelected ? 'text-cyan-400 translate-x-0.5' : 'text-slate-500 group-hover:text-slate-300'
+                        isSelected ? 'text-brand-primary translate-x-0.5' : 'text-text-muted group-hover:text-text-primary'
                       }`} />
                     </div>
                   </div>

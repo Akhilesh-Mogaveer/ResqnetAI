@@ -4,69 +4,254 @@
 
 @layer base {
   * {
-    border-color: #203550;
+    border-color: rgba(120, 135, 165, 0.25);
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100dvh;
+  }
+  html,
+  body {
+    overflow: hidden;
   }
   body {
-    background-color: #07111F;
-    color: #E2E8F0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #D9E0EC;
+    background-image: linear-gradient(180deg, #E1E7F1 0%, #D3DBE9 100%);
+    background-attachment: fixed;
+    color: #111A2B;
+    font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  [tabindex]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #4F6BED !important;
   }
 }
 
-/* Mission Control Dark Scrollbars */
+/* Tactile Soft Clay Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #091629;
+  background: #D9E0EC;
 }
 ::-webkit-scrollbar-thumb {
-  background: #203550;
-  border-radius: 4px;
+  background: #A3B3D3;
+  border-radius: 9999px;
+  box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.6);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2878FF;
+  background: #4F6BED;
 }
 
-/* Leaflet Container */
+/* ==========================================================================
+   CLAYMORPHISM CORE CLASSES (DEEPENED PALETTE & STRONG VOLUME)
+   ========================================================================== */
+
+/* Clay Card (Surfaces, panels, dashboard containers: #EDF1F8) */
+.clay-card {
+  background-color: #EDF1F8;
+  border-radius: 24px;
+  box-shadow: 10px 10px 24px rgba(120, 135, 165, 0.45),
+              -8px -8px 20px rgba(255, 255, 255, 0.85),
+              inset 2px 2px 3px rgba(255, 255, 255, 0.7),
+              inset -3px -3px 6px rgba(120, 135, 165, 0.18);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.clay-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 12px 12px 28px rgba(120, 135, 165, 0.50),
+              -10px -10px 24px rgba(255, 255, 255, 0.90),
+              inset 2px 2px 3px rgba(255, 255, 255, 0.8),
+              inset -3px -3px 6px rgba(120, 135, 165, 0.20);
+}
+
+/* Clay Card Elevated (Modals, popovers, floating menus: #F7F9FD) */
+.clay-card-elevated,
+.clay-modal {
+  background-color: #F7F9FD;
+  border-radius: 28px;
+  box-shadow: 14px 14px 32px rgba(120, 135, 165, 0.50),
+              -12px -12px 28px rgba(255, 255, 255, 0.90),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.9),
+              inset -2px -2px 6px rgba(120, 135, 165, 0.2);
+}
+
+/* Clay Inset (Inputs, search bars, inner wells: #CFD7E6) */
+.clay-inset {
+  background-color: #CFD7E6;
+  border-radius: 16px;
+  box-shadow: inset 5px 5px 10px rgba(120, 135, 165, 0.40),
+              inset -5px -5px 10px rgba(255, 255, 255, 0.80);
+}
+
+/* Clay Button (Standard / Secondary actions: #EDF1F8) */
+.clay-button {
+  background-color: #EDF1F8;
+  border-radius: 16px;
+  color: #111A2B;
+  font-weight: 600;
+  box-shadow: 4px 4px 10px rgba(120, 135, 165, 0.45),
+              -3px -3px 8px rgba(255, 255, 255, 0.85),
+              inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.8),
+              inset -1.5px -1.5px 4px rgba(120, 135, 165, 0.2);
+  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.clay-button:hover {
+  transform: translateY(-1px);
+  background-color: #F7F9FD;
+}
+
+.clay-button:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 6px rgba(120, 135, 165, 0.45),
+              inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Clay Button Primary (Main CTA actions: Solid #4F6BED, white text, puffy shadow) */
+.clay-button-primary {
+  background-color: #4F6BED;
+  color: #FFFFFF;
+  border-radius: 16px;
+  font-weight: 600;
+  box-shadow: 4px 4px 12px rgba(79, 107, 237, 0.45),
+              -3px -3px 8px rgba(255, 255, 255, 0.85),
+              inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.6),
+              inset -1.5px -1.5px 4px rgba(31, 43, 115, 0.3);
+  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.clay-button-primary:hover {
+  background-color: #3F57D1;
+  transform: translateY(-1px);
+}
+
+.clay-button-primary:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 6px rgba(31, 43, 115, 0.5),
+              inset -2px -2px 5px rgba(255, 255, 255, 0.2);
+}
+
+/* Clay Pill (Badges, tags, status pills) */
+.clay-pill {
+  border-radius: 9999px;
+  box-shadow: 3px 3px 8px rgba(120, 135, 165, 0.40),
+              -2px -2px 6px rgba(255, 255, 255, 0.85),
+              inset 1px 1px 2px rgba(255, 255, 255, 0.8),
+              inset -1px -1px 3px rgba(120, 135, 165, 0.2);
+}
+
+/* Semantic Tinted Clay Buttons */
+.clay-button-success {
+  background-color: #2FB67C;
+  color: #FFFFFF;
+  border-radius: 16px;
+  font-weight: 700;
+  box-shadow: 4px 4px 10px rgba(120, 135, 165, 0.45),
+              -3px -3px 8px rgba(255, 255, 255, 0.85),
+              inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.6),
+              inset -1.5px -1.5px 4px rgba(20, 90, 55, 0.3);
+  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.clay-button-success:hover {
+  transform: translateY(-1px);
+  background-color: #269C69;
+}
+.clay-button-success:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 6px rgba(20, 90, 55, 0.45),
+              inset -2px -2px 5px rgba(255, 255, 255, 0.3);
+}
+
+.clay-button-warning {
+  background-color: #F5A524;
+  color: #111A2B;
+  border-radius: 16px;
+  font-weight: 700;
+  box-shadow: 4px 4px 10px rgba(120, 135, 165, 0.45),
+              -3px -3px 8px rgba(255, 255, 255, 0.85),
+              inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.6),
+              inset -1.5px -1.5px 4px rgba(140, 75, 10, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.clay-button-warning:hover {
+  transform: translateY(-1px);
+  background-color: #DE9016;
+}
+.clay-button-warning:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 6px rgba(140, 75, 10, 0.45),
+              inset -2px -2px 5px rgba(255, 255, 255, 0.3);
+}
+
+.clay-button-critical {
+  background-color: #E5484D;
+  color: #FFFFFF;
+  border-radius: 16px;
+  font-weight: 700;
+  box-shadow: 4px 4px 10px rgba(120, 135, 165, 0.45),
+              -3px -3px 8px rgba(255, 255, 255, 0.85),
+              inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.6),
+              inset -1.5px -1.5px 4px rgba(140, 20, 30, 0.3);
+  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.clay-button-critical:hover {
+  transform: translateY(-1px);
+  background-color: #C93439;
+}
+.clay-button-critical:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 6px rgba(140, 20, 30, 0.45),
+              inset -2px -2px 5px rgba(255, 255, 255, 0.3);
+}
+
+/* ==========================================================================
+   LEAFLET MAP & TACTICAL MARKERS
+   ========================================================================== */
+
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background: #07111F !important;
+  background: #D9E0EC !important;
   font-family: inherit;
   z-index: 10;
 }
 
-/* Crisp, high-contrast Leaflet map tiles */
 .leaflet-tile {
   image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  filter: contrast(1.06) brightness(1.02);
+  filter: contrast(1.02) saturate(1.05);
 }
 
-/* Custom Marker Pulsing */
-@keyframes pulse-ring {
+/* Subtle single pulse ONLY for critical unverified markers */
+@keyframes subtle-pulse {
   0% {
-    transform: scale(0.9);
-    opacity: 0.9;
+    transform: scale(0.95);
+    opacity: 0.8;
   }
   50% {
-    transform: scale(1.4);
-    opacity: 0.2;
+    transform: scale(1.22);
+    opacity: 0.25;
   }
   100% {
-    transform: scale(0.9);
-    opacity: 0.9;
+    transform: scale(0.95);
+    opacity: 0.8;
   }
 }
 
-.pulse-ring-active {
-  animation: pulse-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.pulse-critical-unverified {
+  animation: subtle-pulse 2.2s ease-in-out infinite;
 }
 
-/* Custom Leaflet DivIcon Marker */
+/* Leaflet Custom Clay DivIcon Marker */
 .resqnet-div-icon {
   background: transparent !important;
   border: none !important;
@@ -91,36 +276,31 @@
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  border: 2.5px solid #ffffff;
-  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.85), 0 4px 14px rgba(0, 0, 0, 0.75), 0 0 10px rgba(0, 0, 0, 0.5);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  border: 2px solid #ffffff;
+  box-shadow: 3px 3px 8px rgba(163, 177, 198, 0.45),
+              -2px -2px 6px rgba(255, 255, 255, 0.95),
+              inset 2px 2px 3px rgba(255, 255, 255, 0.85),
+              inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 180ms ease, box-shadow 180ms ease;
   z-index: 10;
 }
 
 .resqnet-marker-wrapper:hover .resqnet-marker-core {
-  transform: scale(1.18);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4);
+  transform: scale(1.12);
+  box-shadow: 4px 4px 12px rgba(163, 177, 198, 0.55),
+              -3px -3px 8px rgba(255, 255, 255, 1);
 }
 
 .resqnet-marker-wrapper.is-selected .resqnet-marker-core {
-  transform: scale(1.25);
-  border-color: #ffffff;
-  box-shadow: 0 0 0 3px #21D4FD, 0 6px 18px rgba(0, 0, 0, 0.85) !important;
-}
-
-/* Distinct Verified & Unverified Marker Indicators */
-.resqnet-marker-core.is-verified {
-  box-shadow: 0 0 0 2px #10b981, 0 4px 12px rgba(0, 0, 0, 0.75) !important;
-}
-
-.resqnet-marker-core.is-unverified {
-  box-shadow: 0 0 0 2px #f59e0b, 0 4px 12px rgba(0, 0, 0, 0.75) !important;
+  transform: scale(1.18);
+  border-color: #4F6BED;
+  box-shadow: 0 0 0 3px rgba(79, 107, 237, 0.25), 4px 4px 12px rgba(163, 177, 198, 0.5) !important;
 }
 
 .resqnet-marker-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -3px;
+  right: -3px;
   width: 15px;
   height: 15px;
   border-radius: 50%;
@@ -128,46 +308,30 @@
   align-items: center;
   justify-content: center;
   font-size: 8.5px;
-  font-weight: 900;
+  font-weight: 800;
   color: #ffffff;
-  border: 1.5px solid #07111F;
+  border: 1.5px solid #FFFFFF;
   z-index: 12;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  box-shadow: 1px 1px 3px rgba(163, 177, 198, 0.4);
 }
 
 .resqnet-marker-badge.is-verified {
-  background-color: #10b981;
+  background-color: #2FB67C;
 }
 
 .resqnet-marker-badge.is-unverified {
-  background-color: #f59e0b;
+  background-color: #F5A524;
 }
 
-.resqnet-marker-halo {
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border-width: 1.5px;
-  border-style: solid;
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.resqnet-marker-ping {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  animation: pulse-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  pointer-events: none;
-}
-
-/* Custom Clean Leaflet Popup (Dark Command Center) */
+/* Clean Clay Leaflet Popup */
 .leaflet-popup-content-wrapper {
-  background: #0D1B2D !important;
-  border: 1px solid #203550 !important;
-  color: #E2E8F0 !important;
-  border-radius: 10px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+  background: #FFFFFF !important;
+  color: #1F2A3C !important;
+  border-radius: 20px !important;
+  box-shadow: 8px 8px 24px rgba(163, 177, 198, 0.4),
+              -6px -6px 16px rgba(255, 255, 255, 0.95),
+              inset 1px 1px 3px rgba(255, 255, 255, 0.9) !important;
+  border: none !important;
   padding: 0 !important;
 }
 
@@ -177,77 +341,29 @@
 }
 
 .leaflet-popup-tip {
-  background: #0D1B2D !important;
-  border-top: 1px solid #203550 !important;
-  border-left: 1px solid #203550 !important;
+  background: #FFFFFF !important;
   box-shadow: none !important;
 }
 
 .leaflet-container a.leaflet-popup-close-button {
-  color: #94A3B8 !important;
-  padding: 6px 8px !important;
+  color: #8A94A6 !important;
+  padding: 8px 10px !important;
 }
 
 .leaflet-container a.leaflet-popup-close-button:hover {
-  color: #F8FAFC !important;
+  color: #1F2A3C !important;
 }
 
-/* Leaflet Attribution Bar */
 .leaflet-control-attribution {
-  background: rgba(9, 22, 41, 0.9) !important;
-  color: #94A3B8 !important;
+  background: rgba(245, 247, 251, 0.85) !important;
+  color: #5B6679 !important;
   font-family: inherit !important;
   font-size: 10px !important;
-  border-radius: 4px 0 0 0 !important;
-  border-top: 1px solid #203550 !important;
-  border-left: 1px solid #203550 !important;
+  border-radius: 8px 0 0 0 !important;
   padding: 2px 8px !important;
 }
+
 .leaflet-control-attribution a {
-  color: #21D4FD !important;
+  color: #4F6BED !important;
   text-decoration: none !important;
-}
-.leaflet-control-attribution a:hover {
-  text-decoration: underline !important;
-}
-
-/* Disaster-Response Radar / Contour Grid Texture */
-.command-center-grid-bg {
-  background-color: #031329;
-  background-image: 
-    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(0, 200, 255, 0.09), transparent 75%),
-    linear-gradient(rgba(0, 200, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 200, 255, 0.035) 1px, transparent 1px);
-  background-size: 100% 100%, 32px 32px, 32px 32px;
-  background-position: center top, 0 0, 0 0;
-}
-
-/* Luminous Command Box */
-.luminous-command-box {
-  border: 2px solid rgba(0, 200, 255, 0.65);
-  box-shadow: 0 0 25px rgba(0, 200, 255, 0.18), inset 0 0 20px rgba(0, 200, 255, 0.03);
-}
-
-/* Card Entrance Stagger Animation */
-@keyframes cardEntrance {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-card-entrance {
-  animation: cardEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-card-entrance {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
 }

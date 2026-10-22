@@ -35,5 +35,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 
 - `npm run dev` — Start Vite development server with HMR.
 - `npm run build` — Build production bundle to `frontend/dist/`.
+- `npm test` — Run Vitest unit & integration test suite (109 tests).
 - `npm run preview` — Locally preview the production build.
 - `npm run lint` — Run Oxlint static analysis.
+

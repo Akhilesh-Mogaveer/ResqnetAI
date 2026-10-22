@@ -53,39 +53,39 @@ ${attentionZones.map(z => `- **${z.name}** (${z.id}): ${z.signalDeviation} signa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#07111F]/80 backdrop-blur-xs animate-fade-in">
-      <div className="bg-[#0D1B2D] border border-[#203550] rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-        <div className="px-5 py-4 border-b border-[#203550] bg-[#091629] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F2A3C]/35 backdrop-blur-xs animate-fade-in">
+      <div className="bg-surface-elevated rounded-clay-modal max-w-2xl w-full shadow-clay-modal overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-sm font-bold text-white tracking-tight">
+            <FileText className="w-5 h-5 text-brand-primary" />
+            <h3 className="text-sm font-bold text-text-primary tracking-tight">
               Export Operational Situation Brief (SITREP)
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded hover:bg-[#132238] transition-colors">
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1.5 rounded-clay-button hover:bg-surface-inset transition-colors cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto flex-1 font-mono text-xs bg-[#091629] text-slate-300 border-b border-[#203550]">
+        <div className="p-5 overflow-y-auto flex-1 font-mono text-xs bg-surface-inset text-text-primary shadow-clay-inset rounded-clay-input m-4">
           <pre className="whitespace-pre-wrap leading-relaxed">{briefText}</pre>
         </div>
 
-        <div className="p-4 bg-[#0D1B2D] flex items-center justify-between">
-          <span className="text-[11px] font-mono text-slate-400">
+        <div className="px-6 py-4 bg-surface-elevated flex items-center justify-between">
+          <span className="text-[11px] font-mono text-text-muted">
             Markdown format with operational headers
           </span>
           <div className="flex items-center space-x-2">
             <button
               onClick={handleCopy}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#091629] hover:bg-[#132238] text-slate-200 border border-[#203550] text-xs font-semibold transition-colors"
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-clay-button clay-button text-text-primary text-xs font-semibold transition-all cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-severity-success" /> : <Copy className="w-3.5 h-3.5 text-text-muted" />}
               <span>{copied ? 'Copied' : 'Copy Text'}</span>
             </button>
             <button
               onClick={handleDownload}
-              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs"
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-clay-button clay-button-primary text-white font-bold text-xs transition-all cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download .MD Brief</span>

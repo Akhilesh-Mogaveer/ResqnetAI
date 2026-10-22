@@ -168,44 +168,44 @@ export default function DuplicateSuggestionsCard({
 
   return (
     <>
-      <div className="bg-[#091629] border border-[#203550] rounded-xl p-3.5 shadow-sm">
+      <div className="bg-[#EEF1F6] rounded-clay-card p-4 shadow-clay-inset select-none">
         {/* Card Header */}
-        <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider font-bold mb-2">
-          <div className="flex items-center space-x-1.5 text-slate-200">
-            <GitMerge className="w-3.5 h-3.5 text-[#FFB547]" />
+        <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider font-bold mb-2.5">
+          <div className="flex items-center space-x-1.5 text-text-primary">
+            <GitMerge className="w-4 h-4 text-severity-high" />
             <span>Duplicate Detection & Signal Corroboration</span>
           </div>
 
           <div className="flex items-center space-x-2">
             {duplicates.length > 0 && !incident.is_duplicate && (
-              <span className="px-2 py-0.5 rounded bg-amber-950/60 text-[#FFB547] border border-amber-800/60 font-bold">
+              <span className="px-2.5 py-0.5 rounded-clay-pill bg-severity-high-soft text-[#B45309] text-[10px] font-bold shadow-clay-pill">
                 {duplicates.length} Suggested
               </span>
             )}
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-slate-400 hover:text-white p-0.5"
+              className="text-text-muted hover:text-text-primary p-0.5 rounded-clay-button hover:bg-surface-elevated transition-colors cursor-pointer"
             >
-              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
         {isExpanded && (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {/* 1. Incident is already a merged duplicate */}
             {incident.is_duplicate ? (
-              <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-900/50 text-xs text-amber-200 space-y-2">
+              <div className="p-3.5 rounded-clay-card bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-2">
                 <div className="flex items-start space-x-2">
-                  <GitMerge className="w-4 h-4 text-[#FFB547] flex-shrink-0 mt-0.5" />
+                  <GitMerge className="w-4 h-4 text-severity-high flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-amber-300 font-mono uppercase text-[11px]">
+                    <div className="font-bold text-amber-950 font-mono uppercase text-[11px]">
                       Merged Duplicate Report
                     </div>
-                    <div className="text-[11px] text-amber-200 mt-0.5">
+                    <div className="text-[11px] text-amber-800 mt-0.5">
                       This report was corroborated and merged into primary record{' '}
-                      <strong className="text-white font-mono font-bold">{incident.duplicate_of_id}</strong>. Original narrative and provenance remain preserved.
+                      <strong className="text-amber-950 font-mono font-bold">{incident.duplicate_of_id}</strong>. Original narrative and provenance remain preserved.
                     </div>
                   </div>
                 </div>
@@ -213,7 +213,7 @@ export default function DuplicateSuggestionsCard({
                   <button
                     type="button"
                     onClick={() => onSelectIncident(incident.duplicate_of_id)}
-                    className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-amber-700 hover:bg-amber-600 text-white font-mono text-[10px] transition-colors shadow-xs"
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-clay-button bg-[#B45309] hover:bg-amber-800 text-white font-mono text-[10px] shadow-clay-button active:shadow-clay-inset transition-all cursor-pointer"
                   >
                     <span>View Primary Incident ({incident.duplicate_of_id})</span>
                     <ExternalLink className="w-3 h-3" />
@@ -224,15 +224,15 @@ export default function DuplicateSuggestionsCard({
 
             {/* 2. Action Outcome Banner (Merge Recorded or Suggestion Dismissed) */}
             {actionOutcome && (
-              <div className="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-900/60 text-[11px] text-emerald-200 flex items-start justify-between font-mono animate-fadeIn">
+              <div className="p-3 rounded-clay-card bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 flex items-start justify-between font-mono animate-fadeIn">
                 <div className="flex items-start space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-emerald-300 uppercase">
+                    <span className="font-bold text-emerald-950 uppercase">
                       {actionOutcome.type === 'merge' ? 'Merge Recorded:' : 'Suggestion Dismissed:'}
                     </span>{' '}
                     <span>{actionOutcome.message}</span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                    <span className="text-[10px] text-emerald-700 block mt-0.5">
                       Logged at {actionOutcome.timestamp} · Audit trail recorded
                     </span>
                   </div>
@@ -240,7 +240,7 @@ export default function DuplicateSuggestionsCard({
                 <button
                   type="button"
                   onClick={() => setActionOutcome(null)}
-                  className="text-slate-400 hover:text-white p-0.5"
+                  className="text-emerald-700 hover:text-emerald-950 p-0.5 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -249,15 +249,15 @@ export default function DuplicateSuggestionsCard({
 
             {/* 3. Action Error Banner */}
             {actionError && (
-              <div className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-900/60 text-[11px] text-rose-200 flex items-start justify-between font-mono">
+              <div className="p-3 rounded-clay-card bg-rose-50 border border-rose-200 text-[11px] text-rose-900 flex items-start justify-between font-mono">
                 <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-[#FF4566] flex-shrink-0" />
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
                   <span>{actionError}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActionError(null)}
-                  className="text-slate-400 hover:text-white p-0.5"
+                  className="text-rose-700 hover:text-rose-950 p-0.5 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -266,14 +266,14 @@ export default function DuplicateSuggestionsCard({
 
             {/* 4. Loading Indicators */}
             {isLoading || actionLoading ? (
-              <div className="py-2.5 flex items-center justify-center space-x-2 text-[11px] text-slate-400 font-mono">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#21D4FD]" />
+              <div className="py-3 flex items-center justify-center space-x-2 text-[11px] text-text-muted font-mono">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-primary" />
                 <span>{actionLoading ? 'Persisting coordinator action...' : 'Scanning spatial & text signals for redundancies...'}</span>
               </div>
             ) : !incident.is_duplicate && duplicates.length === 0 ? (
               /* 5. Genuinely No Redundant Reports Detected */
-              <div className="flex items-center space-x-2 p-2.5 rounded-lg bg-[#0D1B2D] border border-[#203550] text-[11px] text-slate-300">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <div className="flex items-center space-x-2 p-3 rounded-clay-card bg-surface-card shadow-clay-card text-[11px] text-text-secondary">
+                <CheckCircle className="w-4 h-4 text-severity-success flex-shrink-0" />
                 <span>
                   {actionOutcome
                     ? 'All candidate reports for this incident have been reviewed and resolved.'
@@ -282,8 +282,8 @@ export default function DuplicateSuggestionsCard({
               </div>
             ) : !incident.is_duplicate && (
               /* 6. Active Duplicate Candidates List */
-              <div className="space-y-2">
-                <div className="text-[10px] text-amber-300 font-mono font-medium">
+              <div className="space-y-2.5">
+                <div className="text-[10px] text-[#B45309] font-mono font-semibold">
                   ⚠️ Potential duplicate reports detected. Review evidence before corroborating:
                 </div>
 
@@ -294,48 +294,48 @@ export default function DuplicateSuggestionsCard({
                   return (
                     <div
                       key={suggestionKey}
-                      className="p-3 rounded-lg bg-[#0D1B2D] border border-[#203550] hover:border-amber-500/60 transition-colors text-[11px] space-y-1.5"
+                      className="p-3.5 rounded-clay-card clay-card text-[11px] space-y-2"
                     >
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center space-x-2 font-mono text-[10px]">
-                            <span className="text-[#FFB547] font-bold">{candidateId}</span>
-                            <span className="text-slate-600">·</span>
-                            <span className="text-slate-400">{cand.candidate_sector}</span>
-                            <span className="text-slate-600">·</span>
-                            <span className="text-slate-500">{cand.candidate_time_ago}</span>
+                            <span className="text-[#B45309] font-bold">{candidateId}</span>
+                            <span className="text-text-muted">·</span>
+                            <span className="text-text-muted">{cand.candidate_sector}</span>
+                            <span className="text-text-muted">·</span>
+                            <span className="text-text-muted">{cand.candidate_time_ago}</span>
                           </div>
-                          <div className="font-bold text-white text-xs mt-0.5">
+                          <div className="font-bold text-text-primary text-xs mt-0.5">
                             {cand.candidate_title}
                           </div>
                         </div>
 
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          cand.overall_score >= 75 ? 'bg-rose-950/60 text-[#FF4566] border border-rose-800/60' :
-                          cand.overall_score >= 50 ? 'bg-amber-950/60 text-[#FFB547] border border-amber-800/60' :
-                          'bg-blue-950/60 text-[#21D4FD] border border-blue-800/60'
+                        <span className={`px-2.5 py-0.5 rounded-clay-pill text-[10px] font-mono font-bold shadow-clay-pill flex-shrink-0 ${
+                          cand.overall_score >= 75 ? 'bg-severity-critical-soft text-severity-critical' :
+                          cand.overall_score >= 50 ? 'bg-severity-high-soft text-[#B45309]' :
+                          'bg-brand-50 text-brand-primary'
                         }`}>
                           {cand.overall_score}% Match ({cand.confidence_level})
                         </span>
                       </div>
 
                       {/* Explainability bullets */}
-                      <div className="text-[10px] text-slate-300 space-y-0.5 pt-1 border-t border-[#203550]">
+                      <div className="text-[10px] text-text-secondary space-y-1 pt-1.5 border-t border-[#A3B1C6]/20">
                         {cand.reasons.slice(0, 3).map((reason, idx) => (
-                          <div key={idx} className="flex items-start space-x-1 text-slate-300">
-                            <span className="text-[#21D4FD] font-bold">•</span>
+                          <div key={idx} className="flex items-start space-x-1.5 text-text-secondary">
+                            <span className="text-brand-primary font-bold">•</span>
                             <span>{reason}</span>
                           </div>
                         ))}
                       </div>
 
                       {/* Action buttons */}
-                      <div className="flex items-center justify-end space-x-2 pt-1.5">
+                      <div className="flex items-center justify-end space-x-2 pt-2">
                         <button
                           type="button"
                           onClick={() => handleOpenDismiss(cand)}
                           disabled={actionLoading}
-                          className="px-2.5 py-1 rounded bg-[#132238] hover:bg-[#203550] text-slate-300 text-[10px] font-mono transition-colors border border-[#203550] disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-clay-button clay-button text-text-secondary text-[10px] font-mono disabled:opacity-50 cursor-pointer"
                         >
                           Dismiss
                         </button>
@@ -343,9 +343,9 @@ export default function DuplicateSuggestionsCard({
                           type="button"
                           onClick={() => handleOpenReview(cand)}
                           disabled={actionLoading}
-                          className="flex items-center space-x-1 px-2.5 py-1 rounded bg-[#FFB547] hover:bg-amber-400 text-slate-950 font-bold text-[10px] font-mono transition-all shadow-xs disabled:opacity-50"
+                          className="flex items-center space-x-1 px-3 py-1.5 rounded-clay-button clay-button-primary text-white font-bold text-[10px] font-mono disabled:opacity-50 cursor-pointer"
                         >
-                          <GitMerge className="w-3 h-3" />
+                          <GitMerge className="w-3.5 h-3.5" />
                           <span>Review & Merge</span>
                         </button>
                       </div>
@@ -360,53 +360,53 @@ export default function DuplicateSuggestionsCard({
 
       {/* Dismissal Confirmation Dialog */}
       {dismissingCandidate && (
-        <div className="fixed inset-0 z-50 bg-[#07111F]/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#0D1B2D] border border-[#203550] rounded-xl max-w-lg w-full p-5 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-[#1F2A3C]/35 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-elevated rounded-clay-modal max-w-lg w-full p-6 shadow-clay-modal relative border-none">
             <button
               type="button"
               onClick={() => setDismissingCandidate(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#132238]"
+              className="absolute top-4 right-4 text-text-muted hover:text-text-primary p-1.5 rounded-clay-button hover:bg-surface-card transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center space-x-2 text-amber-400 font-mono text-xs uppercase mb-1 font-bold">
-              <AlertTriangle className="w-4 h-4" />
+            <div className="flex items-center space-x-2 text-[#B26A00] font-mono text-xs uppercase mb-1 font-bold">
+              <AlertTriangle className="w-4 h-4 text-[#B26A00]" />
               <span>Confirm Duplicate Dismissal</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-1">
+            <h3 className="text-base font-bold text-text-primary mb-1">
               Dismiss Duplicate Suggestion
             </h3>
-            <p className="text-xs text-slate-300 mb-3">
-              Dismiss suggestion <strong className="text-amber-400 font-mono font-bold">{dismissingCandidate.candidate_incident_id || dismissingCandidate.candidate_id}</strong> for incident <strong className="text-[#21D4FD] font-mono font-bold">{incident.id}</strong>. Both incidents will remain separate and active.
+            <p className="text-xs text-text-secondary mb-3">
+              Dismiss suggestion <strong className="text-[#B26A00] font-mono font-bold">{dismissingCandidate.candidate_incident_id || dismissingCandidate.candidate_id}</strong> for incident <strong className="text-brand-primary font-mono font-bold">{incident.id}</strong>. Both incidents will remain separate and active.
             </p>
 
-            <form onSubmit={handleExecuteDismiss} className="space-y-3 text-xs">
+            <form onSubmit={handleExecuteDismiss} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-mono text-[11px] mb-1 font-semibold">Coordinator Identity *</label>
+                <label className="block text-text-secondary font-mono text-[11px] mb-1 font-semibold">Coordinator Identity *</label>
                 <input
                   type="text"
                   value={dismissOperator}
                   onChange={(e) => setDismissOperator(e.target.value)}
                   required
-                  className="w-full bg-[#091629] border border-[#203550] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#2878FF]"
+                  className="w-full bg-surface-inset rounded-clay-input shadow-clay-inset px-3 py-2 text-xs text-text-primary font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary/30 border-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-mono text-[11px] mb-1 font-semibold">Audit Trail Rationale *</label>
+                <label className="block text-text-secondary font-mono text-[11px] mb-1 font-semibold">Audit Trail Rationale *</label>
                 <textarea
                   value={dismissReason}
                   onChange={(e) => setDismissReason(e.target.value)}
                   rows={2}
                   required
                   placeholder="State why these reports represent distinct emergency incidents..."
-                  className="w-full bg-[#091629] border border-[#203550] rounded-lg p-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2878FF] font-sans"
+                  className="w-full bg-surface-inset rounded-clay-input shadow-clay-inset p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/30 border-none font-sans"
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-[#203550]">
-                <span className="text-[10px] font-mono text-slate-400 italic">
+              <div className="flex items-center justify-between pt-3 border-t border-black/5">
+                <span className="text-[10px] font-mono text-text-muted italic">
                   * Writes to immutable audit trail.
                 </span>
                 <div className="flex items-center space-x-2">
@@ -414,14 +414,14 @@ export default function DuplicateSuggestionsCard({
                     type="button"
                     onClick={() => setDismissingCandidate(null)}
                     disabled={actionLoading}
-                    className="px-3 py-1.5 rounded-lg bg-[#132238] hover:bg-[#203550] text-slate-200 font-mono text-xs border border-[#203550]"
+                    className="px-4 py-2 rounded-clay-button clay-button text-text-secondary hover:text-text-primary font-mono text-xs transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="px-3 py-1.5 rounded-lg bg-[#FFB547] hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs transition-all disabled:opacity-50"
+                    className="px-4 py-2 rounded-clay-button clay-button-warning text-[#9E5700] hover:text-[#7A4300] font-bold font-mono text-xs transition-all disabled:opacity-50"
                   >
                     {actionLoading ? 'Dismissing...' : 'Confirm Dismissal'}
                   </button>
