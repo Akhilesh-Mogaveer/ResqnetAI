@@ -7,9 +7,8 @@ def test_health_check(client):
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] in ["HEALTHY", "DEGRADED"]
+    assert data["status"] == "ALIVE"
     assert "version" in data
-    assert data["database_connected"] is True
     assert "disclaimer" in data
 
 

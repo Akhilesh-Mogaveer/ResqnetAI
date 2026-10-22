@@ -52,9 +52,9 @@ def test_readiness_endpoint_reports_active_model(client):
     resp_health = client.get("/api/v1/health")
     assert resp_health.status_code == 200
     health_data = resp_health.json()
-    assert health_data["status"] == "HEALTHY"
-    assert health_data["model_loaded"] is True
-    assert "resqnet_distilbert_full" in health_data["model_dir"]
+    assert health_data["status"] == "ALIVE"
+    assert health_data["model_loaded"] is None
+    assert health_data["model_dir"] is None
 
 
 def test_classifier_singleton_caching():
@@ -162,4 +162,3 @@ def test_validate_model_artifacts_requires_all_files(tmp_path):
 
     (model_dir / "tokenizer.json").write_text("{}")
     assert validate_model_artifacts(model_dir)["valid"] is True
-

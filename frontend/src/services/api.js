@@ -3,8 +3,8 @@
  * Connects the React dashboard to the FastAPI backend service.
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
-const API_V1 = `${API_BASE}/api/v1`;
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+export const API_V1 = `${API_BASE}/api/v1`;
 
 let _cachedToken = null;
 
@@ -32,6 +32,9 @@ export const setAuthToken = (token) => {
 
 async function request(endpoint, options = {}) {
   const url = `${API_V1}${endpoint}`;
+  const timeoutMs = options.timeoutMs ?? (endpoint === '/health' ? 5000 : 15000);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -40,7 +43,13 @@ async function request(endpoint, options = {}) {
   };
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const { timeoutMs: _timeoutMs, signal: callerSignal, ...fetchOptions } = options;
+    if (callerSignal) {
+      callerSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+    const started = performance.now();
+    const res = await fetch(url, { ...fetchOptions, headers, signal: controller.signal });
+    console.info(`[RESQNET API] ${endpoint} ${res.status} in ${(performance.now() - started).toFixed(0)} ms`);
     if (!res.ok) {
       let errMsg = `Request failed: ${res.status} ${res.statusText}`;
       try {
@@ -55,8 +64,16 @@ async function request(endpoint, options = {}) {
     }
     return await res.json();
   } catch (err) {
+    if (err?.name === 'AbortError') {
+      const timeoutError = new Error(`Request timed out after ${timeoutMs} ms`);
+      timeoutError.code = 'REQUEST_TIMEOUT';
+      console.warn(`[RESQNET API Timeout] ${endpoint} after ${timeoutMs} ms`);
+      throw timeoutError;
+    }
     console.error(`[RESQNET API Error] ${endpoint}:`, err);
     throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -64,7 +81,7 @@ export const api = {
   getBaseUrl: () => API_BASE,
 
   // Health & Readiness
-  getHealth: () => request('/health'),
+  getHealth: () => request('/health', { timeoutMs: 5000 }),
   getReadiness: () => request('/health/ready'),
 
   // Public Environmental Data via Open-Meteo
@@ -358,12 +375,12 @@ export const api = {
     }),
 
   getNotificationWebSocketUrl: () => {
-    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = API_BASE.replace(/^https?:\/\//, '');
+    const isHttps = API_BASE.startsWith('https:') || (typeof window !== 'undefined' && window.location.protocol === 'https:');
+    const wsProto = isHttps ? 'wss:' : 'ws:';
+    const host = API_BASE.replace(/^https?:\/\//, '').replace(/\/+$/, '');
     const token = getAuthToken();
     return `${wsProto}//${host}/api/v1/notifications/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
   },
 };
 
 export default api;
-

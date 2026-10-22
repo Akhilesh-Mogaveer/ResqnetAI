@@ -19,6 +19,7 @@ export default function TopNav({
   onOpenExportBrief,
   onOpenBroadcast,
   backendConnected,
+  backendStatus,
   onOpenNewIncidentModal,
   onOpenNewIncident,
   onSubmitReport,
@@ -156,36 +157,40 @@ export default function TopNav({
             rounded-full text-[11px] font-medium flex-shrink-0
             font-mono h-7 sm:h-8 whitespace-nowrap
             transition-colors ${
-              backendConnected === true
+              backendStatus === 'connected' || backendConnected === true
                 ? 'bg-emerald-500 text-green-950'
-                : backendConnected === false
+                :                 backendStatus === 'waking' || backendStatus === 'unavailable' || backendConnected === false
                 ? 'bg-red-100 text-red-950'
                 : 'bg-slate-100 text-slate-700'
             }`}
           title={
-            backendConnected === true
+            backendStatus === 'connected' || backendConnected === true
               ? 'FastAPI Backend Online'
-              : backendConnected === false
+              :               backendStatus === 'waking' || backendStatus === 'unavailable' || backendConnected === false
               ? 'Backend Offline (Local Fallback)'
               : 'Checking API status...'
           }
         >
           <span
             className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              backendConnected === true
+              backendStatus === 'connected' || backendConnected === true
                 ? 'bg-green-950'
-                : backendConnected === false
+                :                 backendStatus === 'waking' || backendStatus === 'unavailable' || backendConnected === false
                 ? 'bg-red-700'
                 : 'bg-slate-500 animate-pulse'
             }`}
           />
 
           <span className="whitespace-nowrap">
-            {backendConnected === true
+            {backendStatus === 'connected' || backendConnected === true
               ? 'Backend Connected'
-              : backendConnected === false
+              : backendStatus === 'waking'
+              ? 'Backend Waking...'
+              : backendStatus === undefined && backendConnected === false
               ? 'Offline (Local Fallback)'
-              : 'Checking API...'}
+              : backendStatus === 'unavailable' || backendConnected === false
+              ? 'Backend Unavailable'
+              : 'Connecting to Backend...'}
           </span>
         </div>
       </div>

@@ -229,12 +229,12 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
   const statusMeta = getStatusBadge(config?.status || 'not_configured');
   const StatusIcon = statusMeta.icon;
 
-  // Determine public webhook URL recommendation
-  const currentHost = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
-  const isLocalhost = currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
+  // Determine public webhook URL recommendation for Android SMS Forwarder
+  const backendBase = (api.getBaseUrl ? api.getBaseUrl() : 'http://127.0.0.1:8000').replace(/\/+$/, '');
+  const isLocalhost = backendBase.includes('localhost') || backendBase.includes('127.0.0.1');
   const sampleWebhookUrl = isLocalhost
     ? 'https://your-public-resqnet.domain/api/v1/sms/forwarded'
-    : `${currentHost}/api/v1/sms/forwarded`;
+    : `${backendBase}/api/v1/sms/forwarded`;
 
   return (
     <div className="bg-surface-card rounded-clay-card shadow-clay-card p-5 space-y-5">
@@ -618,7 +618,7 @@ export default function CommunityEmergencyNumberCard({ onShowToast }) {
               <span>Install a Compatible Android SMS Forwarder App</span>
             </h4>
             <p className="text-text-secondary text-[11px] pl-6 leading-relaxed">
-              Any Android app capable of sending incoming SMS to a configurable HTTPS Webhook via JSON POST is supported (e.g., open-source <strong>SMS Forwarder (开源短信转发器)</strong>, <strong>Macrodroid</strong>, or <strong>IFTTT</strong>).
+              Any Android app capable of sending incoming SMS to a configurable HTTPS Webhook via JSON POST is supported (e.g., open-source <strong>SMS Forwarder </strong>, <strong>Macrodroid</strong>, or <strong>IFTTT</strong>).
             </p>
             <div className="pl-6 space-y-1 text-text-secondary text-[11px]">
               <p><strong className="text-text-primary">Required Android Permissions:</strong></p>

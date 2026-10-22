@@ -301,7 +301,10 @@ export default function IncidentDetailPanel({
                 <FileText className="w-3.5 h-3.5" />
                 <span>HumAID NLP Categorization (Situational Need)</span>
               </span>
-              {incident.humaid_confidence !== undefined && incident.humaid_confidence !== null ? (
+              {incident.nlp_status !== 'MODEL_UNAVAILABLE' &&
+                incident.nlp_status !== 'INFERENCE_ERROR' &&
+                incident.humaid_confidence !== undefined &&
+                incident.humaid_confidence !== null ? (
                 <span className="px-2.5 py-0.5 rounded-clay-pill bg-brand-50 text-brand-primary font-bold text-[10px] shadow-clay-pill font-mono">
                   {(incident.humaid_confidence * 100).toFixed(1)}% Model Confidence
                 </span>
@@ -310,7 +313,11 @@ export default function IncidentDetailPanel({
               )}
             </div>
 
-            {incident.humaid_category ? (
+            {incident.nlp_status === 'MODEL_UNAVAILABLE' || incident.nlp_status === 'INFERENCE_ERROR' ? (
+              <div className="mb-2 text-[10px] text-severity-high italic">
+                HumAID classification unavailable: {incident.nlp_status === 'INFERENCE_ERROR' ? 'inference failed' : 'model unavailable'}
+              </div>
+            ) : incident.humaid_category ? (
               <div className="mb-2">
                 <span className="text-[10px] text-text-secondary block mb-0.5 font-medium">Predicted Humanitarian Category:</span>
                 <span className="inline-block px-3 py-1 rounded-clay-pill bg-surface-elevated text-brand-primary font-bold text-xs shadow-clay-pill tracking-wide">

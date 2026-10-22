@@ -8,6 +8,7 @@ and command-line batch inference.
 
 import json
 import logging
+import math
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -346,8 +347,8 @@ def classify_report(
     # 2. Attempt model loading with graceful fallback for missing files
     try:
         classifier = get_classifier(model_dir=model_dir)
-    except (FileNotFoundError, OSError, Exception) as err:
-        logger.error(f"RESQNET classifier unavailable: {err}")
+    except Exception as err:
+        logger.exception("RESQNET classifier unavailable during model loading")
         return {
             "input_text": text,
             "cleaned_text": clean_text(text),
@@ -360,7 +361,39 @@ def classify_report(
         }
 
     # 3. Perform prediction
-    return classifier.predict(text, return_all_probabilities=return_all_probabilities)
+    try:
+        result = classifier.predict(text, return_all_probabilities=return_all_probabilities)
+    except Exception as err:
+        logger.exception("RESQNET classifier inference failed")
+        return {
+            "input_text": text,
+            "cleaned_text": clean_text(text),
+            "predicted_category": "unclassified_inference_error",
+            "confidence": 0.0,
+            "all_probabilities": {},
+            "disclaimer": RESQNET_DISCLAIMER,
+            "status": "INFERENCE_ERROR",
+            "error": str(err),
+        }
+
+    confidence = result.get("confidence")
+    if result.get("status") == "SUCCESS" and (
+        not isinstance(confidence, (int, float))
+        or not math.isfinite(float(confidence))
+        or not 0.0 <= float(confidence) <= 1.0
+    ):
+        logger.error("RESQNET classifier returned invalid confidence: %r", confidence)
+        return {
+            "input_text": text,
+            "cleaned_text": clean_text(text),
+            "predicted_category": "unclassified_inference_error",
+            "confidence": 0.0,
+            "all_probabilities": {},
+            "disclaimer": RESQNET_DISCLAIMER,
+            "status": "INFERENCE_ERROR",
+            "error": "Classifier returned a non-finite or out-of-range confidence.",
+        }
+    return result
 
 
 def classify_incident_report(
@@ -448,4 +481,3 @@ def classify_incident_report(
     enriched_report["nlp_disclaimer"] = pred["disclaimer"]
 
     return enriched_report
-

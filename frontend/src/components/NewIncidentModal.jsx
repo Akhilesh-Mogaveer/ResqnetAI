@@ -184,6 +184,10 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
     try {
       const res = await api.classifyText(reportText);
       setNlpPrediction(res);
+      if (res.status !== 'SUCCESS') {
+        onShowToast?.(`HumAID classification unavailable: ${res.error || res.status}`, 'alert');
+        return;
+      }
       const catClean = mapHumaidCategory(res.predicted_category);
       setHazardCategory(catClean);
       onShowToast?.(`HumAID classified: ${catClean} (${(res.confidence * 100).toFixed(1)}%)`, 'success');
@@ -234,7 +238,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
       // Synchronize nlpPrediction state
       setNlpPrediction({
         predicted_category: res.inferred_fields.hazard_category,
-        confidence: res.inferred_fields.nlp_confidence || 0.85,
+        confidence: typeof res.inferred_fields.hazard_category_confidence === 'number'
+          ? res.inferred_fields.hazard_category_confidence
+          : res.inferred_fields.nlp_confidence,
+        status: res.nlp_status,
+        error: res.nlp_status === 'SUCCESS' ? undefined : 'Model classification unavailable',
       });
 
       onShowToast?.('Report analyzed & structured! Explicit facts separated from inferences.', 'success');
@@ -1079,7 +1087,11 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                     )}
                   </div>
                   <div className="text-text-primary">
-                    Model Classification Confidence: <strong className="font-mono text-text-primary">{((structuredData.inferred_fields?.nlp_confidence || 0) * 100).toFixed(1)}%</strong>
+                    Model Classification Confidence: <strong className="font-mono text-text-primary">
+                      {(structuredData.nlp_status === 'SUCCESS' || !structuredData.nlp_status) && typeof (structuredData.inferred_fields?.hazard_category_confidence ?? structuredData.inferred_fields?.nlp_confidence) === 'number'
+                        ? `${((structuredData.inferred_fields.hazard_category_confidence ?? structuredData.inferred_fields.nlp_confidence) * 100).toFixed(1)}%`
+                        : 'Unavailable'}
+                    </strong>
                   </div>
                   <div className="text-text-primary">
                     Urgent Indicators: <strong className="font-mono text-text-primary">
@@ -1115,12 +1127,16 @@ export default function NewIncidentModal({ isOpen, onClose, onIncidentCreated, o
                   <CheckCircle className="w-3.5 h-3.5 text-severity-success" />
                   <span>HumAID Situational Need (AI Inferred)</span>
                 </span>
-                <span className="text-severity-success font-semibold">
-                  {(nlpPrediction.confidence * 100).toFixed(1)}% Confidence
+                <span className={nlpPrediction.status === 'SUCCESS' ? 'text-severity-success font-semibold' : 'text-severity-high font-semibold'}>
+                  {nlpPrediction.status === 'SUCCESS' && typeof nlpPrediction.confidence === 'number'
+                    ? `${(nlpPrediction.confidence * 100).toFixed(1)}% Confidence`
+                    : 'Confidence Unavailable'}
                 </span>
               </div>
               <div className="text-text-primary font-mono font-bold text-xs uppercase tracking-wide">
-                Situational Need: {formatHumaidSituationalNeed(nlpPrediction.predicted_category)}
+                Situational Need: {nlpPrediction.status === 'SUCCESS'
+                  ? formatHumaidSituationalNeed(nlpPrediction.predicted_category)
+                  : 'Unclassified — Model Unavailable'}
               </div>
               <div className="text-[11px] text-text-secondary mt-1 font-sans">
                 Physical Hazard Selected: <strong className="text-brand-primary">{hazardCategory}</strong>

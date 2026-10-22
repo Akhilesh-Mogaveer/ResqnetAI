@@ -23,7 +23,6 @@ from backend.app.core.config import settings
 from backend.app.database.session import SessionLocal
 from backend.app.database.init_db import init_db
 from backend.app.schemas.nlp import DEFAULT_DISCLAIMER
-from backend.app.services.nlp_service import check_model_readiness
 from backend.app.routers import (
     health_router,
     nlp_router,
@@ -56,14 +55,7 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    model_status = check_model_readiness()
-    if model_status["is_ready"]:
-        logger.info(f"HumAID DistilBERT model verified at: {model_status['model_dir']}")
-    else:
-        logger.warning(
-            f"HumAID DistilBERT model weights not fully found at {model_status['model_dir']}. "
-            "Classifier endpoints will return graceful unavailability status."
-        )
+    logger.info("Application startup complete; NLP model is initialized on readiness/inference demand.")
 
     yield
 
@@ -86,9 +78,16 @@ app = FastAPI(
 )
 
 # Configure CORS
+configured_origins = (
+    [o for o in settings.CORS_ORIGINS if o != "*"]
+    if isinstance(settings.CORS_ORIGINS, list)
+    else [o.strip() for o in str(settings.CORS_ORIGINS).split(",") if o.strip() and o.strip() != "*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"],
+    allow_origins=configured_origins,
+    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.vercel\.app|https://.*\.netlify\.app|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

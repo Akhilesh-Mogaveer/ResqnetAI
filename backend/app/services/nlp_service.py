@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from backend.app.core.config import settings
 
 logger = logging.getLogger("RESQNET.NLPService")
+_model_state: Dict[str, Any] = {}
 
 # Ensure project root is in sys.path so data.nlp.src can be imported
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -110,15 +111,54 @@ def check_model_readiness() -> Dict[str, Any]:
     """
     model_path = get_model_path()
     status = validate_model_artifacts(model_path)
+    path_key = str(model_path)
+    state = _model_state.get(path_key, {})
+
+    if state.get("path") != path_key or not state.get("attempted"):
+        initialize_model(model_path)
+        state = _model_state.get(path_key, {})
 
     return {
-        "is_ready": status["valid"],
+        "is_ready": status["valid"] and state.get("loaded", False),
         "model_dir": str(model_path),
         "weights_present": status["weights_present"],
         "labels_present": status["labels_present"],
         "config_present": status["config_present"],
         "tokenizer_present": status["tokenizer_present"],
+        "model_error": state.get("error"),
     }
+
+
+def initialize_model(model_path: Optional[Path] = None) -> Dict[str, Any]:
+    """Load the selected model once and retain an explicit diagnostic state."""
+    selected_path = model_path or get_model_path()
+    path_key = str(selected_path)
+    existing = _model_state.get(path_key)
+    if existing and existing.get("attempted"):
+        return existing
+
+    state: Dict[str, Any] = {"path": path_key, "attempted": True, "loaded": False}
+    artifact_status = validate_model_artifacts(selected_path)
+    if not artifact_status["valid"]:
+        state["error"] = (
+            "Required model artifacts are missing or incomplete: "
+            + ", ".join(key for key, present in artifact_status.items() if key != "valid" and not present)
+        )
+        logger.error("HumAID model unavailable at '%s': %s", selected_path, state["error"])
+        _model_state[path_key] = state
+        return state
+
+    try:
+        if get_classifier is None:
+            raise ImportError("NLP inference module could not be imported.")
+        get_classifier(model_dir=selected_path)
+        state["loaded"] = True
+        logger.info("HumAID model loaded and ready for inference from '%s'", selected_path)
+    except Exception as err:
+        state["error"] = str(err)
+        logger.exception("HumAID model failed to load from '%s'", selected_path)
+    _model_state[path_key] = state
+    return state
 
 
 def classify_text_message(text: Optional[str], return_all_probabilities: bool = True) -> Dict[str, Any]:

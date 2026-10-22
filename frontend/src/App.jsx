@@ -40,7 +40,9 @@ export default function App() {
   const [responseTeams, _setResponseTeams] = useState(RESPONSE_TEAMS);
 
   // Backend Integration State
-  const [backendConnected, setBackendConnected] = useState(null); // null = checking, true = live, false = fallback
+  const [backendStatus, setBackendStatus] = useState('connecting'); // connecting | connected | waking | unavailable
+  const backendConnected = backendStatus === 'connected';
+  const [backendHealth, setBackendHealth] = useState(null);
   const [backendError, setBackendError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -68,33 +70,42 @@ export default function App() {
   // Load Initial Data from Backend (with graceful mock fallback)
   const loadDashboardData = useCallback(async (isRetry = false) => {
     setIsLoading(true);
+    setBackendStatus(isRetry ? 'waking' : 'connecting');
+    const started = performance.now();
     try {
-      await api.getHealth();
-      const [apiIncidents, apiZones, apiAuditLogs] = await Promise.all([
-        api.getIncidents(),
-        api.getAttentionZones(),
-        api.getAuditLogs()
-      ]);
-
-      if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
-        setIncidents(apiIncidents);
-        setSelectedIncidentId(apiIncidents[0].id);
-      }
-      if (Array.isArray(apiZones) && apiZones.length > 0) {
-        setAttentionZones(apiZones);
-      }
-      if (Array.isArray(apiAuditLogs) && apiAuditLogs.length > 0) {
-        setAuditLog(apiAuditLogs);
-      }
-
-      setBackendConnected(true);
+      const health = await api.getHealth();
+      setBackendHealth(health);
+      setBackendStatus('connected');
       setBackendError(null);
+      console.info(`[RESQNET Backend] liveness succeeded in ${(performance.now() - started).toFixed(0)} ms`);
       if (isRetry) {
         showToast("Connected to RESQNET AI Backend!", "success");
       }
+
+      try {
+        const [apiIncidents, apiZones, apiAuditLogs] = await Promise.all([
+          api.getIncidents(),
+          api.getAttentionZones(),
+          api.getAuditLogs()
+        ]);
+
+        if (Array.isArray(apiIncidents) && apiIncidents.length > 0) {
+          setIncidents(apiIncidents);
+          setSelectedIncidentId(apiIncidents[0].id);
+        }
+        if (Array.isArray(apiZones) && apiZones.length > 0) {
+          setAttentionZones(apiZones);
+        }
+        if (Array.isArray(apiAuditLogs) && apiAuditLogs.length > 0) {
+          setAuditLog(apiAuditLogs);
+        }
+      } catch (err) {
+        console.warn("Backend liveness succeeded but dashboard data could not be loaded:", err.message);
+      }
+
     } catch (err) {
       console.warn("Backend not reached, running in offline fallback mode:", err.message);
-      setBackendConnected(false);
+      setBackendStatus(err.code === 'REQUEST_TIMEOUT' ? 'waking' : 'unavailable');
       setBackendError(err.message || "FastAPI backend unreachable at " + api.getBaseUrl());
       if (isRetry) {
         showToast("Backend connection failed. Using local fallback data.", "alert");
@@ -696,6 +707,7 @@ export default function App() {
           onOpenExportBrief={() => setIsExportBriefOpen(true)}
           onOpenBroadcast={() => setIsBroadcastOpen(true)}
           backendConnected={backendConnected}
+          backendStatus={backendStatus}
           onOpenNewIncidentModal={() => setIsNewIncidentModalOpen(true)}
           onOpenNewIncident={() => setIsNewIncidentModalOpen(true)}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -714,12 +726,14 @@ export default function App() {
         {/* Dynamic Main Body Content */}
         <main className="flex-1 min-h-0 p-4 sm:p-6 space-y-6 max-w-[1700px] w-full mx-auto">
           {/* Backend Offline Fallback Banner */}
-          {backendConnected === false && (
+          {backendStatus !== 'connected' && backendStatus !== 'connecting' && (
             <div className="bg-high-tint shadow-clay-card rounded-clay-card p-4 px-5 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
               <div className="flex items-center space-x-3">
                 <AlertTriangle className="w-4 h-4 text-high flex-shrink-0" />
                 <div className="text-high-text">
-                  <span className="font-bold font-mono">BACKEND OFFLINE:</span>{' '}
+                  <span className="font-bold font-mono">
+                    {backendStatus === 'waking' ? 'BACKEND WAKING:' : 'BACKEND UNAVAILABLE:'}
+                  </span>{' '}
                   Cannot connect to FastAPI at <code className="bg-surface-card px-1.5 py-0.5 rounded-clay-pill text-text-primary font-mono shadow-clay-pill">{api.getBaseUrl()}</code>.
                   Running with reliable local data. Start backend with <code className="bg-surface-card px-1.5 py-0.5 rounded-clay-pill font-mono shadow-clay-pill text-text-primary">uvicorn backend.app.main:app</code>.
                 </div>
@@ -730,7 +744,7 @@ export default function App() {
                 className="clay-button flex items-center space-x-1.5 px-3 py-1.5 rounded-clay-button text-high-text font-mono text-[11px] self-start sm:self-auto flex-shrink-0 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>{isLoading ? 'Connecting...' : 'Retry Connection'}</span>
+                <span>{isLoading ? 'Waking...' : 'Retry Connection'}</span>
               </button>
             </div>
           )}
@@ -747,6 +761,7 @@ export default function App() {
               onVerifyStatusChange={handleVerifyStatusChange}
               onResponseStatusChange={handleResponseStatusChange}
               backendConnected={backendConnected}
+              backendStatus={backendStatus}
             />
           )}
 
@@ -827,6 +842,7 @@ export default function App() {
             <ActivityHealthPage
               auditLog={auditLog}
               backendConnected={backendConnected}
+              healthData={backendHealth}
               backendError={backendError}
               onRetryConnection={() => loadDashboardData(true)}
               isLoading={isLoading}

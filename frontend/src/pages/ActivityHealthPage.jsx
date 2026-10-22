@@ -20,31 +20,27 @@ import api from '../services/api';
 export default function ActivityHealthPage({
   auditLog = [],
   backendConnected,
+  backendStatus,
   backendError,
   onRetryConnection,
   isLoading,
-  onSelectIncidentById
+  onSelectIncidentById,
+  healthData
 }) {
   const [activeSubTab, setActiveSubTab] = useState('audit'); // audit | health
-  const [healthData, setHealthData] = useState(null);
-  const [healthLoading, setHealthLoading] = useState(false);
+  const [readinessData, setReadinessData] = useState(null);
 
   useEffect(() => {
-    if (activeSubTab === 'health' && backendConnected) {
-      let isMounted = true;
-      setHealthLoading(true);
-      api.getHealth()
-        .then(data => {
-          if (isMounted) setHealthData(data);
-        })
-        .catch(err => {
-          console.error("Health probe error:", err);
-        })
-        .finally(() => {
-          if (isMounted) setHealthLoading(false);
-        });
-      return () => { isMounted = false; };
-    }
+    if (activeSubTab !== 'health' || backendConnected !== true) return;
+    let active = true;
+    api.getReadiness()
+      .then((data) => {
+        if (active) setReadinessData(data);
+      })
+      .catch((error) => {
+        if (active) setReadinessData({ status: 'UNREADY', error: error.message });
+      });
+    return () => { active = false; };
   }, [activeSubTab, backendConnected]);
 
   return (
@@ -124,7 +120,7 @@ export default function ActivityHealthPage({
                 </p>
               </div>
               <div className="pt-2 text-[11px]">
-                {backendConnected === true ? (
+                {backendStatus === 'connected' || backendConnected === true ? (
                   <span className="text-[#1C8C5A] flex items-center space-x-1 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Endpoints responding nominal</span>
@@ -171,11 +167,11 @@ export default function ActivityHealthPage({
                   <Brain className="w-5 h-5" />
                 </div>
                 <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-clay-pill shadow-clay-pill ${
-                  (healthData?.model_loaded ?? true)
+                  readinessData?.status === 'READY'
                     ? 'bg-purple-500/15 text-purple-700'
                     : 'bg-severity-high/15 text-[#B26A00]'
                 }`}>
-                  {(healthData?.model_loaded ?? true) ? 'LOADED' : 'FALLBACK'}
+                  {readinessData?.status === 'READY' ? 'LOADED' : readinessData ? 'UNAVAILABLE' : 'NOT CHECKED'}
                 </span>
               </div>
               <div>
@@ -186,7 +182,7 @@ export default function ActivityHealthPage({
               </div>
               <div className="pt-2 text-[11px] flex items-center space-x-1 font-medium text-purple-700">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{(healthData?.model_loaded ?? true) ? '11 Humanitarian Classes Ready' : 'Inference Fallback Mode'}</span>
+                <span>{readinessData?.status === 'READY' ? '10 Humanitarian Classes Ready' : readinessData ? 'Inference unavailable' : 'Readiness not checked'}</span>
               </div>
             </div>
 
@@ -300,4 +296,3 @@ export default function ActivityHealthPage({
     </div>
   );
 }
-

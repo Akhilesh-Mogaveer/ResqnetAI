@@ -39,7 +39,8 @@ class ClassificationResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     version: str
-    model_dir: str
-    model_loaded: bool
-    database_connected: bool
+    model_dir: Optional[str] = None
+    model_loaded: Optional[bool] = None
+    model_error: Optional[str] = None
+    database_connected: Optional[bool] = None
     disclaimer: str = Field(default=DEFAULT_DISCLAIMER)

@@ -48,13 +48,13 @@ def test_humaid_distilbert_artifacts_exist_and_validate():
 
 
 def test_health_endpoint_reports_model_status_honestly(client: TestClient):
-    """Verify /health endpoint returns accurate model readiness and local path."""
+    """Verify /health is a dependency-free liveness probe."""
     res = client.get("/api/v1/health")
     assert res.status_code == 200
     data = res.json()
-    assert data["status"] in ("HEALTHY", "DEGRADED")
-    assert data["model_loaded"] is True
-    assert "resqnet_distilbert" in data["model_dir"]
+    assert data["status"] == "ALIVE"
+    assert data["model_loaded"] is None
+    assert data["model_dir"] is None
     assert "RESQNET AI Automated NLP Prediction" in data["disclaimer"]
 
 
@@ -73,4 +73,3 @@ def test_environmental_sources_status_distinguishes_provenance(client: TestClien
     # Verify IMD audit indicates credential requirement
     imd_status = next(s for s in sources if "IMD" in s["name"] or "imd" in s["source_id"])
     assert "x-api-key" in imd_status["access_requirements"].lower() or "jwt" in imd_status["access_requirements"].lower() or "authenticated" in imd_status["access_requirements"].lower()
-

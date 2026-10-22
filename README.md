@@ -162,6 +162,25 @@ Duplicate emergency reports often inundate emergency dispatch centers during dis
 
 - **Model Architecture**: Prototype sequence classifier based on `distilbert-base-uncased` fine-tuned for 10 humanitarian categories. The current local checkpoint is an experimental prototype trained on a sample batch (held-out sample evaluation: 36% accuracy, 22% weighted F1 due to small batch class imbalance; full multi-thousand HumAID benchmark target is ~88% macro F1).
 - **Weights Location**: `data/nlp/models/resqnet_distilbert/` (includes `model.safetensors`, `config.json`, `tokenizer.json`, and `label_map.json`).
+
+### Production model provisioning
+
+The trained `model.safetensors` files are intentionally ignored by Git because
+they are larger than GitHub's 100 MB file limit. A clean Render checkout
+therefore does not contain the local model unless the build provisions it.
+Store the complete `resqnet_distilbert_full` directory as a private or trusted
+HTTPS zip/tar archive and set `MODEL_ARTIFACT_URL` in the Render build
+environment. The deployment build command must run:
+
+```powershell
+python scripts/prepare_nlp_model.py
+```
+
+The archive must contain `config.json`, `label_mapping.json`, `tokenizer.json`,
+and `model.safetensors`. The backend now loads the model during startup and
+reports `model_loaded: false` plus the load error when artifacts are missing or
+incompatible; it never presents a zero-confidence unavailable result as a
+successful prediction.
 - **Offline Inference**: `backend/app/services/nlp_service.py` connects directly to `data/nlp/src/inference.py`. It loads weights once into memory on startup and runs purely offline without external downloads.
 
 ### 🛡️ Critical Safety & Data Integrity Principles
@@ -230,4 +249,3 @@ ENABLE_DEMO_SIMULATED_FEEDS=true
 ```bash
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
-
