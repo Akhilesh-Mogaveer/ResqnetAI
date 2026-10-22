@@ -18,6 +18,17 @@ import {
 import api from '../services/api';
 import DuplicateReviewModal from './DuplicateReviewModal';
 
+const getConfidenceTier = (candidate) => {
+  const confidence = String(candidate.confidence_level || '').trim().toUpperCase();
+  if (confidence === 'HIGH' || confidence === 'MEDIUM' || confidence === 'LOW') {
+    return confidence;
+  }
+
+  if (candidate.overall_score >= 75) return 'HIGH';
+  if (candidate.overall_score >= 50) return 'MEDIUM';
+  return 'LOW';
+};
+
 export default function DuplicateSuggestionsCard({
   incident,
   onDuplicateMerged,
@@ -296,8 +307,8 @@ export default function DuplicateSuggestionsCard({
                       key={suggestionKey}
                       className="p-3.5 rounded-clay-card clay-card text-[11px] space-y-2"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center space-x-2 font-mono text-[10px]">
                             <span className="text-[#B45309] font-bold">{candidateId}</span>
                             <span className="text-text-muted">·</span>
@@ -310,12 +321,12 @@ export default function DuplicateSuggestionsCard({
                           </div>
                         </div>
 
-                        <span className={`px-2.5 py-0.5 rounded-clay-pill text-[10px] font-mono font-bold shadow-clay-pill flex-shrink-0 ${
-                          cand.overall_score >= 75 ? 'bg-severity-critical-soft text-severity-critical' :
-                          cand.overall_score >= 50 ? 'bg-severity-high-soft text-[#B45309]' :
-                          'bg-brand-50 text-brand-primary'
+                        <span className={`inline-flex max-w-full items-center justify-center px-3 py-1 rounded-clay-pill text-[10px] leading-tight font-mono font-bold text-center whitespace-normal shadow-clay-pill flex-shrink-0 ${
+                          getConfidenceTier(cand) === 'HIGH' ? 'bg-red-600 text-white' :
+                          getConfidenceTier(cand) === 'MEDIUM' ? 'bg-blue-100 text-blue-950' :
+                          'bg-amber-100 text-amber-950'
                         }`}>
-                          {cand.overall_score}% Match ({cand.confidence_level})
+                          {cand.overall_score}% Match ({cand.confidence_level || getConfidenceTier(cand)})
                         </span>
                       </div>
 

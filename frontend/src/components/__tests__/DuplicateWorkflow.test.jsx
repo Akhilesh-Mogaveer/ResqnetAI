@@ -94,6 +94,24 @@ describe('RESQNET AI Duplicate Detection Workflow (RQN-0444 & RQN-0445)', () => 
     expect(screen.getByRole('button', { name: /Dismiss/i })).toBeInTheDocument();
   });
 
+  it('renders readable color-coded match badges for every confidence tier', async () => {
+    api.getIncidentDuplicates.mockResolvedValue([
+      { ...mockCandidateRQN0445, id: 'low', candidate_id: 'LOW-1', overall_score: 50, confidence_level: 'LOW' },
+      { ...mockCandidateRQN0445, id: 'medium', candidate_id: 'MEDIUM-1', overall_score: 65, confidence_level: 'MEDIUM' },
+      { ...mockCandidateRQN0445, id: 'high', candidate_id: 'HIGH-1', overall_score: 100, confidence_level: 'HIGH Confidence' },
+    ]);
+
+    render(<DuplicateSuggestionsCard incident={mockIncidentRQN0444} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('50% Match (LOW)')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('50% Match (LOW)')).toHaveClass('bg-amber-100', 'text-amber-950');
+    expect(screen.getByText('65% Match (MEDIUM)')).toHaveClass('bg-blue-100', 'text-blue-950');
+    expect(screen.getByText('100% Match (HIGH Confidence)')).toHaveClass('bg-red-600', 'text-white');
+  });
+
   it('performs Review & Merge on RQN-0444 and RQN-0445 with confirmation and shows "Merge recorded"', async () => {
     api.getIncidentDuplicates.mockImplementation(async () => [mockCandidateRQN0445]);
 
